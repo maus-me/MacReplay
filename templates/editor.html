@@ -424,20 +424,16 @@
         fetch('/editor/portals')
             .then(res => res.json())
             .then(data => {
-                const select = document.getElementById('portalFilter');
+                const select = $('#portalFilter');
                 data.portals.forEach(portal => {
-                    const option = document.createElement('option');
-                    option.value = portal;
-                    option.textContent = portal;
-                    select.appendChild(option);
+                    select.append(new Option(portal, portal, false, false));
                 });
                 // Initialize Select2 for portals
-                $('#portalFilter').select2({
+                select.select2({
                     theme: 'bootstrap-5',
                     placeholder: 'All Portals',
                     allowClear: true,
-                    width: '100%',
-                    dropdownParent: $('#portalFilter').parent()
+                    width: '100%'
                 });
             })
             .catch(err => console.error('Error loading portals:', err));
@@ -446,20 +442,16 @@
         fetch('/editor/genres')
             .then(res => res.json())
             .then(data => {
-                const select = document.getElementById('genreFilter');
+                const select = $('#genreFilter');
                 data.genres.forEach(genre => {
-                    const option = document.createElement('option');
-                    option.value = genre;
-                    option.textContent = genre;
-                    select.appendChild(option);
+                    select.append(new Option(genre, genre, false, false));
                 });
                 // Initialize Select2 for genres
-                $('#genreFilter').select2({
+                select.select2({
                     theme: 'bootstrap-5',
                     placeholder: 'All Genres',
                     allowClear: true,
-                    width: '100%',
-                    dropdownParent: $('#genreFilter').parent()
+                    width: '100%'
                 });
             })
             .catch(err => console.error('Error loading genres:', err));
@@ -470,8 +462,7 @@
             placeholder: 'All Channels',
             allowClear: true,
             width: '100%',
-            minimumResultsForSearch: -1,  // Disable search for this one (only 3 options)
-            dropdownParent: $('#duplicateFilter').parent()
+            minimumResultsForSearch: -1  // Disable search for this one (only 3 options)
         });
     }
 
