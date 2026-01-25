@@ -1075,15 +1075,21 @@ def editor_data():
         base_query = "FROM channels WHERE 1=1"
         params = []
         
-        # Add portal filter
+        # Add portal filter (supports multiple values)
         if portal_filter:
-            base_query += " AND portal_name = ?"
-            params.append(portal_filter)
-        
-        # Add genre filter (check both custom_genre and genre)
+            portal_values = [p.strip() for p in portal_filter.split(',') if p.strip()]
+            if portal_values:
+                placeholders = ','.join(['?'] * len(portal_values))
+                base_query += f" AND portal_name IN ({placeholders})"
+                params.extend(portal_values)
+
+        # Add genre filter (check both custom_genre and genre, supports multiple values)
         if genre_filter:
-            base_query += " AND (COALESCE(NULLIF(custom_genre, ''), genre) = ?)"
-            params.append(genre_filter)
+            genre_values = [g.strip() for g in genre_filter.split(',') if g.strip()]
+            if genre_values:
+                placeholders = ','.join(['?'] * len(genre_values))
+                base_query += f" AND (COALESCE(NULLIF(custom_genre, ''), genre) IN ({placeholders}))"
+                params.extend(genre_values)
         
         # Add duplicate filter (only for enabled channels)
         if duplicate_filter == 'enabled_only':
@@ -1300,6 +1306,46 @@ def editor_genres():
     except Exception as e:
         logger.error(f"Error in editor_genres: {e}")
         return flask.jsonify({"genres": [], "error": str(e)}), 500
+
+
+@app.route("/api/editor/genres-grouped", methods=["GET"])
+@app.route("/editor/genres-grouped", methods=["GET"])
+@authorise
+def editor_genres_grouped():
+    """Get genres grouped by portal for multi-select dropdown."""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Get all portals first
+        cursor.execute("SELECT DISTINCT portal FROM channels ORDER BY portal")
+        portals = [row['portal'] for row in cursor.fetchall()]
+
+        genres_by_portal = []
+        for portal in portals:
+            cursor.execute("""
+                SELECT DISTINCT COALESCE(NULLIF(custom_genre, ''), genre) as genre
+                FROM channels
+                WHERE portal = ?
+                    AND COALESCE(NULLIF(custom_genre, ''), genre) IS NOT NULL
+                    AND COALESCE(NULLIF(custom_genre, ''), genre) != ''
+                    AND COALESCE(NULLIF(custom_genre, ''), genre) != 'None'
+                ORDER BY genre
+            """, (portal,))
+
+            genres = [row['genre'] for row in cursor.fetchall()]
+            if genres:  # Only add portal if it has genres
+                genres_by_portal.append({
+                    'portal': portal,
+                    'genres': genres
+                })
+
+        conn.close()
+
+        return flask.jsonify({"genres_by_portal": genres_by_portal})
+    except Exception as e:
+        logger.error(f"Error in editor_genres_grouped: {e}")
+        return flask.jsonify({"genres_by_portal": [], "error": str(e)}), 500
 
 
 @app.route("/api/editor/duplicate-counts", methods=["GET"])
