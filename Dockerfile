@@ -20,7 +20,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application files
-COPY app-docker.py app.py
+COPY app-docker-new.py app.py
 COPY stb.py .
 COPY templates/ templates/
 COPY static/ static/
@@ -35,6 +35,7 @@ USER macreplay
 # Set environment variables for containerized deployment
 ENV HOST=0.0.0.0:8001
 ENV CONFIG=/app/data/MacReplay.json
+ENV DB_PATH=/app/data/channels.db
 ENV PYTHONUNBUFFERED=1
 
 # Expose the application port

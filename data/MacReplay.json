@@ -1,0 +1,184 @@
+{
+    "portals": {
+        "e6171cd844774b96891ba48ebae19865": {
+            "enabled": "true",
+            "name": "goodchannel",
+            "url": "http://goodchannel.lol/portal.php",
+            "macs": {
+                "00:1A:79:82:D0:D8": "September 15, 2026, 11:24 am",
+                "00:1A:79:17:28:3A": "January 10, 2027, 12:00 am",
+                "00:1A:79:17:28:67": "March 17, 2026, 12:00 am",
+                "00:1A:79:AD:55:64": "February 17, 2026, 12:00 am",
+                "00:1A:79:98:BA:92": "January 15, 2027, 12:00 am",
+                "00:1A:79:E7:B6:38": "January 31, 2026, 12:00 am",
+                "00:1A:79:82:D0:33": "August 9, 2026, 9:12 pm",
+                "00:1A:79:17:28:69": "March 3, 2026, 12:00 am",
+                "00:1A:79:7A:54:37": "April 23, 2026, 12:00 am",
+                "00:1A:79:B6:72:C6": "March 2, 2026, 12:00 am"
+            },
+            "streams per mac": "1",
+            "epg offset": "0",
+            "proxy": "",
+            "enabled channels": [],
+            "custom channel names": {},
+            "custom channel numbers": {},
+            "custom genres": {},
+            "custom epg ids": {},
+            "fallback channels": {}
+        },
+        "e37b26c6f38241988c76aa5959132269": {
+            "enabled": "true",
+            "name": "iptvde.de",
+            "url": "http://iptvde.de:8080/portal.php",
+            "macs": {
+                "00:1A:79:3B:89:78": "March 18, 2027, 9:12 am"
+            },
+            "streams per mac": "1",
+            "epg offset": "0",
+            "proxy": "",
+            "enabled channels": [],
+            "custom channel names": {},
+            "custom channel numbers": {},
+            "custom genres": {},
+            "custom epg ids": {},
+            "fallback channels": {}
+        },
+        "dc9459747e3f40cfaf567b1398bbe7ab": {
+            "enabled": "true",
+            "name": "dragoniptv",
+            "url": "http://dragoniptv.de:80/portal.php",
+            "macs": {
+                "00:1A:79:42:2E:DD": "August 31, 2026, 5:30 pm",
+                "00:1A:79:A1:B0:8C": "December 30, 2026, 12:54 pm",
+                "00:1A:79:D6:7F:99": "June 26, 2026, 10:31 am",
+                "00:1A:79:A3:41:FF": "January 27, 2027, 8:29 pm",
+                "00:1A:79:B3:8A:52": "September 11, 2026, 10:29 pm",
+                "00:1A:79:D2:2D:88": "February 11, 2026, 12:29 pm"
+            },
+            "streams per mac": "1",
+            "epg offset": "0",
+            "proxy": "",
+            "enabled channels": [],
+            "custom channel names": {},
+            "custom channel numbers": {},
+            "custom genres": {},
+            "custom epg ids": {},
+            "fallback channels": {}
+        },
+        "f6bef7b11d1a464f8b83f93d956f6fa9": {
+            "enabled": "true",
+            "name": "hottest.vip",
+            "url": "http://hottest.vip/portal.php",
+            "macs": {
+                "A0:BB:3E:E9:EB:F1": "March 13, 2027, 12:00 am"
+            },
+            "streams per mac": "1",
+            "epg offset": "0",
+            "proxy": "",
+            "enabled channels": [],
+            "custom channel names": {},
+            "custom channel numbers": {},
+            "custom genres": {},
+            "custom epg ids": {},
+            "fallback channels": {}
+        },
+        "643bffc727fa4fb6b1205ac56c5170a0": {
+            "enabled": "true",
+            "name": "main.light-ott.net",
+            "url": "http://main.light-ott.net:80/portal.php",
+            "macs": {
+                "A0:BB:3E:00:17:5B": "June 28, 2026, 11:18 pm",
+                "A0:BB:3E:00:17:3F": "June 15, 2026, 4:30 pm",
+                "A0:BB:3E:00:17:3B": "November 1, 2026, 1:38 pm",
+                "A0:BB:3E:00:17:56": "October 25, 2026, 3:56 pm",
+                "A0:BB:3E:00:17:5D": "May 28, 2026, 12:13 pm",
+                "A0:BB:3E:00:17:63": "July 14, 2026, 9:45 pm"
+            },
+            "streams per mac": "1",
+            "epg offset": "0",
+            "proxy": "",
+            "enabled channels": [],
+            "custom channel names": {},
+            "custom channel numbers": {},
+            "custom genres": {},
+            "custom epg ids": {},
+            "fallback channels": {}
+        },
+        "2051139f1a8441ca8cfbccf86b53146e": {
+            "enabled": "true",
+            "name": "ds.raptortv.de",
+            "url": "http://ds.raptortv.de/portal.php",
+            "macs": {
+                "A0:BB:3E:04:90:C8": "October 31, 2026, 10:13 pm",
+                "A0:BB:3E:30:15:27": "April 30, 2027, 5:28 pm"
+            },
+            "streams per mac": "1",
+            "epg offset": "0",
+            "proxy": "",
+            "enabled channels": [],
+            "custom channel names": {},
+            "custom channel numbers": {},
+            "custom genres": {},
+            "custom epg ids": {},
+            "fallback channels": {}
+        },
+        "136bd61ed81647199c7d92f285cab8a7": {
+            "enabled": "true",
+            "name": "focusmag.eu01.live",
+            "url": "http://focusmag.eu01.live:8080/portal.php",
+            "macs": {
+                "00:1A:79:BA:D2:58": "January 12, 2027, 4:16 pm"
+            },
+            "streams per mac": "1",
+            "epg offset": "0",
+            "proxy": "",
+            "enabled channels": [],
+            "custom channel names": {},
+            "custom channel numbers": {},
+            "custom genres": {},
+            "custom epg ids": {},
+            "fallback channels": {}
+        },
+        "a94f3ede9085491aa244d2a5290d7530": {
+            "enabled": "true",
+            "name": "pi.xc-clubtv.xyz",
+            "url": "http://pi.xc-clubtv.xyz:8080/portal.php",
+            "macs": {
+                "00:1A:79:BF:AF:03": "June 12, 2026, 9:52 pm",
+                "00:1A:79:CE:03:52": "March 30, 2026, 7:12 pm"
+            },
+            "streams per mac": "1",
+            "epg offset": "0",
+            "proxy": "",
+            "enabled channels": [],
+            "custom channel names": {},
+            "custom channel numbers": {},
+            "custom genres": {},
+            "custom epg ids": {},
+            "fallback channels": {}
+        }
+    },
+    "settings": {
+        "stream method": "ffmpeg",
+        "output format": "mpegts",
+        "ffmpeg command": "-re -http_proxy <proxy> -timeout <timeout> -i <url> -map 0 -codec copy -f mpegts -flush_packets 0 -fflags +nobuffer -flags low_delay -strict experimental -analyzeduration 0 -probesize 32 -copyts -threads 12 pipe:",
+        "hls segment type": "mpegts",
+        "hls segment duration": "4",
+        "hls playlist size": "6",
+        "ffmpeg timeout": "5",
+        "test streams": "true",
+        "try all macs": "true",
+        "use channel genres": "true",
+        "use channel numbers": "true",
+        "sort playlist by channel genre": "false",
+        "sort playlist by channel number": "true",
+        "sort playlist by channel name": "false",
+        "enable security": "false",
+        "username": "admin",
+        "password": "12345",
+        "enable hdhr": "true",
+        "hdhr name": "MacReplay",
+        "hdhr id": "7560ddf031f246c583f8cc334a6e00e3",
+        "hdhr tuners": "10"
+    }
+}

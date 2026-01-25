@@ -1,0 +1,2027 @@
+2026-01-25 02:22:32,553 [INFO] FFmpeg and FFprobe found and working
+2026-01-25 02:22:33,026 [INFO] Server started on http://0.0.0.0:8001
+2026-01-25 02:22:33,026 [INFO] Using config file: /app/data/MacReplay.json
+2026-01-25 02:22:33,039 [WARNING] No existing config found. Creating a new one
+2026-01-25 02:22:33,039 [INFO] Refreshing Lineup...
+2026-01-25 02:22:33,040 [INFO] Lineup Refreshed.
+2026-01-25 02:22:33,040 [INFO] Refreshing XMLTV...
+2026-01-25 02:22:33,064 [INFO] XMLTV cache updated.
+2026-01-25 02:23:21,228 [DEBUG] Getting token for MAC 00:1A:79:82:D0:D8 from http://goodchannel.lol/portal.php
+2026-01-25 02:23:21,326 [DEBUG] Token request status: 200
+2026-01-25 02:23:21,327 [INFO] Successfully got token for MAC 00:1A:79:82:D0:D8
+2026-01-25 02:23:21,360 [DEBUG] Getting expiry for MAC 00:1A:79:82:D0:D8
+2026-01-25 02:23:21,409 [DEBUG] Expiry request status: 200
+2026-01-25 02:23:21,410 [INFO] Got expiry for MAC 00:1A:79:82:D0:D8: September 15, 2026, 11:24 am
+2026-01-25 02:23:21,410 [INFO] Successfully tested MAC(00:1A:79:82:D0:D8) for Portal(goodchannel)
+2026-01-25 02:23:21,410 [INFO] Portal(goodchannel) added!
+2026-01-25 02:24:07,554 [INFO] Settings saved!
+2026-01-25 02:24:07,554 [INFO] Refreshing XMLTV...
+2026-01-25 02:24:07,555 [INFO] Loaded existing programme data from cache.
+2026-01-25 02:24:07,555 [INFO] Fetching EPG | Portal: goodchannel | offset: 0 |
+2026-01-25 02:24:07,556 [INFO] XMLTV cache updated.
+2026-01-25 02:24:55,325 [INFO] Refreshing Lineup...
+2026-01-25 02:24:55,325 [INFO] Lineup Refreshed.
+2026-01-25 02:24:59,850 [INFO] Generating playlist.m3u...
+2026-01-25 02:24:59,850 [INFO] Playlist generated and cached.
+2026-01-25 02:25:09,383 [INFO] Portal(goodchannel) updated!
+2026-01-25 02:26:50,057 [INFO] Portal(goodchannel) updated!
+2026-01-25 02:35:32,475 [INFO] FFmpeg and FFprobe found and working
+2026-01-25 02:35:32,952 [INFO] Server started on http://0.0.0.0:8001
+2026-01-25 02:35:32,953 [INFO] Using config file: /app/data/MacReplay.json
+2026-01-25 02:35:32,965 [INFO] Refreshing Lineup...
+2026-01-25 02:35:32,967 [INFO] Lineup Refreshed.
+2026-01-25 02:35:32,967 [INFO] Refreshing XMLTV...
+2026-01-25 02:35:32,973 [INFO] Loaded existing programme data from cache.
+2026-01-25 02:35:32,995 [INFO] XMLTV cache updated.
+2026-01-25 02:35:42,016 [INFO] getting Data from e6171cd844774b96891ba48ebae19865
+2026-01-25 02:35:53,037 [DEBUG] Getting token for MAC 00:1A:79:82:D0:D8 from http://goodchannel.lol/portal.php
+2026-01-25 02:35:53,109 [DEBUG] Token request status: 200
+2026-01-25 02:35:53,110 [INFO] Successfully got token for MAC 00:1A:79:82:D0:D8
+2026-01-25 02:35:53,140 [DEBUG] Getting expiry for MAC 00:1A:79:82:D0:D8
+2026-01-25 02:35:53,180 [DEBUG] Expiry request status: 200
+2026-01-25 02:35:53,180 [INFO] Got expiry for MAC 00:1A:79:82:D0:D8: September 15, 2026, 11:24 am
+2026-01-25 02:35:53,180 [INFO] Successfully tested MAC(00:1A:79:82:D0:D8) for Portal(goodchannel)
+2026-01-25 02:35:53,181 [INFO] Portal(goodchannel) updated!
+2026-01-25 02:36:00,819 [INFO] getting Data from e6171cd844774b96891ba48ebae19865
+2026-01-25 02:36:00,819 [INFO] Using mac: 00:1A:79:82:D0:D8
+2026-01-25 02:36:00,819 [DEBUG] Getting token for MAC 00:1A:79:82:D0:D8 from http://goodchannel.lol/portal.php
+2026-01-25 02:36:00,847 [DEBUG] Token request status: 200
+2026-01-25 02:36:00,847 [INFO] Successfully got token for MAC 00:1A:79:82:D0:D8
+2026-01-25 02:36:00,884 [DEBUG] Getting all channels for MAC 00:1A:79:82:D0:D8
+2026-01-25 02:36:01,905 [DEBUG] Channels request status: 200
+2026-01-25 02:36:02,392 [INFO] Got 23920 channels for MAC 00:1A:79:82:D0:D8
+2026-01-25 02:36:53,374 [INFO] getting Data from e6171cd844774b96891ba48ebae19865
+2026-01-25 02:36:53,375 [INFO] Using mac: 00:1A:79:82:D0:D8
+2026-01-25 02:36:53,375 [DEBUG] Getting token for MAC 00:1A:79:82:D0:D8 from http://goodchannel.lol/portal.php
+2026-01-25 02:36:53,407 [DEBUG] Token request status: 200
+2026-01-25 02:36:53,407 [INFO] Successfully got token for MAC 00:1A:79:82:D0:D8
+2026-01-25 02:36:53,441 [DEBUG] Getting all channels for MAC 00:1A:79:82:D0:D8
+2026-01-25 02:36:54,501 [DEBUG] Channels request status: 200
+2026-01-25 02:36:55,061 [INFO] Got 23920 channels for MAC 00:1A:79:82:D0:D8
+2026-01-25 02:38:11,297 [INFO] getting Data from e6171cd844774b96891ba48ebae19865
+2026-01-25 02:38:11,300 [INFO] Using mac: 00:1A:79:82:D0:D8
+2026-01-25 02:38:11,301 [DEBUG] Getting token for MAC 00:1A:79:82:D0:D8 from http://goodchannel.lol/portal.php
+2026-01-25 02:38:11,951 [DEBUG] Token request status: 200
+2026-01-25 02:38:11,952 [INFO] Successfully got token for MAC 00:1A:79:82:D0:D8
+2026-01-25 02:38:11,985 [DEBUG] Getting all channels for MAC 00:1A:79:82:D0:D8
+2026-01-25 02:38:13,047 [DEBUG] Channels request status: 200
+2026-01-25 02:38:13,825 [INFO] Got 23920 channels for MAC 00:1A:79:82:D0:D8
+2026-01-25 02:40:34,060 [INFO] FFmpeg and FFprobe found and working
+2026-01-25 02:40:34,651 [INFO] Server started on http://0.0.0.0:8001
+2026-01-25 02:40:34,653 [INFO] Using config file: /app/data/MacReplay.json
+2026-01-25 02:40:34,666 [INFO] Refreshing Lineup...
+2026-01-25 02:40:34,667 [INFO] Refreshing XMLTV...
+2026-01-25 02:40:34,667 [INFO] Lineup Refreshed.
+2026-01-25 02:40:34,668 [INFO] Loaded existing programme data from cache.
+2026-01-25 02:40:34,670 [INFO] Fetching EPG | Portal: goodchannel | offset: 0 |
+2026-01-25 02:40:34,693 [INFO] XMLTV cache updated.
+2026-01-25 02:46:43,942 [INFO] FFmpeg and FFprobe found and working
+2026-01-25 02:46:45,100 [INFO] Server started on http://0.0.0.0:8001
+2026-01-25 02:46:45,101 [INFO] Using config file: /app/data/MacReplay.json
+2026-01-25 02:46:45,117 [INFO] Refreshing Lineup...
+2026-01-25 02:46:45,117 [INFO] Refreshing XMLTV...
+2026-01-25 02:46:45,117 [INFO] Lineup Refreshed.
+2026-01-25 02:46:45,127 [INFO] Loaded existing programme data from cache.
+2026-01-25 02:46:45,129 [INFO] Fetching EPG | Portal: goodchannel | offset: 0 |
+2026-01-25 02:46:45,150 [INFO] XMLTV cache updated.
+2026-01-25 02:47:40,111 [DEBUG] Getting token for MAC 00:1A:79:82:D0:D8 from http://goodchannel.lol/portal.php
+2026-01-25 02:47:40,230 [DEBUG] Token request status: 200
+2026-01-25 02:47:40,230 [INFO] Successfully got token for MAC 00:1A:79:82:D0:D8
+2026-01-25 02:47:40,295 [DEBUG] Getting expiry for MAC 00:1A:79:82:D0:D8
+2026-01-25 02:47:40,348 [DEBUG] Expiry request status: 200
+2026-01-25 02:47:40,349 [INFO] Got expiry for MAC 00:1A:79:82:D0:D8: September 15, 2026, 11:24 am
+2026-01-25 02:47:40,349 [INFO] Successfully tested MAC(00:1A:79:82:D0:D8) for Portal(goodchannel)
+2026-01-25 02:47:40,350 [INFO] Portal(goodchannel) updated!
+2026-01-25 02:47:55,406 [INFO] getting Data from e6171cd844774b96891ba48ebae19865
+2026-01-25 02:47:55,406 [INFO] Using mac: 00:1A:79:82:D0:D8
+2026-01-25 02:47:55,406 [DEBUG] Getting token for MAC 00:1A:79:82:D0:D8 from http://goodchannel.lol/portal.php
+2026-01-25 02:47:55,440 [DEBUG] Token request status: 200
+2026-01-25 02:47:55,440 [INFO] Successfully got token for MAC 00:1A:79:82:D0:D8
+2026-01-25 02:47:55,527 [DEBUG] Getting all channels for MAC 00:1A:79:82:D0:D8
+2026-01-25 02:47:56,502 [DEBUG] Channels request status: 200
+2026-01-25 02:47:57,197 [INFO] Got 23920 channels for MAC 00:1A:79:82:D0:D8
+2026-01-25 02:49:43,095 [INFO] FFmpeg and FFprobe found and working
+2026-01-25 02:49:43,734 [INFO] Server started on http://0.0.0.0:8001
+2026-01-25 02:49:43,735 [INFO] Using config file: /app/data/MacReplay.json
+2026-01-25 02:49:43,755 [INFO] Refreshing Lineup...
+2026-01-25 02:49:43,755 [INFO] Refreshing XMLTV...
+2026-01-25 02:49:43,760 [INFO] Lineup Refreshed.
+2026-01-25 02:49:43,768 [INFO] Loaded existing programme data from cache.
+2026-01-25 02:49:43,768 [INFO] Fetching EPG | Portal: goodchannel | offset: 0 |
+2026-01-25 02:49:43,794 [INFO] XMLTV cache updated.
+2026-01-25 02:50:03,294 [DEBUG] Getting token for MAC 00:1A:79:82:D0:D8 from http://goodchannel.lol/portal.php
+2026-01-25 02:50:04,627 [DEBUG] Token request status: 200
+2026-01-25 02:50:04,630 [INFO] Successfully got token for MAC 00:1A:79:82:D0:D8
+2026-01-25 02:50:05,157 [DEBUG] Getting expiry for MAC 00:1A:79:82:D0:D8
+2026-01-25 02:50:05,226 [DEBUG] Expiry request status: 200
+2026-01-25 02:50:05,230 [INFO] Got expiry for MAC 00:1A:79:82:D0:D8: September 15, 2026, 11:24 am
+2026-01-25 02:50:05,230 [INFO] Successfully tested MAC(00:1A:79:82:D0:D8) for Portal(goodchannel)
+2026-01-25 02:50:05,230 [INFO] Portal(goodchannel) updated!
+2026-01-25 02:50:08,229 [INFO] getting Data from e6171cd844774b96891ba48ebae19865
+2026-01-25 02:50:08,231 [INFO] Using mac: 00:1A:79:82:D0:D8
+2026-01-25 02:50:08,231 [DEBUG] Getting token for MAC 00:1A:79:82:D0:D8 from http://goodchannel.lol/portal.php
+2026-01-25 02:50:08,296 [DEBUG] Token request status: 200
+2026-01-25 02:50:08,297 [INFO] Successfully got token for MAC 00:1A:79:82:D0:D8
+2026-01-25 02:50:08,344 [DEBUG] Getting all channels for MAC 00:1A:79:82:D0:D8
+2026-01-25 02:50:10,494 [DEBUG] Channels request status: 200
+2026-01-25 02:50:11,226 [INFO] Got 23920 channels for MAC 00:1A:79:82:D0:D8
+2026-01-25 03:22:29,729 [INFO] FFmpeg and FFprobe found and working
+2026-01-25 03:22:30,371 [INFO] Server started on http://0.0.0.0:8001
+2026-01-25 03:22:30,371 [INFO] Using config file: /app/data/MacReplay.json
+2026-01-25 03:22:30,371 [INFO] Using database file: /app/data/channels.db
+2026-01-25 03:22:30,552 [INFO] Database initialized
+2026-01-25 03:22:30,554 [INFO] HLS Stream Manager monitoring started
+2026-01-25 03:22:30,554 [INFO] Refreshing Lineup from database...
+2026-01-25 03:22:30,555 [INFO] Lineup refreshed with 0 channels.
+2026-01-25 03:22:30,555 [INFO] XMLTV refresh not yet implemented in this version
+2026-01-25 03:41:17,721 [INFO] FFmpeg and FFprobe found and working
+2026-01-25 03:41:18,218 [INFO] Public BaseURL: http://stb-proxy.sb.leonderi.xyz
+2026-01-25 03:41:18,218 [INFO] Using config file: /app/data/MacReplay.json
+2026-01-25 03:41:18,218 [INFO] Using database file: /app/data/channels.db
+2026-01-25 03:41:18,248 [INFO] Database initialized successfully
+2026-01-25 03:41:18,249 [INFO] HLS Stream Manager monitoring started
+2026-01-25 03:41:18,262 [INFO] Refreshing Lineup from database...
+2026-01-25 03:41:18,263 [INFO] Lineup refreshed with 0 channels.
+2026-01-25 03:41:18,263 [INFO] Refreshing XMLTV...
+2026-01-25 03:41:18,280 [INFO] Fetching EPG | Portal: goodchannel | offset: 0 |
+2026-01-25 03:41:18,299 [INFO] XMLTV cache updated.
+2026-01-25 03:41:37,657 [INFO] Testing MAC(00:1A:79:82:D0:D8) for Portal(goodchannel)...
+2026-01-25 03:41:37,657 [DEBUG] Getting token for MAC 00:1A:79:82:D0:D8 from http://goodchannel.lol/portal.php
+2026-01-25 03:41:37,720 [DEBUG] Token request status: 200
+2026-01-25 03:41:37,721 [INFO] Successfully got token for MAC 00:1A:79:82:D0:D8
+2026-01-25 03:41:37,750 [DEBUG] Getting expiry for MAC 00:1A:79:82:D0:D8
+2026-01-25 03:41:37,796 [DEBUG] Expiry request status: 200
+2026-01-25 03:41:37,797 [INFO] Got expiry for MAC 00:1A:79:82:D0:D8: September 15, 2026, 11:24 am
+2026-01-25 03:41:37,797 [INFO] Successfully tested MAC(00:1A:79:82:D0:D8) for Portal(goodchannel)
+2026-01-25 03:41:37,798 [INFO] Portal(goodchannel) updated!
+2026-01-25 03:41:54,899 [INFO] Starting channel cache refresh...
+2026-01-25 03:41:54,902 [INFO] Fetching channels for portal: goodchannel
+2026-01-25 03:41:54,905 [INFO] Trying MAC: 00:1A:79:82:D0:D8
+2026-01-25 03:41:54,905 [DEBUG] Getting token for MAC 00:1A:79:82:D0:D8 from http://goodchannel.lol/portal.php
+2026-01-25 03:41:54,940 [DEBUG] Token request status: 200
+2026-01-25 03:41:54,940 [INFO] Successfully got token for MAC 00:1A:79:82:D0:D8
+2026-01-25 03:41:54,980 [DEBUG] Getting all channels for MAC 00:1A:79:82:D0:D8
+2026-01-25 03:41:56,062 [DEBUG] Channels request status: 200
+2026-01-25 03:41:56,524 [INFO] Got 23920 channels for MAC 00:1A:79:82:D0:D8
+2026-01-25 03:41:56,979 [INFO] Processing 23920 channels for goodchannel
+2026-01-25 03:41:57,275 [INFO] Successfully cached 23920 channels for goodchannel
+2026-01-25 03:41:57,275 [INFO] Channel cache refresh complete. Total channels: 23920
+2026-01-25 03:41:57,309 [INFO] Channel cache refreshed: 23920 channels
+2026-01-25 03:42:02,238 [INFO] All channel customizations reset!
+2026-01-25 03:43:43,124 [INFO] IP(172.18.0.2) requested Portal(e6171cd844774b96891ba48ebae19865):Channel(1949668)
+2026-01-25 03:43:43,125 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:82:D0:D8):Channel(1949668)
+2026-01-25 03:43:43,125 [DEBUG] Getting token for MAC 00:1A:79:82:D0:D8 from http://goodchannel.lol/portal.php
+2026-01-25 03:43:43,182 [DEBUG] Token request status: 200
+2026-01-25 03:43:43,182 [INFO] Successfully got token for MAC 00:1A:79:82:D0:D8
+2026-01-25 03:43:43,220 [DEBUG] Getting all channels for MAC 00:1A:79:82:D0:D8
+2026-01-25 03:43:44,181 [DEBUG] Channels request status: 200
+2026-01-25 03:43:44,594 [INFO] Got 23920 channels for MAC 00:1A:79:82:D0:D8
+2026-01-25 03:43:44,814 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:82:D0:D8)
+2026-01-25 03:43:44,815 [INFO] Moving MAC(00:1A:79:82:D0:D8) for Portal(goodchannel)
+2026-01-25 03:43:44,815 [INFO] No working streams found for Portal(e6171cd844774b96891ba48ebae19865):Channel(1949668)
+2026-01-25 03:43:50,362 [INFO] IP(172.18.0.2) requested Portal(e6171cd844774b96891ba48ebae19865):Channel(1949669)
+2026-01-25 03:43:50,362 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:82:D0:D8):Channel(1949669)
+2026-01-25 03:43:50,362 [DEBUG] Getting token for MAC 00:1A:79:82:D0:D8 from http://goodchannel.lol/portal.php
+2026-01-25 03:43:50,395 [DEBUG] Token request status: 200
+2026-01-25 03:43:50,395 [INFO] Successfully got token for MAC 00:1A:79:82:D0:D8
+2026-01-25 03:43:50,430 [DEBUG] Getting all channels for MAC 00:1A:79:82:D0:D8
+2026-01-25 03:43:51,408 [DEBUG] Channels request status: 200
+2026-01-25 03:43:51,817 [INFO] Got 23920 channels for MAC 00:1A:79:82:D0:D8
+2026-01-25 03:43:52,047 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:82:D0:D8)
+2026-01-25 03:43:52,047 [INFO] Moving MAC(00:1A:79:82:D0:D8) for Portal(goodchannel)
+2026-01-25 03:43:52,047 [INFO] No working streams found for Portal(e6171cd844774b96891ba48ebae19865):Channel(1949669)
+2026-01-25 03:46:04,000 [INFO] Testing MAC(00:1A:79:82:D0:D8) for Portal(goodchannel)...
+2026-01-25 03:46:04,000 [DEBUG] Getting token for MAC 00:1A:79:82:D0:D8 from http://goodchannel.lol/portal.php
+2026-01-25 03:46:04,060 [DEBUG] Token request status: 200
+2026-01-25 03:46:04,060 [INFO] Successfully got token for MAC 00:1A:79:82:D0:D8
+2026-01-25 03:46:04,396 [DEBUG] Getting expiry for MAC 00:1A:79:82:D0:D8
+2026-01-25 03:46:05,577 [DEBUG] Expiry request status: 200
+2026-01-25 03:46:05,577 [INFO] Got expiry for MAC 00:1A:79:82:D0:D8: September 15, 2026, 11:24 am
+2026-01-25 03:46:05,577 [INFO] Successfully tested MAC(00:1A:79:82:D0:D8) for Portal(goodchannel)
+2026-01-25 03:46:05,577 [INFO] Testing MAC(00:1A:79:17:28:3A) for Portal(goodchannel)...
+2026-01-25 03:46:05,577 [DEBUG] Getting token for MAC 00:1A:79:17:28:3A from http://goodchannel.lol/portal.php
+2026-01-25 03:46:05,610 [DEBUG] Token request status: 200
+2026-01-25 03:46:05,610 [INFO] Successfully got token for MAC 00:1A:79:17:28:3A
+2026-01-25 03:46:05,679 [DEBUG] Getting expiry for MAC 00:1A:79:17:28:3A
+2026-01-25 03:46:05,759 [DEBUG] Expiry request status: 200
+2026-01-25 03:46:05,759 [INFO] Got expiry for MAC 00:1A:79:17:28:3A: January 10, 2027, 12:00 am
+2026-01-25 03:46:05,759 [INFO] Successfully tested MAC(00:1A:79:17:28:3A) for Portal(goodchannel)
+2026-01-25 03:46:05,760 [INFO] Testing MAC(00:1A:79:17:28:67) for Portal(goodchannel)...
+2026-01-25 03:46:05,760 [DEBUG] Getting token for MAC 00:1A:79:17:28:67 from http://goodchannel.lol/portal.php
+2026-01-25 03:46:06,384 [DEBUG] Token request status: 200
+2026-01-25 03:46:06,384 [INFO] Successfully got token for MAC 00:1A:79:17:28:67
+2026-01-25 03:46:06,445 [DEBUG] Getting expiry for MAC 00:1A:79:17:28:67
+2026-01-25 03:46:06,543 [DEBUG] Expiry request status: 200
+2026-01-25 03:46:06,543 [INFO] Got expiry for MAC 00:1A:79:17:28:67: March 17, 2026, 12:00 am
+2026-01-25 03:46:06,543 [INFO] Successfully tested MAC(00:1A:79:17:28:67) for Portal(goodchannel)
+2026-01-25 03:46:06,543 [INFO] Testing MAC(00:1A:79:AD:55:64) for Portal(goodchannel)...
+2026-01-25 03:46:06,543 [DEBUG] Getting token for MAC 00:1A:79:AD:55:64 from http://goodchannel.lol/portal.php
+2026-01-25 03:46:06,577 [DEBUG] Token request status: 200
+2026-01-25 03:46:06,577 [INFO] Successfully got token for MAC 00:1A:79:AD:55:64
+2026-01-25 03:46:06,607 [DEBUG] Getting expiry for MAC 00:1A:79:AD:55:64
+2026-01-25 03:46:06,643 [DEBUG] Expiry request status: 200
+2026-01-25 03:46:06,643 [INFO] Got expiry for MAC 00:1A:79:AD:55:64: February 17, 2026, 12:00 am
+2026-01-25 03:46:06,643 [INFO] Successfully tested MAC(00:1A:79:AD:55:64) for Portal(goodchannel)
+2026-01-25 03:46:06,644 [INFO] Testing MAC(00:1A:79:98:BA:92) for Portal(goodchannel)...
+2026-01-25 03:46:06,644 [DEBUG] Getting token for MAC 00:1A:79:98:BA:92 from http://goodchannel.lol/portal.php
+2026-01-25 03:46:06,678 [DEBUG] Token request status: 200
+2026-01-25 03:46:06,678 [INFO] Successfully got token for MAC 00:1A:79:98:BA:92
+2026-01-25 03:46:06,711 [DEBUG] Getting expiry for MAC 00:1A:79:98:BA:92
+2026-01-25 03:46:06,753 [DEBUG] Expiry request status: 200
+2026-01-25 03:46:06,753 [INFO] Got expiry for MAC 00:1A:79:98:BA:92: January 15, 2027, 12:00 am
+2026-01-25 03:46:06,753 [INFO] Successfully tested MAC(00:1A:79:98:BA:92) for Portal(goodchannel)
+2026-01-25 03:46:06,753 [INFO] Testing MAC(00:1A:79:E7:B6:38) for Portal(goodchannel)...
+2026-01-25 03:46:06,753 [DEBUG] Getting token for MAC 00:1A:79:E7:B6:38 from http://goodchannel.lol/portal.php
+2026-01-25 03:46:06,972 [DEBUG] Token request status: 200
+2026-01-25 03:46:06,972 [INFO] Successfully got token for MAC 00:1A:79:E7:B6:38
+2026-01-25 03:46:07,010 [DEBUG] Getting expiry for MAC 00:1A:79:E7:B6:38
+2026-01-25 03:46:07,049 [DEBUG] Expiry request status: 200
+2026-01-25 03:46:07,049 [INFO] Got expiry for MAC 00:1A:79:E7:B6:38: January 31, 2026, 12:00 am
+2026-01-25 03:46:07,050 [INFO] Successfully tested MAC(00:1A:79:E7:B6:38) for Portal(goodchannel)
+2026-01-25 03:46:07,050 [INFO] Testing MAC(00:1A:79:82:D0:33) for Portal(goodchannel)...
+2026-01-25 03:46:07,050 [DEBUG] Getting token for MAC 00:1A:79:82:D0:33 from http://goodchannel.lol/portal.php
+2026-01-25 03:46:07,084 [DEBUG] Token request status: 200
+2026-01-25 03:46:07,084 [INFO] Successfully got token for MAC 00:1A:79:82:D0:33
+2026-01-25 03:46:07,116 [DEBUG] Getting expiry for MAC 00:1A:79:82:D0:33
+2026-01-25 03:46:07,203 [DEBUG] Expiry request status: 200
+2026-01-25 03:46:07,203 [INFO] Got expiry for MAC 00:1A:79:82:D0:33: August 9, 2026, 9:12 pm
+2026-01-25 03:46:07,203 [INFO] Successfully tested MAC(00:1A:79:82:D0:33) for Portal(goodchannel)
+2026-01-25 03:46:07,204 [INFO] Testing MAC(00:1A:79:17:28:69) for Portal(goodchannel)...
+2026-01-25 03:46:07,204 [DEBUG] Getting token for MAC 00:1A:79:17:28:69 from http://goodchannel.lol/portal.php
+2026-01-25 03:46:07,284 [DEBUG] Token request status: 200
+2026-01-25 03:46:07,284 [INFO] Successfully got token for MAC 00:1A:79:17:28:69
+2026-01-25 03:46:07,319 [DEBUG] Getting expiry for MAC 00:1A:79:17:28:69
+2026-01-25 03:46:07,376 [DEBUG] Expiry request status: 200
+2026-01-25 03:46:07,376 [INFO] Got expiry for MAC 00:1A:79:17:28:69: March 3, 2026, 12:00 am
+2026-01-25 03:46:07,376 [INFO] Successfully tested MAC(00:1A:79:17:28:69) for Portal(goodchannel)
+2026-01-25 03:46:07,376 [INFO] Testing MAC(00:1A:79:7A:54:37) for Portal(goodchannel)...
+2026-01-25 03:46:07,376 [DEBUG] Getting token for MAC 00:1A:79:7A:54:37 from http://goodchannel.lol/portal.php
+2026-01-25 03:46:07,409 [DEBUG] Token request status: 200
+2026-01-25 03:46:07,410 [INFO] Successfully got token for MAC 00:1A:79:7A:54:37
+2026-01-25 03:46:07,532 [DEBUG] Getting expiry for MAC 00:1A:79:7A:54:37
+2026-01-25 03:46:07,880 [DEBUG] Expiry request status: 200
+2026-01-25 03:46:07,880 [INFO] Got expiry for MAC 00:1A:79:7A:54:37: April 23, 2026, 12:00 am
+2026-01-25 03:46:07,880 [INFO] Successfully tested MAC(00:1A:79:7A:54:37) for Portal(goodchannel)
+2026-01-25 03:46:07,881 [INFO] Testing MAC(00:1A:79:B6:72:C6) for Portal(goodchannel)...
+2026-01-25 03:46:07,881 [DEBUG] Getting token for MAC 00:1A:79:B6:72:C6 from http://goodchannel.lol/portal.php
+2026-01-25 03:46:07,919 [DEBUG] Token request status: 200
+2026-01-25 03:46:07,919 [INFO] Successfully got token for MAC 00:1A:79:B6:72:C6
+2026-01-25 03:46:07,994 [DEBUG] Getting expiry for MAC 00:1A:79:B6:72:C6
+2026-01-25 03:46:08,073 [DEBUG] Expiry request status: 200
+2026-01-25 03:46:08,074 [INFO] Got expiry for MAC 00:1A:79:B6:72:C6: March 2, 2026, 12:00 am
+2026-01-25 03:46:08,074 [INFO] Successfully tested MAC(00:1A:79:B6:72:C6) for Portal(goodchannel)
+2026-01-25 03:46:08,074 [INFO] Portal(goodchannel) updated!
+2026-01-25 03:47:00,741 [INFO] IP(172.18.0.2) requested Portal(e6171cd844774b96891ba48ebae19865):Channel(1949669)
+2026-01-25 03:47:00,741 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:82:D0:D8):Channel(1949669)
+2026-01-25 03:47:00,741 [DEBUG] Getting token for MAC 00:1A:79:82:D0:D8 from http://goodchannel.lol/portal.php
+2026-01-25 03:47:01,426 [DEBUG] Token request status: 200
+2026-01-25 03:47:01,428 [INFO] Successfully got token for MAC 00:1A:79:82:D0:D8
+2026-01-25 03:47:02,037 [DEBUG] Getting all channels for MAC 00:1A:79:82:D0:D8
+2026-01-25 03:47:03,885 [DEBUG] Channels request status: 200
+2026-01-25 03:47:04,350 [INFO] Got 23920 channels for MAC 00:1A:79:82:D0:D8
+2026-01-25 03:47:04,666 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:82:D0:D8)
+2026-01-25 03:47:04,666 [INFO] Moving MAC(00:1A:79:82:D0:D8) for Portal(goodchannel)
+2026-01-25 03:47:04,699 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:17:28:3A):Channel(1949669)
+2026-01-25 03:47:04,700 [DEBUG] Getting token for MAC 00:1A:79:17:28:3A from http://goodchannel.lol/portal.php
+2026-01-25 03:47:04,745 [DEBUG] Token request status: 200
+2026-01-25 03:47:04,745 [INFO] Successfully got token for MAC 00:1A:79:17:28:3A
+2026-01-25 03:47:05,353 [DEBUG] Getting all channels for MAC 00:1A:79:17:28:3A
+2026-01-25 03:47:07,701 [DEBUG] Channels request status: 200
+2026-01-25 03:47:08,286 [INFO] Got 30813 channels for MAC 00:1A:79:17:28:3A
+2026-01-25 03:47:08,297 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:17:28:3A)
+2026-01-25 03:47:08,297 [INFO] Moving MAC(00:1A:79:17:28:3A) for Portal(goodchannel)
+2026-01-25 03:47:08,339 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:17:28:67):Channel(1949669)
+2026-01-25 03:47:08,339 [DEBUG] Getting token for MAC 00:1A:79:17:28:67 from http://goodchannel.lol/portal.php
+2026-01-25 03:47:08,910 [DEBUG] Token request status: 200
+2026-01-25 03:47:08,910 [INFO] Successfully got token for MAC 00:1A:79:17:28:67
+2026-01-25 03:47:08,941 [DEBUG] Getting all channels for MAC 00:1A:79:17:28:67
+2026-01-25 03:47:09,809 [DEBUG] Channels request status: 200
+2026-01-25 03:47:10,061 [INFO] Got 15462 channels for MAC 00:1A:79:17:28:67
+2026-01-25 03:47:10,067 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:17:28:67)
+2026-01-25 03:47:10,067 [INFO] Moving MAC(00:1A:79:17:28:67) for Portal(goodchannel)
+2026-01-25 03:47:10,090 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:AD:55:64):Channel(1949669)
+2026-01-25 03:47:10,090 [DEBUG] Getting token for MAC 00:1A:79:AD:55:64 from http://goodchannel.lol/portal.php
+2026-01-25 03:47:10,182 [DEBUG] Token request status: 200
+2026-01-25 03:47:10,182 [INFO] Successfully got token for MAC 00:1A:79:AD:55:64
+2026-01-25 03:47:10,224 [DEBUG] Getting all channels for MAC 00:1A:79:AD:55:64
+2026-01-25 03:47:10,811 [DEBUG] Channels request status: 200
+2026-01-25 03:47:10,975 [INFO] Got 9526 channels for MAC 00:1A:79:AD:55:64
+2026-01-25 03:47:10,978 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:AD:55:64)
+2026-01-25 03:47:10,978 [INFO] Moving MAC(00:1A:79:AD:55:64) for Portal(goodchannel)
+2026-01-25 03:47:10,988 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:98:BA:92):Channel(1949669)
+2026-01-25 03:47:10,988 [DEBUG] Getting token for MAC 00:1A:79:98:BA:92 from http://goodchannel.lol/portal.php
+2026-01-25 03:47:11,028 [DEBUG] Token request status: 200
+2026-01-25 03:47:11,028 [INFO] Successfully got token for MAC 00:1A:79:98:BA:92
+2026-01-25 03:47:11,059 [DEBUG] Getting all channels for MAC 00:1A:79:98:BA:92
+2026-01-25 03:47:12,589 [DEBUG] Channels request status: 200
+2026-01-25 03:47:13,131 [INFO] Got 25953 channels for MAC 00:1A:79:98:BA:92
+2026-01-25 03:47:13,141 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:98:BA:92)
+2026-01-25 03:47:13,141 [INFO] Moving MAC(00:1A:79:98:BA:92) for Portal(goodchannel)
+2026-01-25 03:47:13,172 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:E7:B6:38):Channel(1949669)
+2026-01-25 03:47:13,172 [DEBUG] Getting token for MAC 00:1A:79:E7:B6:38 from http://goodchannel.lol/portal.php
+2026-01-25 03:47:13,204 [DEBUG] Token request status: 200
+2026-01-25 03:47:13,205 [INFO] Successfully got token for MAC 00:1A:79:E7:B6:38
+2026-01-25 03:47:13,890 [DEBUG] Getting all channels for MAC 00:1A:79:E7:B6:38
+2026-01-25 03:47:15,116 [DEBUG] Channels request status: 200
+2026-01-25 03:47:15,449 [INFO] Got 16838 channels for MAC 00:1A:79:E7:B6:38
+2026-01-25 03:47:16,206 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:E7:B6:38)
+2026-01-25 03:47:16,206 [INFO] Moving MAC(00:1A:79:E7:B6:38) for Portal(goodchannel)
+2026-01-25 03:47:16,228 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:82:D0:33):Channel(1949669)
+2026-01-25 03:47:16,228 [DEBUG] Getting token for MAC 00:1A:79:82:D0:33 from http://goodchannel.lol/portal.php
+2026-01-25 03:47:16,263 [DEBUG] Token request status: 200
+2026-01-25 03:47:16,263 [INFO] Successfully got token for MAC 00:1A:79:82:D0:33
+2026-01-25 03:47:16,294 [DEBUG] Getting all channels for MAC 00:1A:79:82:D0:33
+2026-01-25 03:47:16,668 [DEBUG] Channels request status: 200
+2026-01-25 03:47:16,718 [INFO] Got 4174 channels for MAC 00:1A:79:82:D0:33
+2026-01-25 03:47:16,720 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:82:D0:33)
+2026-01-25 03:47:16,720 [INFO] Moving MAC(00:1A:79:82:D0:33) for Portal(goodchannel)
+2026-01-25 03:47:16,725 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:17:28:69):Channel(1949669)
+2026-01-25 03:47:16,725 [DEBUG] Getting token for MAC 00:1A:79:17:28:69 from http://goodchannel.lol/portal.php
+2026-01-25 03:47:16,809 [DEBUG] Token request status: 200
+2026-01-25 03:47:16,810 [INFO] Successfully got token for MAC 00:1A:79:17:28:69
+2026-01-25 03:47:16,840 [DEBUG] Getting all channels for MAC 00:1A:79:17:28:69
+2026-01-25 03:47:18,893 [DEBUG] Channels request status: 200
+2026-01-25 03:47:19,659 [INFO] Got 31677 channels for MAC 00:1A:79:17:28:69
+2026-01-25 03:47:19,671 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:17:28:69)
+2026-01-25 03:47:19,671 [INFO] Moving MAC(00:1A:79:17:28:69) for Portal(goodchannel)
+2026-01-25 03:47:19,707 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:7A:54:37):Channel(1949669)
+2026-01-25 03:47:19,708 [DEBUG] Getting token for MAC 00:1A:79:7A:54:37 from http://goodchannel.lol/portal.php
+2026-01-25 03:47:19,741 [DEBUG] Token request status: 200
+2026-01-25 03:47:19,741 [INFO] Successfully got token for MAC 00:1A:79:7A:54:37
+2026-01-25 03:47:19,774 [DEBUG] Getting all channels for MAC 00:1A:79:7A:54:37
+2026-01-25 03:47:20,436 [DEBUG] Channels request status: 200
+2026-01-25 03:47:20,487 [INFO] Got 3423 channels for MAC 00:1A:79:7A:54:37
+2026-01-25 03:47:20,488 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:7A:54:37)
+2026-01-25 03:47:20,488 [INFO] Moving MAC(00:1A:79:7A:54:37) for Portal(goodchannel)
+2026-01-25 03:47:20,493 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:B6:72:C6):Channel(1949669)
+2026-01-25 03:47:20,493 [DEBUG] Getting token for MAC 00:1A:79:B6:72:C6 from http://goodchannel.lol/portal.php
+2026-01-25 03:47:20,525 [DEBUG] Token request status: 200
+2026-01-25 03:47:20,525 [INFO] Successfully got token for MAC 00:1A:79:B6:72:C6
+2026-01-25 03:47:20,563 [DEBUG] Getting all channels for MAC 00:1A:79:B6:72:C6
+2026-01-25 03:47:21,626 [DEBUG] Channels request status: 200
+2026-01-25 03:47:21,989 [INFO] Got 17858 channels for MAC 00:1A:79:B6:72:C6
+2026-01-25 03:47:22,237 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:B6:72:C6)
+2026-01-25 03:47:22,237 [INFO] Moving MAC(00:1A:79:B6:72:C6) for Portal(goodchannel)
+2026-01-25 03:47:22,238 [INFO] No working streams found for Portal(e6171cd844774b96891ba48ebae19865):Channel(1949669)
+2026-01-25 03:47:27,295 [INFO] IP(172.18.0.2) requested Portal(e6171cd844774b96891ba48ebae19865):Channel(1949668)
+2026-01-25 03:47:27,296 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:82:D0:D8):Channel(1949668)
+2026-01-25 03:47:27,296 [DEBUG] Getting token for MAC 00:1A:79:82:D0:D8 from http://goodchannel.lol/portal.php
+2026-01-25 03:47:27,326 [DEBUG] Token request status: 200
+2026-01-25 03:47:27,326 [INFO] Successfully got token for MAC 00:1A:79:82:D0:D8
+2026-01-25 03:47:27,399 [DEBUG] Getting all channels for MAC 00:1A:79:82:D0:D8
+2026-01-25 03:47:28,950 [DEBUG] Channels request status: 200
+2026-01-25 03:47:29,468 [INFO] Got 23920 channels for MAC 00:1A:79:82:D0:D8
+2026-01-25 03:47:29,774 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:82:D0:D8)
+2026-01-25 03:47:29,775 [INFO] Moving MAC(00:1A:79:82:D0:D8) for Portal(goodchannel)
+2026-01-25 03:47:29,800 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:17:28:3A):Channel(1949668)
+2026-01-25 03:47:29,800 [DEBUG] Getting token for MAC 00:1A:79:17:28:3A from http://goodchannel.lol/portal.php
+2026-01-25 03:47:29,828 [DEBUG] Token request status: 200
+2026-01-25 03:47:29,828 [INFO] Successfully got token for MAC 00:1A:79:17:28:3A
+2026-01-25 03:47:29,859 [DEBUG] Getting all channels for MAC 00:1A:79:17:28:3A
+2026-01-25 03:47:31,550 [DEBUG] Channels request status: 200
+2026-01-25 03:47:32,236 [INFO] Got 30813 channels for MAC 00:1A:79:17:28:3A
+2026-01-25 03:47:32,251 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:17:28:3A)
+2026-01-25 03:47:32,251 [INFO] Moving MAC(00:1A:79:17:28:3A) for Portal(goodchannel)
+2026-01-25 03:47:32,292 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:17:28:67):Channel(1949668)
+2026-01-25 03:47:32,292 [DEBUG] Getting token for MAC 00:1A:79:17:28:67 from http://goodchannel.lol/portal.php
+2026-01-25 03:47:32,322 [DEBUG] Token request status: 200
+2026-01-25 03:47:32,322 [INFO] Successfully got token for MAC 00:1A:79:17:28:67
+2026-01-25 03:47:32,349 [DEBUG] Getting all channels for MAC 00:1A:79:17:28:67
+2026-01-25 03:47:33,200 [DEBUG] Channels request status: 200
+2026-01-25 03:47:33,475 [INFO] Got 15462 channels for MAC 00:1A:79:17:28:67
+2026-01-25 03:47:33,481 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:17:28:67)
+2026-01-25 03:47:33,481 [INFO] Moving MAC(00:1A:79:17:28:67) for Portal(goodchannel)
+2026-01-25 03:47:33,500 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:AD:55:64):Channel(1949668)
+2026-01-25 03:47:33,501 [DEBUG] Getting token for MAC 00:1A:79:AD:55:64 from http://goodchannel.lol/portal.php
+2026-01-25 03:47:33,543 [DEBUG] Token request status: 200
+2026-01-25 03:47:33,543 [INFO] Successfully got token for MAC 00:1A:79:AD:55:64
+2026-01-25 03:47:33,654 [DEBUG] Getting all channels for MAC 00:1A:79:AD:55:64
+2026-01-25 03:47:34,158 [DEBUG] Channels request status: 200
+2026-01-25 03:47:34,317 [INFO] Got 9526 channels for MAC 00:1A:79:AD:55:64
+2026-01-25 03:47:34,322 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:AD:55:64)
+2026-01-25 03:47:34,322 [INFO] Moving MAC(00:1A:79:AD:55:64) for Portal(goodchannel)
+2026-01-25 03:47:34,340 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:98:BA:92):Channel(1949668)
+2026-01-25 03:47:34,341 [DEBUG] Getting token for MAC 00:1A:79:98:BA:92 from http://goodchannel.lol/portal.php
+2026-01-25 03:47:34,420 [DEBUG] Token request status: 200
+2026-01-25 03:47:34,421 [INFO] Successfully got token for MAC 00:1A:79:98:BA:92
+2026-01-25 03:47:34,452 [DEBUG] Getting all channels for MAC 00:1A:79:98:BA:92
+2026-01-25 03:47:36,004 [DEBUG] Channels request status: 200
+2026-01-25 03:47:36,549 [INFO] Got 25953 channels for MAC 00:1A:79:98:BA:92
+2026-01-25 03:47:36,559 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:98:BA:92)
+2026-01-25 03:47:36,560 [INFO] Moving MAC(00:1A:79:98:BA:92) for Portal(goodchannel)
+2026-01-25 03:47:36,595 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:E7:B6:38):Channel(1949668)
+2026-01-25 03:47:36,596 [DEBUG] Getting token for MAC 00:1A:79:E7:B6:38 from http://goodchannel.lol/portal.php
+2026-01-25 03:47:36,634 [DEBUG] Token request status: 200
+2026-01-25 03:47:36,634 [INFO] Successfully got token for MAC 00:1A:79:E7:B6:38
+2026-01-25 03:47:36,662 [DEBUG] Getting all channels for MAC 00:1A:79:E7:B6:38
+2026-01-25 03:47:38,153 [DEBUG] Channels request status: 200
+2026-01-25 03:47:38,518 [INFO] Got 16838 channels for MAC 00:1A:79:E7:B6:38
+2026-01-25 03:47:38,841 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:E7:B6:38)
+2026-01-25 03:47:38,842 [INFO] Moving MAC(00:1A:79:E7:B6:38) for Portal(goodchannel)
+2026-01-25 03:47:38,865 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:82:D0:33):Channel(1949668)
+2026-01-25 03:47:38,868 [DEBUG] Getting token for MAC 00:1A:79:82:D0:33 from http://goodchannel.lol/portal.php
+2026-01-25 03:47:38,902 [DEBUG] Token request status: 200
+2026-01-25 03:47:38,902 [INFO] Successfully got token for MAC 00:1A:79:82:D0:33
+2026-01-25 03:47:38,934 [DEBUG] Getting all channels for MAC 00:1A:79:82:D0:33
+2026-01-25 03:47:39,716 [DEBUG] Channels request status: 200
+2026-01-25 03:47:39,813 [INFO] Got 4174 channels for MAC 00:1A:79:82:D0:33
+2026-01-25 03:47:39,815 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:82:D0:33)
+2026-01-25 03:47:39,816 [INFO] Moving MAC(00:1A:79:82:D0:33) for Portal(goodchannel)
+2026-01-25 03:47:39,822 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:17:28:69):Channel(1949668)
+2026-01-25 03:47:39,823 [DEBUG] Getting token for MAC 00:1A:79:17:28:69 from http://goodchannel.lol/portal.php
+2026-01-25 03:47:39,851 [DEBUG] Token request status: 200
+2026-01-25 03:47:39,851 [INFO] Successfully got token for MAC 00:1A:79:17:28:69
+2026-01-25 03:47:39,888 [DEBUG] Getting all channels for MAC 00:1A:79:17:28:69
+2026-01-25 03:47:42,365 [DEBUG] Channels request status: 200
+2026-01-25 03:47:42,965 [INFO] Got 31677 channels for MAC 00:1A:79:17:28:69
+2026-01-25 03:47:42,980 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:17:28:69)
+2026-01-25 03:47:42,980 [INFO] Moving MAC(00:1A:79:17:28:69) for Portal(goodchannel)
+2026-01-25 03:47:43,019 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:7A:54:37):Channel(1949668)
+2026-01-25 03:47:43,019 [DEBUG] Getting token for MAC 00:1A:79:7A:54:37 from http://goodchannel.lol/portal.php
+2026-01-25 03:47:43,052 [DEBUG] Token request status: 200
+2026-01-25 03:47:43,052 [INFO] Successfully got token for MAC 00:1A:79:7A:54:37
+2026-01-25 03:47:43,195 [DEBUG] Getting all channels for MAC 00:1A:79:7A:54:37
+2026-01-25 03:47:43,507 [DEBUG] Channels request status: 200
+2026-01-25 03:47:43,572 [INFO] Got 3423 channels for MAC 00:1A:79:7A:54:37
+2026-01-25 03:47:43,574 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:7A:54:37)
+2026-01-25 03:47:43,574 [INFO] Moving MAC(00:1A:79:7A:54:37) for Portal(goodchannel)
+2026-01-25 03:47:43,579 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:B6:72:C6):Channel(1949668)
+2026-01-25 03:47:43,579 [DEBUG] Getting token for MAC 00:1A:79:B6:72:C6 from http://goodchannel.lol/portal.php
+2026-01-25 03:47:43,644 [DEBUG] Token request status: 200
+2026-01-25 03:47:43,644 [INFO] Successfully got token for MAC 00:1A:79:B6:72:C6
+2026-01-25 03:47:43,689 [DEBUG] Getting all channels for MAC 00:1A:79:B6:72:C6
+2026-01-25 03:47:45,578 [DEBUG] Channels request status: 200
+2026-01-25 03:47:45,936 [INFO] Got 17858 channels for MAC 00:1A:79:B6:72:C6
+2026-01-25 03:47:46,158 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:B6:72:C6)
+2026-01-25 03:47:46,158 [INFO] Moving MAC(00:1A:79:B6:72:C6) for Portal(goodchannel)
+2026-01-25 03:47:46,159 [INFO] No working streams found for Portal(e6171cd844774b96891ba48ebae19865):Channel(1949668)
+2026-01-25 03:48:22,382 [INFO] Testing MAC(00:1A:79:3B:89:78) for Portal(iptvde.de)...
+2026-01-25 03:48:22,391 [DEBUG] Getting token for MAC 00:1A:79:3B:89:78 from http://iptvde.de:8080/portal.php
+2026-01-25 03:48:22,607 [DEBUG] Token request status: 200
+2026-01-25 03:48:22,608 [INFO] Successfully got token for MAC 00:1A:79:3B:89:78
+2026-01-25 03:48:22,746 [DEBUG] Getting expiry for MAC 00:1A:79:3B:89:78
+2026-01-25 03:48:22,893 [DEBUG] Expiry request status: 200
+2026-01-25 03:48:22,893 [INFO] Got expiry for MAC 00:1A:79:3B:89:78: March 18, 2027, 9:12 am
+2026-01-25 03:48:22,894 [INFO] Successfully tested MAC(00:1A:79:3B:89:78) for Portal(iptvde.de)
+2026-01-25 03:48:22,895 [INFO] Portal(iptvde.de) added!
+2026-01-25 03:48:53,867 [INFO] Starting channel cache refresh...
+2026-01-25 03:48:53,868 [INFO] Fetching channels for portal: goodchannel
+2026-01-25 03:48:53,868 [INFO] Trying MAC: 00:1A:79:82:D0:D8
+2026-01-25 03:48:53,868 [DEBUG] Getting token for MAC 00:1A:79:82:D0:D8 from http://goodchannel.lol/portal.php
+2026-01-25 03:48:53,902 [DEBUG] Token request status: 200
+2026-01-25 03:48:53,903 [INFO] Successfully got token for MAC 00:1A:79:82:D0:D8
+2026-01-25 03:48:54,431 [DEBUG] Getting all channels for MAC 00:1A:79:82:D0:D8
+2026-01-25 03:48:57,288 [DEBUG] Channels request status: 200
+2026-01-25 03:48:57,865 [INFO] Got 23920 channels for MAC 00:1A:79:82:D0:D8
+2026-01-25 03:48:58,314 [INFO] Processing 23920 channels for goodchannel
+2026-01-25 03:48:58,772 [INFO] Successfully cached 23920 channels for goodchannel
+2026-01-25 03:48:58,772 [INFO] Fetching channels for portal: iptvde.de
+2026-01-25 03:48:58,802 [INFO] Trying MAC: 00:1A:79:3B:89:78
+2026-01-25 03:48:58,802 [DEBUG] Getting token for MAC 00:1A:79:3B:89:78 from http://iptvde.de:8080/portal.php
+2026-01-25 03:48:58,922 [DEBUG] Token request status: 200
+2026-01-25 03:48:58,922 [INFO] Successfully got token for MAC 00:1A:79:3B:89:78
+2026-01-25 03:48:59,057 [DEBUG] Getting all channels for MAC 00:1A:79:3B:89:78
+2026-01-25 03:48:59,571 [DEBUG] Channels request status: 200
+2026-01-25 03:48:59,641 [INFO] Got 4153 channels for MAC 00:1A:79:3B:89:78
+2026-01-25 03:48:59,757 [INFO] Processing 4153 channels for iptvde.de
+2026-01-25 03:48:59,937 [INFO] Successfully cached 4153 channels for iptvde.de
+2026-01-25 03:48:59,938 [INFO] Channel cache refresh complete. Total channels: 28073
+2026-01-25 03:48:59,962 [INFO] Channel cache refreshed: 28073 channels
+2026-01-25 03:49:49,270 [INFO] Testing MAC(00:1A:79:B3:8A:52) for Portal(dragoniptv)...
+2026-01-25 03:49:49,287 [DEBUG] Getting token for MAC 00:1A:79:B3:8A:52 from http://dragoniptv.de:80/portal.php
+2026-01-25 03:49:49,349 [DEBUG] Token request status: 200
+2026-01-25 03:49:49,352 [INFO] Successfully got token for MAC 00:1A:79:B3:8A:52
+2026-01-25 03:49:49,397 [DEBUG] Getting expiry for MAC 00:1A:79:B3:8A:52
+2026-01-25 03:49:49,452 [DEBUG] Expiry request status: 200
+2026-01-25 03:49:49,453 [INFO] Got expiry for MAC 00:1A:79:B3:8A:52: September 11, 2026, 10:29 pm
+2026-01-25 03:49:49,453 [INFO] Successfully tested MAC(00:1A:79:B3:8A:52) for Portal(dragoniptv)
+2026-01-25 03:49:49,453 [INFO] Testing MAC(00:1A:79:D2:2D:88) for Portal(dragoniptv)...
+2026-01-25 03:49:49,453 [DEBUG] Getting token for MAC 00:1A:79:D2:2D:88 from http://dragoniptv.de:80/portal.php
+2026-01-25 03:49:49,494 [DEBUG] Token request status: 200
+2026-01-25 03:49:49,494 [INFO] Successfully got token for MAC 00:1A:79:D2:2D:88
+2026-01-25 03:49:49,544 [DEBUG] Getting expiry for MAC 00:1A:79:D2:2D:88
+2026-01-25 03:49:49,594 [DEBUG] Expiry request status: 200
+2026-01-25 03:49:49,594 [INFO] Got expiry for MAC 00:1A:79:D2:2D:88: February 11, 2026, 12:29 pm
+2026-01-25 03:49:49,594 [INFO] Successfully tested MAC(00:1A:79:D2:2D:88) for Portal(dragoniptv)
+2026-01-25 03:49:49,594 [INFO] Testing MAC(00:1A:79:42:2E:DD) for Portal(dragoniptv)...
+2026-01-25 03:49:49,594 [DEBUG] Getting token for MAC 00:1A:79:42:2E:DD from http://dragoniptv.de:80/portal.php
+2026-01-25 03:49:49,641 [DEBUG] Token request status: 200
+2026-01-25 03:49:49,641 [INFO] Successfully got token for MAC 00:1A:79:42:2E:DD
+2026-01-25 03:49:49,692 [DEBUG] Getting expiry for MAC 00:1A:79:42:2E:DD
+2026-01-25 03:49:49,755 [DEBUG] Expiry request status: 200
+2026-01-25 03:49:49,756 [INFO] Got expiry for MAC 00:1A:79:42:2E:DD: August 31, 2026, 5:30 pm
+2026-01-25 03:49:49,756 [INFO] Successfully tested MAC(00:1A:79:42:2E:DD) for Portal(dragoniptv)
+2026-01-25 03:49:49,756 [INFO] Testing MAC(00:1A:79:A1:B0:8C) for Portal(dragoniptv)...
+2026-01-25 03:49:49,756 [DEBUG] Getting token for MAC 00:1A:79:A1:B0:8C from http://dragoniptv.de:80/portal.php
+2026-01-25 03:49:49,795 [DEBUG] Token request status: 200
+2026-01-25 03:49:49,795 [INFO] Successfully got token for MAC 00:1A:79:A1:B0:8C
+2026-01-25 03:49:49,847 [DEBUG] Getting expiry for MAC 00:1A:79:A1:B0:8C
+2026-01-25 03:49:49,898 [DEBUG] Expiry request status: 200
+2026-01-25 03:49:49,898 [INFO] Got expiry for MAC 00:1A:79:A1:B0:8C: December 30, 2026, 12:54 pm
+2026-01-25 03:49:49,898 [INFO] Successfully tested MAC(00:1A:79:A1:B0:8C) for Portal(dragoniptv)
+2026-01-25 03:49:49,898 [INFO] Testing MAC(00:1A:79:D6:7F:99) for Portal(dragoniptv)...
+2026-01-25 03:49:49,899 [DEBUG] Getting token for MAC 00:1A:79:D6:7F:99 from http://dragoniptv.de:80/portal.php
+2026-01-25 03:49:49,941 [DEBUG] Token request status: 200
+2026-01-25 03:49:49,942 [INFO] Successfully got token for MAC 00:1A:79:D6:7F:99
+2026-01-25 03:49:49,993 [DEBUG] Getting expiry for MAC 00:1A:79:D6:7F:99
+2026-01-25 03:49:50,052 [DEBUG] Expiry request status: 200
+2026-01-25 03:49:50,052 [INFO] Got expiry for MAC 00:1A:79:D6:7F:99: June 26, 2026, 10:31 am
+2026-01-25 03:49:50,052 [INFO] Successfully tested MAC(00:1A:79:D6:7F:99) for Portal(dragoniptv)
+2026-01-25 03:49:50,053 [INFO] Testing MAC(00:1A:79:A3:41:FF) for Portal(dragoniptv)...
+2026-01-25 03:49:50,053 [DEBUG] Getting token for MAC 00:1A:79:A3:41:FF from http://dragoniptv.de:80/portal.php
+2026-01-25 03:49:50,094 [DEBUG] Token request status: 200
+2026-01-25 03:49:50,094 [INFO] Successfully got token for MAC 00:1A:79:A3:41:FF
+2026-01-25 03:49:50,145 [DEBUG] Getting expiry for MAC 00:1A:79:A3:41:FF
+2026-01-25 03:49:50,199 [DEBUG] Expiry request status: 200
+2026-01-25 03:49:50,199 [INFO] Got expiry for MAC 00:1A:79:A3:41:FF: January 27, 2027, 8:29 pm
+2026-01-25 03:49:50,200 [INFO] Successfully tested MAC(00:1A:79:A3:41:FF) for Portal(dragoniptv)
+2026-01-25 03:49:50,203 [INFO] Portal(dragoniptv) added!
+2026-01-25 03:49:57,541 [INFO] Starting channel cache refresh...
+2026-01-25 03:49:57,543 [INFO] Fetching channels for portal: goodchannel
+2026-01-25 03:49:57,543 [INFO] Trying MAC: 00:1A:79:82:D0:D8
+2026-01-25 03:49:57,543 [DEBUG] Getting token for MAC 00:1A:79:82:D0:D8 from http://goodchannel.lol/portal.php
+2026-01-25 03:49:57,591 [DEBUG] Token request status: 200
+2026-01-25 03:49:57,592 [INFO] Successfully got token for MAC 00:1A:79:82:D0:D8
+2026-01-25 03:49:57,620 [DEBUG] Getting all channels for MAC 00:1A:79:82:D0:D8
+2026-01-25 03:50:00,462 [DEBUG] Channels request status: 200
+2026-01-25 03:50:01,349 [INFO] Got 23920 channels for MAC 00:1A:79:82:D0:D8
+2026-01-25 03:50:01,915 [INFO] Processing 23920 channels for goodchannel
+2026-01-25 03:50:02,764 [INFO] Successfully cached 23920 channels for goodchannel
+2026-01-25 03:50:02,764 [INFO] Fetching channels for portal: iptvde.de
+2026-01-25 03:50:02,799 [INFO] Trying MAC: 00:1A:79:3B:89:78
+2026-01-25 03:50:02,799 [DEBUG] Getting token for MAC 00:1A:79:3B:89:78 from http://iptvde.de:8080/portal.php
+2026-01-25 03:50:02,984 [DEBUG] Token request status: 200
+2026-01-25 03:50:02,984 [INFO] Successfully got token for MAC 00:1A:79:3B:89:78
+2026-01-25 03:50:03,123 [DEBUG] Getting all channels for MAC 00:1A:79:3B:89:78
+2026-01-25 03:50:03,635 [DEBUG] Channels request status: 200
+2026-01-25 03:50:03,745 [INFO] Got 4153 channels for MAC 00:1A:79:3B:89:78
+2026-01-25 03:50:03,859 [INFO] Processing 4153 channels for iptvde.de
+2026-01-25 03:50:04,067 [INFO] Successfully cached 4153 channels for iptvde.de
+2026-01-25 03:50:04,067 [INFO] Fetching channels for portal: dragoniptv
+2026-01-25 03:50:04,074 [INFO] Trying MAC: 00:1A:79:B3:8A:52
+2026-01-25 03:50:04,074 [DEBUG] Getting token for MAC 00:1A:79:B3:8A:52 from http://dragoniptv.de:80/portal.php
+2026-01-25 03:50:04,124 [DEBUG] Token request status: 200
+2026-01-25 03:50:04,125 [INFO] Successfully got token for MAC 00:1A:79:B3:8A:52
+2026-01-25 03:50:04,177 [DEBUG] Getting all channels for MAC 00:1A:79:B3:8A:52
+2026-01-25 03:50:04,446 [DEBUG] Channels request status: 200
+2026-01-25 03:50:04,519 [INFO] Got 3874 channels for MAC 00:1A:79:B3:8A:52
+2026-01-25 03:50:04,575 [INFO] Processing 3874 channels for dragoniptv
+2026-01-25 03:50:04,692 [INFO] Successfully cached 3874 channels for dragoniptv
+2026-01-25 03:50:04,694 [INFO] Channel cache refresh complete. Total channels: 31947
+2026-01-25 03:50:04,706 [INFO] Channel cache refreshed: 31947 channels
+2026-01-25 03:51:47,600 [INFO] Testing MAC(A0:BB:3E:E9:EB:F1) for Portal(hottest.vip)...
+2026-01-25 03:51:47,607 [DEBUG] Getting token for MAC A0:BB:3E:E9:EB:F1 from http://hottest.vip/portal.php
+2026-01-25 03:51:47,816 [DEBUG] Token request status: 200
+2026-01-25 03:51:47,827 [INFO] Successfully got token for MAC A0:BB:3E:E9:EB:F1
+2026-01-25 03:51:47,884 [DEBUG] Getting expiry for MAC A0:BB:3E:E9:EB:F1
+2026-01-25 03:51:47,938 [DEBUG] Expiry request status: 200
+2026-01-25 03:51:47,939 [INFO] Got expiry for MAC A0:BB:3E:E9:EB:F1: March 13, 2027, 12:00 am
+2026-01-25 03:51:47,939 [INFO] Successfully tested MAC(A0:BB:3E:E9:EB:F1) for Portal(hottest.vip)
+2026-01-25 03:51:47,948 [INFO] Portal(hottest.vip) added!
+2026-01-25 03:52:28,695 [INFO] Testing MAC(A0:BB:3E:00:17:63) for Portal(main.light-ott.net)...
+2026-01-25 03:52:28,697 [DEBUG] Getting token for MAC A0:BB:3E:00:17:63 from http://main.light-ott.net:80/portal.php
+2026-01-25 03:52:29,004 [DEBUG] Token request status: 200
+2026-01-25 03:52:29,004 [INFO] Successfully got token for MAC A0:BB:3E:00:17:63
+2026-01-25 03:52:29,146 [DEBUG] Getting expiry for MAC A0:BB:3E:00:17:63
+2026-01-25 03:52:29,484 [DEBUG] Expiry request status: 200
+2026-01-25 03:52:29,484 [INFO] Got expiry for MAC A0:BB:3E:00:17:63: July 14, 2026, 9:45 pm
+2026-01-25 03:52:29,485 [INFO] Successfully tested MAC(A0:BB:3E:00:17:63) for Portal(main.light-ott.net)
+2026-01-25 03:52:29,485 [INFO] Testing MAC(A0:BB:3E:00:17:5B) for Portal(main.light-ott.net)...
+2026-01-25 03:52:29,485 [DEBUG] Getting token for MAC A0:BB:3E:00:17:5B from http://main.light-ott.net:80/portal.php
+2026-01-25 03:52:29,847 [DEBUG] Token request status: 200
+2026-01-25 03:52:29,847 [INFO] Successfully got token for MAC A0:BB:3E:00:17:5B
+2026-01-25 03:52:29,985 [DEBUG] Getting expiry for MAC A0:BB:3E:00:17:5B
+2026-01-25 03:52:30,574 [DEBUG] Expiry request status: 200
+2026-01-25 03:52:30,574 [INFO] Got expiry for MAC A0:BB:3E:00:17:5B: June 28, 2026, 11:18 pm
+2026-01-25 03:52:30,574 [INFO] Successfully tested MAC(A0:BB:3E:00:17:5B) for Portal(main.light-ott.net)
+2026-01-25 03:52:30,574 [INFO] Testing MAC(A0:BB:3E:00:17:3F) for Portal(main.light-ott.net)...
+2026-01-25 03:52:30,575 [DEBUG] Getting token for MAC A0:BB:3E:00:17:3F from http://main.light-ott.net:80/portal.php
+2026-01-25 03:52:31,015 [DEBUG] Token request status: 200
+2026-01-25 03:52:31,016 [INFO] Successfully got token for MAC A0:BB:3E:00:17:3F
+2026-01-25 03:52:31,387 [DEBUG] Getting expiry for MAC A0:BB:3E:00:17:3F
+2026-01-25 03:52:31,728 [DEBUG] Expiry request status: 200
+2026-01-25 03:52:31,728 [INFO] Got expiry for MAC A0:BB:3E:00:17:3F: June 15, 2026, 4:30 pm
+2026-01-25 03:52:31,728 [INFO] Successfully tested MAC(A0:BB:3E:00:17:3F) for Portal(main.light-ott.net)
+2026-01-25 03:52:31,728 [INFO] Testing MAC(A0:BB:3E:00:17:3B) for Portal(main.light-ott.net)...
+2026-01-25 03:52:31,728 [DEBUG] Getting token for MAC A0:BB:3E:00:17:3B from http://main.light-ott.net:80/portal.php
+2026-01-25 03:52:31,927 [DEBUG] Token request status: 200
+2026-01-25 03:52:31,927 [INFO] Successfully got token for MAC A0:BB:3E:00:17:3B
+2026-01-25 03:52:32,067 [DEBUG] Getting expiry for MAC A0:BB:3E:00:17:3B
+2026-01-25 03:52:32,392 [DEBUG] Expiry request status: 200
+2026-01-25 03:52:32,393 [INFO] Got expiry for MAC A0:BB:3E:00:17:3B: November 1, 2026, 1:38 pm
+2026-01-25 03:52:32,393 [INFO] Successfully tested MAC(A0:BB:3E:00:17:3B) for Portal(main.light-ott.net)
+2026-01-25 03:52:32,393 [INFO] Testing MAC(A0:BB:3E:00:17:56) for Portal(main.light-ott.net)...
+2026-01-25 03:52:32,393 [DEBUG] Getting token for MAC A0:BB:3E:00:17:56 from http://main.light-ott.net:80/portal.php
+2026-01-25 03:52:32,527 [DEBUG] Token request status: 200
+2026-01-25 03:52:32,529 [INFO] Successfully got token for MAC A0:BB:3E:00:17:56
+2026-01-25 03:52:32,846 [DEBUG] Getting expiry for MAC A0:BB:3E:00:17:56
+2026-01-25 03:52:32,979 [DEBUG] Expiry request status: 200
+2026-01-25 03:52:32,979 [INFO] Got expiry for MAC A0:BB:3E:00:17:56: October 25, 2026, 3:56 pm
+2026-01-25 03:52:32,979 [INFO] Successfully tested MAC(A0:BB:3E:00:17:56) for Portal(main.light-ott.net)
+2026-01-25 03:52:32,980 [INFO] Testing MAC(A0:BB:3E:00:17:5D) for Portal(main.light-ott.net)...
+2026-01-25 03:52:32,980 [DEBUG] Getting token for MAC A0:BB:3E:00:17:5D from http://main.light-ott.net:80/portal.php
+2026-01-25 03:52:33,336 [DEBUG] Token request status: 200
+2026-01-25 03:52:33,336 [INFO] Successfully got token for MAC A0:BB:3E:00:17:5D
+2026-01-25 03:52:33,660 [DEBUG] Getting expiry for MAC A0:BB:3E:00:17:5D
+2026-01-25 03:52:33,803 [DEBUG] Expiry request status: 200
+2026-01-25 03:52:33,803 [INFO] Got expiry for MAC A0:BB:3E:00:17:5D: May 28, 2026, 12:13 pm
+2026-01-25 03:52:33,803 [INFO] Successfully tested MAC(A0:BB:3E:00:17:5D) for Portal(main.light-ott.net)
+2026-01-25 03:52:33,808 [INFO] Portal(main.light-ott.net) added!
+2026-01-25 03:54:15,589 [INFO] Starting channel cache refresh...
+2026-01-25 03:54:15,591 [INFO] Fetching channels for portal: goodchannel
+2026-01-25 03:54:15,591 [INFO] Trying MAC: 00:1A:79:82:D0:D8
+2026-01-25 03:54:15,591 [DEBUG] Getting token for MAC 00:1A:79:82:D0:D8 from http://goodchannel.lol/portal.php
+2026-01-25 03:54:15,653 [DEBUG] Token request status: 200
+2026-01-25 03:54:15,654 [INFO] Successfully got token for MAC 00:1A:79:82:D0:D8
+2026-01-25 03:54:15,705 [DEBUG] Getting all channels for MAC 00:1A:79:82:D0:D8
+2026-01-25 03:54:16,669 [DEBUG] Channels request status: 200
+2026-01-25 03:54:17,048 [INFO] Got 23920 channels for MAC 00:1A:79:82:D0:D8
+2026-01-25 03:54:18,776 [INFO] Processing 23920 channels for goodchannel
+2026-01-25 03:54:19,114 [INFO] Successfully cached 23920 channels for goodchannel
+2026-01-25 03:54:19,114 [INFO] Fetching channels for portal: iptvde.de
+2026-01-25 03:54:19,159 [INFO] Trying MAC: 00:1A:79:3B:89:78
+2026-01-25 03:54:19,159 [DEBUG] Getting token for MAC 00:1A:79:3B:89:78 from http://iptvde.de:8080/portal.php
+2026-01-25 03:54:19,299 [DEBUG] Token request status: 200
+2026-01-25 03:54:19,299 [INFO] Successfully got token for MAC 00:1A:79:3B:89:78
+2026-01-25 03:54:19,443 [DEBUG] Getting all channels for MAC 00:1A:79:3B:89:78
+2026-01-25 03:54:19,945 [DEBUG] Channels request status: 200
+2026-01-25 03:54:20,033 [INFO] Got 4153 channels for MAC 00:1A:79:3B:89:78
+2026-01-25 03:54:20,148 [INFO] Processing 4153 channels for iptvde.de
+2026-01-25 03:54:20,217 [INFO] Successfully cached 4153 channels for iptvde.de
+2026-01-25 03:54:20,217 [INFO] Fetching channels for portal: dragoniptv
+2026-01-25 03:54:20,222 [INFO] Trying MAC: 00:1A:79:B3:8A:52
+2026-01-25 03:54:20,222 [DEBUG] Getting token for MAC 00:1A:79:B3:8A:52 from http://dragoniptv.de:80/portal.php
+2026-01-25 03:54:20,269 [DEBUG] Token request status: 200
+2026-01-25 03:54:20,270 [INFO] Successfully got token for MAC 00:1A:79:B3:8A:52
+2026-01-25 03:54:20,326 [DEBUG] Getting all channels for MAC 00:1A:79:B3:8A:52
+2026-01-25 03:54:20,591 [DEBUG] Channels request status: 200
+2026-01-25 03:54:20,636 [INFO] Got 3874 channels for MAC 00:1A:79:B3:8A:52
+2026-01-25 03:54:20,693 [INFO] Processing 3874 channels for dragoniptv
+2026-01-25 03:54:20,761 [INFO] Successfully cached 3874 channels for dragoniptv
+2026-01-25 03:54:20,761 [INFO] Fetching channels for portal: hottest.vip
+2026-01-25 03:54:20,765 [INFO] Trying MAC: A0:BB:3E:E9:EB:F1
+2026-01-25 03:54:20,765 [DEBUG] Getting token for MAC A0:BB:3E:E9:EB:F1 from http://hottest.vip/portal.php
+2026-01-25 03:54:20,830 [DEBUG] Token request status: 200
+2026-01-25 03:54:20,830 [INFO] Successfully got token for MAC A0:BB:3E:E9:EB:F1
+2026-01-25 03:54:20,928 [DEBUG] Getting all channels for MAC A0:BB:3E:E9:EB:F1
+2026-01-25 03:54:22,702 [DEBUG] Channels request status: 200
+2026-01-25 03:54:23,345 [INFO] Got 32656 channels for MAC A0:BB:3E:E9:EB:F1
+2026-01-25 03:54:23,961 [INFO] Processing 32656 channels for hottest.vip
+2026-01-25 03:54:24,484 [INFO] Successfully cached 32656 channels for hottest.vip
+2026-01-25 03:54:24,485 [INFO] Fetching channels for portal: main.light-ott.net
+2026-01-25 03:54:24,524 [INFO] Trying MAC: A0:BB:3E:00:17:63
+2026-01-25 03:54:24,524 [DEBUG] Getting token for MAC A0:BB:3E:00:17:63 from http://main.light-ott.net:80/portal.php
+2026-01-25 03:54:24,651 [DEBUG] Token request status: 200
+2026-01-25 03:54:24,655 [INFO] Successfully got token for MAC A0:BB:3E:00:17:63
+2026-01-25 03:54:24,785 [DEBUG] Getting all channels for MAC A0:BB:3E:00:17:63
+2026-01-25 03:54:26,042 [DEBUG] Channels request status: 200
+2026-01-25 03:54:26,282 [INFO] Got 11851 channels for MAC A0:BB:3E:00:17:63
+2026-01-25 03:54:26,680 [INFO] Processing 11851 channels for main.light-ott.net
+2026-01-25 03:54:26,896 [INFO] Successfully cached 11851 channels for main.light-ott.net
+2026-01-25 03:54:26,897 [INFO] Channel cache refresh complete. Total channels: 76454
+2026-01-25 03:54:26,918 [INFO] Channel cache refreshed: 76454 channels
+2026-01-25 03:54:41,204 [INFO] IP(172.18.0.2) requested Portal(f6bef7b11d1a464f8b83f93d956f6fa9):Channel(2006696)
+2026-01-25 03:54:41,204 [INFO] Trying Portal(f6bef7b11d1a464f8b83f93d956f6fa9):MAC(A0:BB:3E:E9:EB:F1):Channel(2006696)
+2026-01-25 03:54:41,205 [DEBUG] Getting token for MAC A0:BB:3E:E9:EB:F1 from http://hottest.vip/portal.php
+2026-01-25 03:54:41,238 [DEBUG] Token request status: 200
+2026-01-25 03:54:41,238 [INFO] Successfully got token for MAC A0:BB:3E:E9:EB:F1
+2026-01-25 03:54:41,269 [DEBUG] Getting all channels for MAC A0:BB:3E:E9:EB:F1
+2026-01-25 03:54:42,370 [DEBUG] Channels request status: 200
+2026-01-25 03:54:42,955 [INFO] Got 32656 channels for MAC A0:BB:3E:E9:EB:F1
+2026-01-25 03:54:43,464 [INFO] Unable to connect to Portal(f6bef7b11d1a464f8b83f93d956f6fa9) using MAC(A0:BB:3E:E9:EB:F1)
+2026-01-25 03:54:43,464 [INFO] Moving MAC(A0:BB:3E:E9:EB:F1) for Portal(hottest.vip)
+2026-01-25 03:54:43,465 [INFO] No working streams found for Portal(f6bef7b11d1a464f8b83f93d956f6fa9):Channel(2006696)
+2026-01-25 03:54:54,175 [INFO] IP(172.18.0.2) requested Portal(643bffc727fa4fb6b1205ac56c5170a0):Channel(1120142)
+2026-01-25 03:54:54,175 [INFO] Trying Portal(643bffc727fa4fb6b1205ac56c5170a0):MAC(A0:BB:3E:00:17:63):Channel(1120142)
+2026-01-25 03:54:54,175 [DEBUG] Getting token for MAC A0:BB:3E:00:17:63 from http://main.light-ott.net:80/portal.php
+2026-01-25 03:54:54,305 [DEBUG] Token request status: 200
+2026-01-25 03:54:54,305 [INFO] Successfully got token for MAC A0:BB:3E:00:17:63
+2026-01-25 03:54:54,440 [DEBUG] Getting all channels for MAC A0:BB:3E:00:17:63
+2026-01-25 03:54:55,913 [DEBUG] Channels request status: 200
+2026-01-25 03:54:56,195 [INFO] Got 11851 channels for MAC A0:BB:3E:00:17:63
+2026-01-25 03:54:57,825 [INFO] Occupied Portal(643bffc727fa4fb6b1205ac56c5170a0):MAC(A0:BB:3E:00:17:63)
+2026-01-25 03:55:07,109 [INFO] Unoccupied Portal(643bffc727fa4fb6b1205ac56c5170a0):MAC(A0:BB:3E:00:17:63)
+2026-01-25 03:55:16,522 [INFO] IP(172.18.0.2) requested Portal(e6171cd844774b96891ba48ebae19865):Channel(836400)
+2026-01-25 03:55:16,523 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:82:D0:D8):Channel(836400)
+2026-01-25 03:55:16,523 [DEBUG] Getting token for MAC 00:1A:79:82:D0:D8 from http://goodchannel.lol/portal.php
+2026-01-25 03:55:16,560 [DEBUG] Token request status: 200
+2026-01-25 03:55:16,560 [INFO] Successfully got token for MAC 00:1A:79:82:D0:D8
+2026-01-25 03:55:16,603 [DEBUG] Getting all channels for MAC 00:1A:79:82:D0:D8
+2026-01-25 03:55:17,620 [DEBUG] Channels request status: 200
+2026-01-25 03:55:18,148 [INFO] Got 23920 channels for MAC 00:1A:79:82:D0:D8
+2026-01-25 03:55:18,374 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:82:D0:D8)
+2026-01-25 03:55:18,374 [INFO] Moving MAC(00:1A:79:82:D0:D8) for Portal(goodchannel)
+2026-01-25 03:55:18,413 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:17:28:3A):Channel(836400)
+2026-01-25 03:55:18,413 [DEBUG] Getting token for MAC 00:1A:79:17:28:3A from http://goodchannel.lol/portal.php
+2026-01-25 03:55:19,081 [DEBUG] Token request status: 200
+2026-01-25 03:55:19,081 [INFO] Successfully got token for MAC 00:1A:79:17:28:3A
+2026-01-25 03:55:19,258 [DEBUG] Getting all channels for MAC 00:1A:79:17:28:3A
+2026-01-25 03:55:20,500 [DEBUG] Channels request status: 200
+2026-01-25 03:55:21,143 [INFO] Got 30813 channels for MAC 00:1A:79:17:28:3A
+2026-01-25 03:55:21,155 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:17:28:3A)
+2026-01-25 03:55:21,155 [INFO] Moving MAC(00:1A:79:17:28:3A) for Portal(goodchannel)
+2026-01-25 03:55:21,185 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:17:28:67):Channel(836400)
+2026-01-25 03:55:21,185 [DEBUG] Getting token for MAC 00:1A:79:17:28:67 from http://goodchannel.lol/portal.php
+2026-01-25 03:55:21,226 [DEBUG] Token request status: 200
+2026-01-25 03:55:21,226 [INFO] Successfully got token for MAC 00:1A:79:17:28:67
+2026-01-25 03:55:21,266 [DEBUG] Getting all channels for MAC 00:1A:79:17:28:67
+2026-01-25 03:55:22,499 [DEBUG] Channels request status: 200
+2026-01-25 03:55:22,864 [INFO] Got 15462 channels for MAC 00:1A:79:17:28:67
+2026-01-25 03:55:22,870 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:17:28:67)
+2026-01-25 03:55:22,870 [INFO] Moving MAC(00:1A:79:17:28:67) for Portal(goodchannel)
+2026-01-25 03:55:22,887 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:AD:55:64):Channel(836400)
+2026-01-25 03:55:22,887 [DEBUG] Getting token for MAC 00:1A:79:AD:55:64 from http://goodchannel.lol/portal.php
+2026-01-25 03:55:22,974 [DEBUG] Token request status: 200
+2026-01-25 03:55:22,974 [INFO] Successfully got token for MAC 00:1A:79:AD:55:64
+2026-01-25 03:55:23,006 [DEBUG] Getting all channels for MAC 00:1A:79:AD:55:64
+2026-01-25 03:55:23,418 [DEBUG] Channels request status: 200
+2026-01-25 03:55:23,574 [INFO] Got 9526 channels for MAC 00:1A:79:AD:55:64
+2026-01-25 03:55:23,577 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:AD:55:64)
+2026-01-25 03:55:23,577 [INFO] Moving MAC(00:1A:79:AD:55:64) for Portal(goodchannel)
+2026-01-25 03:55:23,590 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:98:BA:92):Channel(836400)
+2026-01-25 03:55:23,590 [DEBUG] Getting token for MAC 00:1A:79:98:BA:92 from http://goodchannel.lol/portal.php
+2026-01-25 03:55:23,675 [DEBUG] Token request status: 200
+2026-01-25 03:55:23,675 [INFO] Successfully got token for MAC 00:1A:79:98:BA:92
+2026-01-25 03:55:23,710 [DEBUG] Getting all channels for MAC 00:1A:79:98:BA:92
+2026-01-25 03:55:24,859 [DEBUG] Channels request status: 200
+2026-01-25 03:55:25,300 [INFO] Got 25953 channels for MAC 00:1A:79:98:BA:92
+2026-01-25 03:55:25,311 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:98:BA:92)
+2026-01-25 03:55:25,311 [INFO] Moving MAC(00:1A:79:98:BA:92) for Portal(goodchannel)
+2026-01-25 03:55:25,336 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:E7:B6:38):Channel(836400)
+2026-01-25 03:55:25,336 [DEBUG] Getting token for MAC 00:1A:79:E7:B6:38 from http://goodchannel.lol/portal.php
+2026-01-25 03:55:25,372 [DEBUG] Token request status: 200
+2026-01-25 03:55:25,372 [INFO] Successfully got token for MAC 00:1A:79:E7:B6:38
+2026-01-25 03:55:25,403 [DEBUG] Getting all channels for MAC 00:1A:79:E7:B6:38
+2026-01-25 03:55:26,764 [DEBUG] Channels request status: 200
+2026-01-25 03:55:27,172 [INFO] Got 16838 channels for MAC 00:1A:79:E7:B6:38
+2026-01-25 03:55:27,429 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:E7:B6:38)
+2026-01-25 03:55:27,429 [INFO] Moving MAC(00:1A:79:E7:B6:38) for Portal(goodchannel)
+2026-01-25 03:55:27,459 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:82:D0:33):Channel(836400)
+2026-01-25 03:55:27,460 [DEBUG] Getting token for MAC 00:1A:79:82:D0:33 from http://goodchannel.lol/portal.php
+2026-01-25 03:55:27,492 [DEBUG] Token request status: 200
+2026-01-25 03:55:27,492 [INFO] Successfully got token for MAC 00:1A:79:82:D0:33
+2026-01-25 03:55:27,519 [DEBUG] Getting all channels for MAC 00:1A:79:82:D0:33
+2026-01-25 03:55:27,739 [DEBUG] Channels request status: 200
+2026-01-25 03:55:27,794 [INFO] Got 4174 channels for MAC 00:1A:79:82:D0:33
+2026-01-25 03:55:27,795 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:82:D0:33)
+2026-01-25 03:55:27,795 [INFO] Moving MAC(00:1A:79:82:D0:33) for Portal(goodchannel)
+2026-01-25 03:55:27,800 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:17:28:69):Channel(836400)
+2026-01-25 03:55:27,800 [DEBUG] Getting token for MAC 00:1A:79:17:28:69 from http://goodchannel.lol/portal.php
+2026-01-25 03:55:27,842 [DEBUG] Token request status: 200
+2026-01-25 03:55:27,843 [INFO] Successfully got token for MAC 00:1A:79:17:28:69
+2026-01-25 03:55:27,891 [DEBUG] Getting all channels for MAC 00:1A:79:17:28:69
+2026-01-25 03:55:28,368 [INFO] IP(172.18.0.2) requested Portal(643bffc727fa4fb6b1205ac56c5170a0):Channel(1120142)
+2026-01-25 03:55:28,368 [INFO] Trying Portal(643bffc727fa4fb6b1205ac56c5170a0):MAC(A0:BB:3E:00:17:63):Channel(1120142)
+2026-01-25 03:55:28,370 [DEBUG] Getting token for MAC A0:BB:3E:00:17:63 from http://main.light-ott.net:80/portal.php
+2026-01-25 03:55:28,736 [DEBUG] Token request status: 200
+2026-01-25 03:55:28,736 [INFO] Successfully got token for MAC A0:BB:3E:00:17:63
+2026-01-25 03:55:28,871 [DEBUG] Getting all channels for MAC A0:BB:3E:00:17:63
+2026-01-25 03:55:29,120 [DEBUG] Channels request status: 200
+2026-01-25 03:55:29,776 [INFO] Got 31677 channels for MAC 00:1A:79:17:28:69
+2026-01-25 03:55:29,792 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:17:28:69)
+2026-01-25 03:55:29,793 [INFO] Moving MAC(00:1A:79:17:28:69) for Portal(goodchannel)
+2026-01-25 03:55:29,833 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:7A:54:37):Channel(836400)
+2026-01-25 03:55:29,833 [DEBUG] Getting token for MAC 00:1A:79:7A:54:37 from http://goodchannel.lol/portal.php
+2026-01-25 03:55:29,874 [DEBUG] Token request status: 200
+2026-01-25 03:55:29,875 [INFO] Successfully got token for MAC 00:1A:79:7A:54:37
+2026-01-25 03:55:29,890 [DEBUG] Channels request status: 200
+2026-01-25 03:55:30,175 [DEBUG] Getting all channels for MAC 00:1A:79:7A:54:37
+2026-01-25 03:55:30,175 [INFO] Got 11851 channels for MAC A0:BB:3E:00:17:63
+2026-01-25 03:55:30,376 [DEBUG] Channels request status: 200
+2026-01-25 03:55:30,430 [INFO] Got 3423 channels for MAC 00:1A:79:7A:54:37
+2026-01-25 03:55:30,431 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:7A:54:37)
+2026-01-25 03:55:30,431 [INFO] Moving MAC(00:1A:79:7A:54:37) for Portal(goodchannel)
+2026-01-25 03:55:30,435 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:B6:72:C6):Channel(836400)
+2026-01-25 03:55:30,435 [DEBUG] Getting token for MAC 00:1A:79:B6:72:C6 from http://goodchannel.lol/portal.php
+2026-01-25 03:55:30,470 [DEBUG] Token request status: 200
+2026-01-25 03:55:30,470 [INFO] Successfully got token for MAC 00:1A:79:B6:72:C6
+2026-01-25 03:55:30,500 [DEBUG] Getting all channels for MAC 00:1A:79:B6:72:C6
+2026-01-25 03:55:31,207 [DEBUG] Channels request status: 200
+2026-01-25 03:55:31,627 [INFO] Got 17858 channels for MAC 00:1A:79:B6:72:C6
+2026-01-25 03:55:31,830 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:B6:72:C6)
+2026-01-25 03:55:31,830 [INFO] Moving MAC(00:1A:79:B6:72:C6) for Portal(goodchannel)
+2026-01-25 03:55:31,833 [INFO] No working streams found for Portal(e6171cd844774b96891ba48ebae19865):Channel(836400)
+2026-01-25 03:55:32,539 [INFO] Occupied Portal(643bffc727fa4fb6b1205ac56c5170a0):MAC(A0:BB:3E:00:17:63)
+2026-01-25 03:55:39,130 [INFO] Unoccupied Portal(643bffc727fa4fb6b1205ac56c5170a0):MAC(A0:BB:3E:00:17:63)
+2026-01-25 03:55:45,613 [INFO] IP(172.18.0.2) requested Portal(f6bef7b11d1a464f8b83f93d956f6fa9):Channel(1829670)
+2026-01-25 03:55:45,614 [INFO] Trying Portal(f6bef7b11d1a464f8b83f93d956f6fa9):MAC(A0:BB:3E:E9:EB:F1):Channel(1829670)
+2026-01-25 03:55:45,614 [DEBUG] Getting token for MAC A0:BB:3E:E9:EB:F1 from http://hottest.vip/portal.php
+2026-01-25 03:55:45,645 [DEBUG] Token request status: 200
+2026-01-25 03:55:45,645 [INFO] Successfully got token for MAC A0:BB:3E:E9:EB:F1
+2026-01-25 03:55:45,682 [DEBUG] Getting all channels for MAC A0:BB:3E:E9:EB:F1
+2026-01-25 03:55:46,730 [DEBUG] Channels request status: 200
+2026-01-25 03:55:47,318 [INFO] Got 32656 channels for MAC A0:BB:3E:E9:EB:F1
+2026-01-25 03:55:47,522 [INFO] Unable to connect to Portal(f6bef7b11d1a464f8b83f93d956f6fa9) using MAC(A0:BB:3E:E9:EB:F1)
+2026-01-25 03:55:47,522 [INFO] Moving MAC(A0:BB:3E:E9:EB:F1) for Portal(hottest.vip)
+2026-01-25 03:55:47,523 [INFO] No working streams found for Portal(f6bef7b11d1a464f8b83f93d956f6fa9):Channel(1829670)
+2026-01-25 03:55:55,000 [INFO] IP(172.18.0.2) requested Portal(643bffc727fa4fb6b1205ac56c5170a0):Channel(861530)
+2026-01-25 03:55:55,001 [INFO] Trying Portal(643bffc727fa4fb6b1205ac56c5170a0):MAC(A0:BB:3E:00:17:63):Channel(861530)
+2026-01-25 03:55:55,001 [DEBUG] Getting token for MAC A0:BB:3E:00:17:63 from http://main.light-ott.net:80/portal.php
+2026-01-25 03:55:55,356 [DEBUG] Token request status: 200
+2026-01-25 03:55:55,356 [INFO] Successfully got token for MAC A0:BB:3E:00:17:63
+2026-01-25 03:55:55,676 [DEBUG] Getting all channels for MAC A0:BB:3E:00:17:63
+2026-01-25 03:55:56,532 [DEBUG] Channels request status: 200
+2026-01-25 03:55:56,744 [INFO] Got 11851 channels for MAC A0:BB:3E:00:17:63
+2026-01-25 03:55:58,224 [INFO] Occupied Portal(643bffc727fa4fb6b1205ac56c5170a0):MAC(A0:BB:3E:00:17:63)
+2026-01-25 03:56:06,841 [INFO] Unoccupied Portal(643bffc727fa4fb6b1205ac56c5170a0):MAC(A0:BB:3E:00:17:63)
+2026-01-25 03:56:36,781 [INFO] Testing MAC(A0:BB:3E:1B:37:67) for Portal(23232.top)...
+2026-01-25 03:56:36,781 [DEBUG] Getting token for MAC A0:BB:3E:1B:37:67 from http://23232.top:80/portal.php
+2026-01-25 03:56:36,820 [DEBUG] Token request status: 403
+2026-01-25 03:56:36,821 [ERROR] Request error getting token for MAC A0:BB:3E:1B:37:67: Expecting value: line 1 column 1 (char 0)
+2026-01-25 03:56:36,824 [ERROR] Failed to get token for MAC(A0:BB:3E:1B:37:67) for Portal(23232.top)
+2026-01-25 03:56:36,824 [ERROR] Error testing MAC(A0:BB:3E:1B:37:67) for Portal(23232.top)
+2026-01-25 03:56:36,827 [ERROR] None of the MACs tested OK for Portal(23232.top). Adding not successfull
+2026-01-25 03:57:03,467 [INFO] Testing MAC(A0:BB:3E:04:90:C8) for Portal(ds.raptortv.de)...
+2026-01-25 03:57:03,468 [DEBUG] Getting token for MAC A0:BB:3E:04:90:C8 from http://ds.raptortv.de/portal.php
+2026-01-25 03:57:03,529 [DEBUG] Token request status: 200
+2026-01-25 03:57:03,529 [INFO] Successfully got token for MAC A0:BB:3E:04:90:C8
+2026-01-25 03:57:03,579 [DEBUG] Getting expiry for MAC A0:BB:3E:04:90:C8
+2026-01-25 03:57:03,632 [DEBUG] Expiry request status: 200
+2026-01-25 03:57:03,632 [INFO] Got expiry for MAC A0:BB:3E:04:90:C8: October 31, 2026, 10:13 pm
+2026-01-25 03:57:03,633 [INFO] Successfully tested MAC(A0:BB:3E:04:90:C8) for Portal(ds.raptortv.de)
+2026-01-25 03:57:03,633 [INFO] Testing MAC(A0:BB:3E:30:15:27) for Portal(ds.raptortv.de)...
+2026-01-25 03:57:03,633 [DEBUG] Getting token for MAC A0:BB:3E:30:15:27 from http://ds.raptortv.de/portal.php
+2026-01-25 03:57:03,680 [DEBUG] Token request status: 200
+2026-01-25 03:57:03,680 [INFO] Successfully got token for MAC A0:BB:3E:30:15:27
+2026-01-25 03:57:03,730 [DEBUG] Getting expiry for MAC A0:BB:3E:30:15:27
+2026-01-25 03:57:03,782 [DEBUG] Expiry request status: 200
+2026-01-25 03:57:03,782 [INFO] Got expiry for MAC A0:BB:3E:30:15:27: April 30, 2027, 5:28 pm
+2026-01-25 03:57:03,782 [INFO] Successfully tested MAC(A0:BB:3E:30:15:27) for Portal(ds.raptortv.de)
+2026-01-25 03:57:03,784 [INFO] Portal(ds.raptortv.de) added!
+2026-01-25 03:57:26,172 [INFO] Testing MAC(00:1A:79:BA:D2:58) for Portal(focusmag.eu01.live)...
+2026-01-25 03:57:26,173 [DEBUG] Getting token for MAC 00:1A:79:BA:D2:58 from http://focusmag.eu01.live:8080/portal.php
+2026-01-25 03:57:27,357 [DEBUG] Token request status: 200
+2026-01-25 03:57:27,357 [INFO] Successfully got token for MAC 00:1A:79:BA:D2:58
+2026-01-25 03:57:27,488 [DEBUG] Getting expiry for MAC 00:1A:79:BA:D2:58
+2026-01-25 03:57:27,575 [DEBUG] Expiry request status: 200
+2026-01-25 03:57:27,576 [INFO] Got expiry for MAC 00:1A:79:BA:D2:58: January 12, 2027, 4:16 pm
+2026-01-25 03:57:27,576 [INFO] Successfully tested MAC(00:1A:79:BA:D2:58) for Portal(focusmag.eu01.live)
+2026-01-25 03:57:27,577 [INFO] Portal(focusmag.eu01.live) added!
+2026-01-25 03:57:55,625 [INFO] Testing MAC(00:1A:79:CE:03:52) for Portal(pi.xc-clubtv.xyz)...
+2026-01-25 03:57:55,626 [DEBUG] Getting token for MAC 00:1A:79:CE:03:52 from http://pi.xc-clubtv.xyz:8080/portal.php
+2026-01-25 03:57:56,759 [DEBUG] Token request status: 200
+2026-01-25 03:57:56,759 [INFO] Successfully got token for MAC 00:1A:79:CE:03:52
+2026-01-25 03:57:56,831 [DEBUG] Getting expiry for MAC 00:1A:79:CE:03:52
+2026-01-25 03:57:56,895 [DEBUG] Expiry request status: 200
+2026-01-25 03:57:56,895 [INFO] Got expiry for MAC 00:1A:79:CE:03:52: March 30, 2026, 7:12 pm
+2026-01-25 03:57:56,895 [INFO] Successfully tested MAC(00:1A:79:CE:03:52) for Portal(pi.xc-clubtv.xyz)
+2026-01-25 03:57:56,896 [INFO] Portal(pi.xc-clubtv.xyz) added!
+2026-01-25 03:58:52,271 [INFO] Starting channel cache refresh...
+2026-01-25 03:58:52,280 [INFO] Fetching channels for portal: goodchannel
+2026-01-25 03:58:52,280 [INFO] Trying MAC: 00:1A:79:82:D0:D8
+2026-01-25 03:58:52,280 [DEBUG] Getting token for MAC 00:1A:79:82:D0:D8 from http://goodchannel.lol/portal.php
+2026-01-25 03:58:52,340 [DEBUG] Token request status: 200
+2026-01-25 03:58:52,340 [INFO] Successfully got token for MAC 00:1A:79:82:D0:D8
+2026-01-25 03:58:52,625 [DEBUG] Getting all channels for MAC 00:1A:79:82:D0:D8
+2026-01-25 03:58:53,647 [DEBUG] Channels request status: 200
+2026-01-25 03:58:54,069 [INFO] Got 23920 channels for MAC 00:1A:79:82:D0:D8
+2026-01-25 03:58:54,801 [INFO] Processing 23920 channels for goodchannel
+2026-01-25 03:58:55,070 [INFO] Successfully cached 23920 channels for goodchannel
+2026-01-25 03:58:55,071 [INFO] Fetching channels for portal: iptvde.de
+2026-01-25 03:58:55,107 [INFO] Trying MAC: 00:1A:79:3B:89:78
+2026-01-25 03:58:55,107 [DEBUG] Getting token for MAC 00:1A:79:3B:89:78 from http://iptvde.de:8080/portal.php
+2026-01-25 03:58:55,250 [DEBUG] Token request status: 200
+2026-01-25 03:58:55,250 [INFO] Successfully got token for MAC 00:1A:79:3B:89:78
+2026-01-25 03:58:55,394 [DEBUG] Getting all channels for MAC 00:1A:79:3B:89:78
+2026-01-25 03:58:55,898 [DEBUG] Channels request status: 200
+2026-01-25 03:58:55,964 [INFO] Got 4153 channels for MAC 00:1A:79:3B:89:78
+2026-01-25 03:58:56,079 [INFO] Processing 4153 channels for iptvde.de
+2026-01-25 03:58:56,389 [INFO] Successfully cached 4153 channels for iptvde.de
+2026-01-25 03:58:56,389 [INFO] Fetching channels for portal: dragoniptv
+2026-01-25 03:58:56,394 [INFO] Trying MAC: 00:1A:79:B3:8A:52
+2026-01-25 03:58:56,394 [DEBUG] Getting token for MAC 00:1A:79:B3:8A:52 from http://dragoniptv.de:80/portal.php
+2026-01-25 03:58:56,452 [DEBUG] Token request status: 200
+2026-01-25 03:58:56,452 [INFO] Successfully got token for MAC 00:1A:79:B3:8A:52
+2026-01-25 03:58:56,496 [DEBUG] Getting all channels for MAC 00:1A:79:B3:8A:52
+2026-01-25 03:58:56,795 [DEBUG] Channels request status: 200
+2026-01-25 03:58:56,850 [INFO] Got 3874 channels for MAC 00:1A:79:B3:8A:52
+2026-01-25 03:58:56,897 [INFO] Processing 3874 channels for dragoniptv
+2026-01-25 03:58:56,959 [INFO] Successfully cached 3874 channels for dragoniptv
+2026-01-25 03:58:56,959 [INFO] Fetching channels for portal: hottest.vip
+2026-01-25 03:58:56,963 [INFO] Trying MAC: A0:BB:3E:E9:EB:F1
+2026-01-25 03:58:56,963 [DEBUG] Getting token for MAC A0:BB:3E:E9:EB:F1 from http://hottest.vip/portal.php
+2026-01-25 03:58:57,019 [DEBUG] Token request status: 200
+2026-01-25 03:58:57,019 [INFO] Successfully got token for MAC A0:BB:3E:E9:EB:F1
+2026-01-25 03:58:57,079 [DEBUG] Getting all channels for MAC A0:BB:3E:E9:EB:F1
+2026-01-25 03:58:58,171 [DEBUG] Channels request status: 200
+2026-01-25 03:58:58,662 [INFO] Got 32656 channels for MAC A0:BB:3E:E9:EB:F1
+2026-01-25 03:58:59,156 [INFO] Processing 32656 channels for hottest.vip
+2026-01-25 03:58:59,502 [INFO] Successfully cached 32656 channels for hottest.vip
+2026-01-25 03:58:59,503 [INFO] Fetching channels for portal: main.light-ott.net
+2026-01-25 03:58:59,535 [INFO] Trying MAC: A0:BB:3E:00:17:63
+2026-01-25 03:58:59,536 [DEBUG] Getting token for MAC A0:BB:3E:00:17:63 from http://main.light-ott.net:80/portal.php
+2026-01-25 03:58:59,678 [DEBUG] Token request status: 200
+2026-01-25 03:58:59,678 [INFO] Successfully got token for MAC A0:BB:3E:00:17:63
+2026-01-25 03:58:59,817 [DEBUG] Getting all channels for MAC A0:BB:3E:00:17:63
+2026-01-25 03:59:00,619 [DEBUG] Channels request status: 200
+2026-01-25 03:59:00,798 [INFO] Got 11851 channels for MAC A0:BB:3E:00:17:63
+2026-01-25 03:59:01,054 [INFO] Processing 11851 channels for main.light-ott.net
+2026-01-25 03:59:01,218 [INFO] Successfully cached 11851 channels for main.light-ott.net
+2026-01-25 03:59:01,218 [INFO] Fetching channels for portal: ds.raptortv.de
+2026-01-25 03:59:01,233 [INFO] Trying MAC: A0:BB:3E:04:90:C8
+2026-01-25 03:59:01,233 [DEBUG] Getting token for MAC A0:BB:3E:04:90:C8 from http://ds.raptortv.de/portal.php
+2026-01-25 03:59:01,280 [DEBUG] Token request status: 200
+2026-01-25 03:59:01,280 [INFO] Successfully got token for MAC A0:BB:3E:04:90:C8
+2026-01-25 03:59:01,333 [DEBUG] Getting all channels for MAC A0:BB:3E:04:90:C8
+2026-01-25 03:59:01,579 [DEBUG] Channels request status: 200
+2026-01-25 03:59:01,643 [INFO] Got 4353 channels for MAC A0:BB:3E:04:90:C8
+2026-01-25 03:59:01,699 [INFO] Processing 4353 channels for ds.raptortv.de
+2026-01-25 03:59:01,798 [INFO] Successfully cached 4353 channels for ds.raptortv.de
+2026-01-25 03:59:01,798 [INFO] Fetching channels for portal: focusmag.eu01.live
+2026-01-25 03:59:01,805 [INFO] Trying MAC: 00:1A:79:BA:D2:58
+2026-01-25 03:59:01,805 [DEBUG] Getting token for MAC 00:1A:79:BA:D2:58 from http://focusmag.eu01.live:8080/portal.php
+2026-01-25 03:59:02,875 [DEBUG] Token request status: 200
+2026-01-25 03:59:02,875 [INFO] Successfully got token for MAC 00:1A:79:BA:D2:58
+2026-01-25 03:59:02,936 [DEBUG] Getting all channels for MAC 00:1A:79:BA:D2:58
+2026-01-25 03:59:02,999 [DEBUG] Channels request status: 200
+2026-01-25 03:59:02,999 [ERROR] Error getting channels for MAC 00:1A:79:BA:D2:58: list indices must be integers or slices, not str
+2026-01-25 03:59:03,092 [ERROR] Failed to fetch channels for portal: focusmag.eu01.live
+2026-01-25 03:59:03,093 [INFO] Fetching channels for portal: pi.xc-clubtv.xyz
+2026-01-25 03:59:03,093 [INFO] Trying MAC: 00:1A:79:CE:03:52
+2026-01-25 03:59:03,093 [DEBUG] Getting token for MAC 00:1A:79:CE:03:52 from http://pi.xc-clubtv.xyz:8080/portal.php
+2026-01-25 03:59:04,168 [DEBUG] Token request status: 200
+2026-01-25 03:59:04,169 [INFO] Successfully got token for MAC 00:1A:79:CE:03:52
+2026-01-25 03:59:04,227 [DEBUG] Getting all channels for MAC 00:1A:79:CE:03:52
+2026-01-25 03:59:04,283 [DEBUG] Channels request status: 200
+2026-01-25 03:59:04,283 [ERROR] Error getting channels for MAC 00:1A:79:CE:03:52: list indices must be integers or slices, not str
+2026-01-25 03:59:04,375 [ERROR] Failed to fetch channels for portal: pi.xc-clubtv.xyz
+2026-01-25 03:59:04,375 [INFO] Channel cache refresh complete. Total channels: 80807
+2026-01-25 03:59:04,375 [INFO] Channel cache refreshed: 80807 channels
+2026-01-25 03:59:29,338 [INFO] IP(172.18.0.2) requested Portal(f6bef7b11d1a464f8b83f93d956f6fa9):Channel(1948646)
+2026-01-25 03:59:29,338 [INFO] Trying Portal(f6bef7b11d1a464f8b83f93d956f6fa9):MAC(A0:BB:3E:E9:EB:F1):Channel(1948646)
+2026-01-25 03:59:29,338 [DEBUG] Getting token for MAC A0:BB:3E:E9:EB:F1 from http://hottest.vip/portal.php
+2026-01-25 03:59:29,369 [DEBUG] Token request status: 200
+2026-01-25 03:59:29,369 [INFO] Successfully got token for MAC A0:BB:3E:E9:EB:F1
+2026-01-25 03:59:29,403 [DEBUG] Getting all channels for MAC A0:BB:3E:E9:EB:F1
+2026-01-25 03:59:30,513 [DEBUG] Channels request status: 200
+2026-01-25 03:59:31,048 [INFO] Got 32656 channels for MAC A0:BB:3E:E9:EB:F1
+2026-01-25 03:59:31,478 [INFO] Unable to connect to Portal(f6bef7b11d1a464f8b83f93d956f6fa9) using MAC(A0:BB:3E:E9:EB:F1)
+2026-01-25 03:59:31,478 [INFO] Moving MAC(A0:BB:3E:E9:EB:F1) for Portal(hottest.vip)
+2026-01-25 03:59:31,479 [INFO] No working streams found for Portal(f6bef7b11d1a464f8b83f93d956f6fa9):Channel(1948646)
+2026-01-25 03:59:42,315 [INFO] IP(172.18.0.2) requested Portal(f6bef7b11d1a464f8b83f93d956f6fa9):Channel(1829670)
+2026-01-25 03:59:42,316 [INFO] Trying Portal(f6bef7b11d1a464f8b83f93d956f6fa9):MAC(A0:BB:3E:E9:EB:F1):Channel(1829670)
+2026-01-25 03:59:42,316 [DEBUG] Getting token for MAC A0:BB:3E:E9:EB:F1 from http://hottest.vip/portal.php
+2026-01-25 03:59:42,460 [DEBUG] Token request status: 200
+2026-01-25 03:59:42,460 [INFO] Successfully got token for MAC A0:BB:3E:E9:EB:F1
+2026-01-25 03:59:42,494 [DEBUG] Getting all channels for MAC A0:BB:3E:E9:EB:F1
+2026-01-25 03:59:43,582 [DEBUG] Channels request status: 200
+2026-01-25 03:59:44,155 [INFO] Got 32656 channels for MAC A0:BB:3E:E9:EB:F1
+2026-01-25 03:59:44,349 [INFO] Unable to connect to Portal(f6bef7b11d1a464f8b83f93d956f6fa9) using MAC(A0:BB:3E:E9:EB:F1)
+2026-01-25 03:59:44,349 [INFO] Moving MAC(A0:BB:3E:E9:EB:F1) for Portal(hottest.vip)
+2026-01-25 03:59:44,350 [INFO] No working streams found for Portal(f6bef7b11d1a464f8b83f93d956f6fa9):Channel(1829670)
+2026-01-25 03:59:46,977 [INFO] IP(172.18.0.2) requested Portal(f6bef7b11d1a464f8b83f93d956f6fa9):Channel(2006696)
+2026-01-25 03:59:46,977 [INFO] Trying Portal(f6bef7b11d1a464f8b83f93d956f6fa9):MAC(A0:BB:3E:E9:EB:F1):Channel(2006696)
+2026-01-25 03:59:46,977 [DEBUG] Getting token for MAC A0:BB:3E:E9:EB:F1 from http://hottest.vip/portal.php
+2026-01-25 03:59:47,198 [DEBUG] Token request status: 200
+2026-01-25 03:59:47,198 [INFO] Successfully got token for MAC A0:BB:3E:E9:EB:F1
+2026-01-25 03:59:47,233 [DEBUG] Getting all channels for MAC A0:BB:3E:E9:EB:F1
+2026-01-25 03:59:48,554 [DEBUG] Channels request status: 200
+2026-01-25 03:59:49,191 [INFO] Got 32656 channels for MAC A0:BB:3E:E9:EB:F1
+2026-01-25 03:59:49,434 [INFO] Unable to connect to Portal(f6bef7b11d1a464f8b83f93d956f6fa9) using MAC(A0:BB:3E:E9:EB:F1)
+2026-01-25 03:59:49,434 [INFO] Moving MAC(A0:BB:3E:E9:EB:F1) for Portal(hottest.vip)
+2026-01-25 03:59:49,435 [INFO] No working streams found for Portal(f6bef7b11d1a464f8b83f93d956f6fa9):Channel(2006696)
+2026-01-25 04:00:26,841 [INFO] IP(172.18.0.2) requested Portal(2051139f1a8441ca8cfbccf86b53146e):Channel(132665)
+2026-01-25 04:00:26,842 [INFO] Trying Portal(2051139f1a8441ca8cfbccf86b53146e):MAC(A0:BB:3E:04:90:C8):Channel(132665)
+2026-01-25 04:00:26,843 [DEBUG] Getting token for MAC A0:BB:3E:04:90:C8 from http://ds.raptortv.de/portal.php
+2026-01-25 04:00:26,896 [DEBUG] Token request status: 200
+2026-01-25 04:00:26,896 [INFO] Successfully got token for MAC A0:BB:3E:04:90:C8
+2026-01-25 04:00:26,949 [DEBUG] Getting all channels for MAC A0:BB:3E:04:90:C8
+2026-01-25 04:00:27,209 [DEBUG] Channels request status: 200
+2026-01-25 04:00:27,328 [INFO] Got 4353 channels for MAC A0:BB:3E:04:90:C8
+2026-01-25 04:00:28,123 [INFO] Unable to connect to Portal(2051139f1a8441ca8cfbccf86b53146e) using MAC(A0:BB:3E:04:90:C8)
+2026-01-25 04:00:28,125 [INFO] Moving MAC(A0:BB:3E:04:90:C8) for Portal(ds.raptortv.de)
+2026-01-25 04:00:28,142 [INFO] Trying Portal(2051139f1a8441ca8cfbccf86b53146e):MAC(A0:BB:3E:30:15:27):Channel(132665)
+2026-01-25 04:00:28,142 [DEBUG] Getting token for MAC A0:BB:3E:30:15:27 from http://ds.raptortv.de/portal.php
+2026-01-25 04:00:28,194 [DEBUG] Token request status: 200
+2026-01-25 04:00:28,202 [INFO] Successfully got token for MAC A0:BB:3E:30:15:27
+2026-01-25 04:00:28,254 [DEBUG] Getting all channels for MAC A0:BB:3E:30:15:27
+2026-01-25 04:00:28,415 [DEBUG] Channels request status: 200
+2026-01-25 04:00:28,457 [INFO] Got 1371 channels for MAC A0:BB:3E:30:15:27
+2026-01-25 04:00:35,314 [INFO] Unable to connect to Portal(2051139f1a8441ca8cfbccf86b53146e) using MAC(A0:BB:3E:30:15:27)
+2026-01-25 04:00:35,319 [INFO] Moving MAC(A0:BB:3E:30:15:27) for Portal(ds.raptortv.de)
+2026-01-25 04:00:35,326 [INFO] No working streams found for Portal(2051139f1a8441ca8cfbccf86b53146e):Channel(132665)
+2026-01-25 04:00:42,895 [INFO] IP(172.18.0.2) requested Portal(2051139f1a8441ca8cfbccf86b53146e):Channel(132669)
+2026-01-25 04:00:42,897 [INFO] Trying Portal(2051139f1a8441ca8cfbccf86b53146e):MAC(A0:BB:3E:04:90:C8):Channel(132669)
+2026-01-25 04:00:42,897 [DEBUG] Getting token for MAC A0:BB:3E:04:90:C8 from http://ds.raptortv.de/portal.php
+2026-01-25 04:00:42,982 [DEBUG] Token request status: 200
+2026-01-25 04:00:42,983 [INFO] Successfully got token for MAC A0:BB:3E:04:90:C8
+2026-01-25 04:00:43,046 [DEBUG] Getting all channels for MAC A0:BB:3E:04:90:C8
+2026-01-25 04:00:43,317 [DEBUG] Channels request status: 200
+2026-01-25 04:00:43,446 [INFO] Got 4353 channels for MAC A0:BB:3E:04:90:C8
+2026-01-25 04:00:59,241 [INFO] Unable to connect to Portal(2051139f1a8441ca8cfbccf86b53146e) using MAC(A0:BB:3E:04:90:C8)
+2026-01-25 04:00:59,243 [INFO] Moving MAC(A0:BB:3E:04:90:C8) for Portal(ds.raptortv.de)
+2026-01-25 04:00:59,253 [INFO] Trying Portal(2051139f1a8441ca8cfbccf86b53146e):MAC(A0:BB:3E:30:15:27):Channel(132669)
+2026-01-25 04:00:59,254 [DEBUG] Getting token for MAC A0:BB:3E:30:15:27 from http://ds.raptortv.de/portal.php
+2026-01-25 04:00:59,306 [DEBUG] Token request status: 200
+2026-01-25 04:00:59,307 [INFO] Successfully got token for MAC A0:BB:3E:30:15:27
+2026-01-25 04:00:59,361 [DEBUG] Getting all channels for MAC A0:BB:3E:30:15:27
+2026-01-25 04:01:00,167 [DEBUG] Channels request status: 200
+2026-01-25 04:01:00,195 [INFO] Got 1371 channels for MAC A0:BB:3E:30:15:27
+2026-01-25 04:01:00,751 [INFO] Unable to connect to Portal(2051139f1a8441ca8cfbccf86b53146e) using MAC(A0:BB:3E:30:15:27)
+2026-01-25 04:01:00,751 [INFO] Moving MAC(A0:BB:3E:30:15:27) for Portal(ds.raptortv.de)
+2026-01-25 04:01:00,752 [INFO] No working streams found for Portal(2051139f1a8441ca8cfbccf86b53146e):Channel(132669)
+2026-01-25 04:01:39,828 [INFO] IP(172.18.0.2) requested Portal(dc9459747e3f40cfaf567b1398bbe7ab):Channel(16271)
+2026-01-25 04:01:39,833 [INFO] Trying Portal(dc9459747e3f40cfaf567b1398bbe7ab):MAC(00:1A:79:B3:8A:52):Channel(16271)
+2026-01-25 04:01:39,833 [DEBUG] Getting token for MAC 00:1A:79:B3:8A:52 from http://dragoniptv.de:80/portal.php
+2026-01-25 04:01:39,946 [DEBUG] Token request status: 200
+2026-01-25 04:01:39,949 [INFO] Successfully got token for MAC 00:1A:79:B3:8A:52
+2026-01-25 04:01:40,021 [DEBUG] Getting all channels for MAC 00:1A:79:B3:8A:52
+2026-01-25 04:01:40,296 [DEBUG] Channels request status: 200
+2026-01-25 04:01:40,368 [INFO] Got 3874 channels for MAC 00:1A:79:B3:8A:52
+2026-01-25 04:01:54,700 [INFO] Unable to connect to Portal(dc9459747e3f40cfaf567b1398bbe7ab) using MAC(00:1A:79:B3:8A:52)
+2026-01-25 04:01:54,704 [INFO] Moving MAC(00:1A:79:B3:8A:52) for Portal(dragoniptv)
+2026-01-25 04:01:54,715 [INFO] Trying Portal(dc9459747e3f40cfaf567b1398bbe7ab):MAC(00:1A:79:D2:2D:88):Channel(16271)
+2026-01-25 04:01:54,719 [DEBUG] Getting token for MAC 00:1A:79:D2:2D:88 from http://dragoniptv.de:80/portal.php
+2026-01-25 04:01:54,770 [DEBUG] Token request status: 200
+2026-01-25 04:01:54,773 [INFO] Successfully got token for MAC 00:1A:79:D2:2D:88
+2026-01-25 04:01:54,828 [DEBUG] Getting all channels for MAC 00:1A:79:D2:2D:88
+2026-01-25 04:01:55,655 [DEBUG] Channels request status: 200
+2026-01-25 04:01:55,679 [INFO] Got 1115 channels for MAC 00:1A:79:D2:2D:88
+2026-01-25 04:01:56,863 [INFO] Occupied Portal(dc9459747e3f40cfaf567b1398bbe7ab):MAC(00:1A:79:D2:2D:88)
+2026-01-25 04:01:58,873 [INFO] IP(172.18.0.2) requested Portal(dc9459747e3f40cfaf567b1398bbe7ab):Channel(16271)
+2026-01-25 04:01:58,880 [INFO] Unable to connect to Portal(dc9459747e3f40cfaf567b1398bbe7ab) using MAC(00:1A:79:D2:2D:88)
+2026-01-25 04:01:58,880 [INFO] Moving MAC(00:1A:79:D2:2D:88) for Portal(dragoniptv)
+2026-01-25 04:01:58,886 [INFO] Trying Portal(dc9459747e3f40cfaf567b1398bbe7ab):MAC(00:1A:79:42:2E:DD):Channel(16271)
+2026-01-25 04:01:58,887 [DEBUG] Getting token for MAC 00:1A:79:42:2E:DD from http://dragoniptv.de:80/portal.php
+2026-01-25 04:01:58,922 [DEBUG] Token request status: 200
+2026-01-25 04:01:58,923 [INFO] Successfully got token for MAC 00:1A:79:42:2E:DD
+2026-01-25 04:01:58,976 [DEBUG] Getting all channels for MAC 00:1A:79:42:2E:DD
+2026-01-25 04:01:59,156 [INFO] Unoccupied Portal(dc9459747e3f40cfaf567b1398bbe7ab):MAC(00:1A:79:D2:2D:88)
+2026-01-25 04:01:59,280 [DEBUG] Channels request status: 200
+2026-01-25 04:01:59,361 [INFO] Got 4616 channels for MAC 00:1A:79:42:2E:DD
+2026-01-25 04:02:00,377 [INFO] Occupied Portal(dc9459747e3f40cfaf567b1398bbe7ab):MAC(00:1A:79:42:2E:DD)
+2026-01-25 04:02:16,088 [INFO] Unoccupied Portal(dc9459747e3f40cfaf567b1398bbe7ab):MAC(00:1A:79:42:2E:DD)
+2026-01-25 04:07:16,067 [INFO] IP(172.18.0.2) requested Portal(e6171cd844774b96891ba48ebae19865):Channel(1938614)
+2026-01-25 04:07:16,069 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:82:D0:D8):Channel(1938614)
+2026-01-25 04:07:16,069 [DEBUG] Getting token for MAC 00:1A:79:82:D0:D8 from http://goodchannel.lol/portal.php
+2026-01-25 04:07:16,130 [DEBUG] Token request status: 200
+2026-01-25 04:07:16,130 [INFO] Successfully got token for MAC 00:1A:79:82:D0:D8
+2026-01-25 04:07:16,170 [DEBUG] Getting all channels for MAC 00:1A:79:82:D0:D8
+2026-01-25 04:07:17,099 [DEBUG] Channels request status: 200
+2026-01-25 04:07:17,504 [INFO] Got 23920 channels for MAC 00:1A:79:82:D0:D8
+2026-01-25 04:07:17,952 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:82:D0:D8)
+2026-01-25 04:07:17,952 [INFO] Moving MAC(00:1A:79:82:D0:D8) for Portal(goodchannel)
+2026-01-25 04:07:17,978 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:17:28:3A):Channel(1938614)
+2026-01-25 04:07:17,978 [DEBUG] Getting token for MAC 00:1A:79:17:28:3A from http://goodchannel.lol/portal.php
+2026-01-25 04:07:18,062 [DEBUG] Token request status: 200
+2026-01-25 04:07:18,062 [INFO] Successfully got token for MAC 00:1A:79:17:28:3A
+2026-01-25 04:07:18,314 [DEBUG] Getting all channels for MAC 00:1A:79:17:28:3A
+2026-01-25 04:07:19,572 [DEBUG] Channels request status: 200
+2026-01-25 04:07:20,237 [INFO] Got 30813 channels for MAC 00:1A:79:17:28:3A
+2026-01-25 04:07:20,251 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:17:28:3A)
+2026-01-25 04:07:20,251 [INFO] Moving MAC(00:1A:79:17:28:3A) for Portal(goodchannel)
+2026-01-25 04:07:20,278 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:17:28:67):Channel(1938614)
+2026-01-25 04:07:20,278 [DEBUG] Getting token for MAC 00:1A:79:17:28:67 from http://goodchannel.lol/portal.php
+2026-01-25 04:07:20,307 [DEBUG] Token request status: 200
+2026-01-25 04:07:20,307 [INFO] Successfully got token for MAC 00:1A:79:17:28:67
+2026-01-25 04:07:20,347 [DEBUG] Getting all channels for MAC 00:1A:79:17:28:67
+2026-01-25 04:07:21,101 [DEBUG] Channels request status: 200
+2026-01-25 04:07:21,315 [INFO] Got 15462 channels for MAC 00:1A:79:17:28:67
+2026-01-25 04:07:21,320 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:17:28:67)
+2026-01-25 04:07:21,320 [INFO] Moving MAC(00:1A:79:17:28:67) for Portal(goodchannel)
+2026-01-25 04:07:21,337 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:AD:55:64):Channel(1938614)
+2026-01-25 04:07:21,337 [DEBUG] Getting token for MAC 00:1A:79:AD:55:64 from http://goodchannel.lol/portal.php
+2026-01-25 04:07:21,384 [DEBUG] Token request status: 200
+2026-01-25 04:07:21,384 [INFO] Successfully got token for MAC 00:1A:79:AD:55:64
+2026-01-25 04:07:21,509 [DEBUG] Getting all channels for MAC 00:1A:79:AD:55:64
+2026-01-25 04:07:21,849 [DEBUG] Channels request status: 200
+2026-01-25 04:07:22,062 [INFO] Got 9526 channels for MAC 00:1A:79:AD:55:64
+2026-01-25 04:07:22,066 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:AD:55:64)
+2026-01-25 04:07:22,066 [INFO] Moving MAC(00:1A:79:AD:55:64) for Portal(goodchannel)
+2026-01-25 04:07:22,079 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:98:BA:92):Channel(1938614)
+2026-01-25 04:07:22,079 [DEBUG] Getting token for MAC 00:1A:79:98:BA:92 from http://goodchannel.lol/portal.php
+2026-01-25 04:07:22,228 [DEBUG] Token request status: 200
+2026-01-25 04:07:22,229 [INFO] Successfully got token for MAC 00:1A:79:98:BA:92
+2026-01-25 04:07:22,341 [DEBUG] Getting all channels for MAC 00:1A:79:98:BA:92
+2026-01-25 04:07:23,188 [DEBUG] Channels request status: 200
+2026-01-25 04:07:23,572 [INFO] Got 25953 channels for MAC 00:1A:79:98:BA:92
+2026-01-25 04:07:23,580 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:98:BA:92)
+2026-01-25 04:07:23,581 [INFO] Moving MAC(00:1A:79:98:BA:92) for Portal(goodchannel)
+2026-01-25 04:07:23,606 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:E7:B6:38):Channel(1938614)
+2026-01-25 04:07:23,606 [DEBUG] Getting token for MAC 00:1A:79:E7:B6:38 from http://goodchannel.lol/portal.php
+2026-01-25 04:07:23,677 [DEBUG] Token request status: 200
+2026-01-25 04:07:23,678 [INFO] Successfully got token for MAC 00:1A:79:E7:B6:38
+2026-01-25 04:07:23,747 [DEBUG] Getting all channels for MAC 00:1A:79:E7:B6:38
+2026-01-25 04:07:23,788 [DEBUG] Channels request status: 200
+2026-01-25 04:07:23,789 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:E7:B6:38)
+2026-01-25 04:07:23,789 [INFO] Moving MAC(00:1A:79:E7:B6:38) for Portal(goodchannel)
+2026-01-25 04:07:23,789 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:82:D0:33):Channel(1938614)
+2026-01-25 04:07:23,790 [DEBUG] Getting token for MAC 00:1A:79:82:D0:33 from http://goodchannel.lol/portal.php
+2026-01-25 04:07:23,822 [DEBUG] Token request status: 200
+2026-01-25 04:07:23,822 [INFO] Successfully got token for MAC 00:1A:79:82:D0:33
+2026-01-25 04:07:23,906 [DEBUG] Getting all channels for MAC 00:1A:79:82:D0:33
+2026-01-25 04:07:23,949 [DEBUG] Channels request status: 200
+2026-01-25 04:07:23,950 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:82:D0:33)
+2026-01-25 04:07:23,950 [INFO] Moving MAC(00:1A:79:82:D0:33) for Portal(goodchannel)
+2026-01-25 04:07:23,950 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:17:28:69):Channel(1938614)
+2026-01-25 04:07:23,951 [DEBUG] Getting token for MAC 00:1A:79:17:28:69 from http://goodchannel.lol/portal.php
+2026-01-25 04:07:23,983 [DEBUG] Token request status: 200
+2026-01-25 04:07:23,983 [INFO] Successfully got token for MAC 00:1A:79:17:28:69
+2026-01-25 04:07:24,018 [DEBUG] Getting all channels for MAC 00:1A:79:17:28:69
+2026-01-25 04:07:25,658 [DEBUG] Channels request status: 200
+2026-01-25 04:07:26,288 [INFO] Got 31677 channels for MAC 00:1A:79:17:28:69
+2026-01-25 04:07:26,301 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:17:28:69)
+2026-01-25 04:07:26,302 [INFO] Moving MAC(00:1A:79:17:28:69) for Portal(goodchannel)
+2026-01-25 04:07:26,351 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:7A:54:37):Channel(1938614)
+2026-01-25 04:07:26,351 [DEBUG] Getting token for MAC 00:1A:79:7A:54:37 from http://goodchannel.lol/portal.php
+2026-01-25 04:07:26,509 [DEBUG] Token request status: 200
+2026-01-25 04:07:26,509 [INFO] Successfully got token for MAC 00:1A:79:7A:54:37
+2026-01-25 04:07:26,546 [DEBUG] Getting all channels for MAC 00:1A:79:7A:54:37
+2026-01-25 04:07:26,778 [DEBUG] Channels request status: 200
+2026-01-25 04:07:26,838 [INFO] Got 3423 channels for MAC 00:1A:79:7A:54:37
+2026-01-25 04:07:26,840 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:7A:54:37)
+2026-01-25 04:07:26,840 [INFO] Moving MAC(00:1A:79:7A:54:37) for Portal(goodchannel)
+2026-01-25 04:07:26,846 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:B6:72:C6):Channel(1938614)
+2026-01-25 04:07:26,846 [DEBUG] Getting token for MAC 00:1A:79:B6:72:C6 from http://goodchannel.lol/portal.php
+2026-01-25 04:07:26,978 [DEBUG] Token request status: 200
+2026-01-25 04:07:26,978 [INFO] Successfully got token for MAC 00:1A:79:B6:72:C6
+2026-01-25 04:07:27,008 [DEBUG] Getting all channels for MAC 00:1A:79:B6:72:C6
+2026-01-25 04:07:27,824 [DEBUG] Channels request status: 200
+2026-01-25 04:07:28,219 [INFO] Got 17858 channels for MAC 00:1A:79:B6:72:C6
+2026-01-25 04:07:28,749 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:B6:72:C6)
+2026-01-25 04:07:28,750 [INFO] Moving MAC(00:1A:79:B6:72:C6) for Portal(goodchannel)
+2026-01-25 04:07:28,751 [INFO] No working streams found for Portal(e6171cd844774b96891ba48ebae19865):Channel(1938614)
+2026-01-25 12:18:41,405 [INFO] IP(172.18.0.2) requested Portal(e6171cd844774b96891ba48ebae19865):Channel(836386)
+2026-01-25 12:18:41,412 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:82:D0:D8):Channel(836386)
+2026-01-25 12:18:41,414 [DEBUG] Getting token for MAC 00:1A:79:82:D0:D8 from http://goodchannel.lol/portal.php
+2026-01-25 12:18:41,533 [DEBUG] Token request status: 200
+2026-01-25 12:18:41,534 [INFO] Successfully got token for MAC 00:1A:79:82:D0:D8
+2026-01-25 12:18:41,584 [DEBUG] Getting all channels for MAC 00:1A:79:82:D0:D8
+2026-01-25 12:18:42,501 [DEBUG] Channels request status: 200
+2026-01-25 12:18:43,768 [INFO] Got 23920 channels for MAC 00:1A:79:82:D0:D8
+2026-01-25 12:18:45,130 [INFO] Occupied Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:82:D0:D8)
+2026-01-25 12:19:08,742 [INFO] Unoccupied Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:82:D0:D8)
+2026-01-25 12:39:51,897 [INFO] IP(172.18.0.2) requested Portal(643bffc727fa4fb6b1205ac56c5170a0):Channel(861528)
+2026-01-25 12:39:51,897 [INFO] Trying Portal(643bffc727fa4fb6b1205ac56c5170a0):MAC(A0:BB:3E:00:17:63):Channel(861528)
+2026-01-25 12:39:51,897 [DEBUG] Getting token for MAC A0:BB:3E:00:17:63 from http://main.light-ott.net:80/portal.php
+2026-01-25 12:39:52,056 [DEBUG] Token request status: 200
+2026-01-25 12:39:52,056 [INFO] Successfully got token for MAC A0:BB:3E:00:17:63
+2026-01-25 12:39:52,191 [DEBUG] Getting all channels for MAC A0:BB:3E:00:17:63
+2026-01-25 12:39:53,501 [DEBUG] Channels request status: 200
+2026-01-25 12:39:53,710 [INFO] Got 11851 channels for MAC A0:BB:3E:00:17:63
+2026-01-25 12:39:54,464 [INFO] Occupied Portal(643bffc727fa4fb6b1205ac56c5170a0):MAC(A0:BB:3E:00:17:63)
+2026-01-25 12:39:58,056 [INFO] Unoccupied Portal(643bffc727fa4fb6b1205ac56c5170a0):MAC(A0:BB:3E:00:17:63)
+2026-01-25 12:40:55,660 [INFO] IP(172.18.0.2) requested Portal(e6171cd844774b96891ba48ebae19865):Channel(2006667)
+2026-01-25 12:40:55,661 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:82:D0:D8):Channel(2006667)
+2026-01-25 12:40:55,661 [DEBUG] Getting token for MAC 00:1A:79:82:D0:D8 from http://goodchannel.lol/portal.php
+2026-01-25 12:40:55,723 [DEBUG] Token request status: 200
+2026-01-25 12:40:55,724 [INFO] Successfully got token for MAC 00:1A:79:82:D0:D8
+2026-01-25 12:40:55,760 [DEBUG] Getting all channels for MAC 00:1A:79:82:D0:D8
+2026-01-25 12:40:57,109 [DEBUG] Channels request status: 200
+2026-01-25 12:40:57,924 [INFO] Got 23920 channels for MAC 00:1A:79:82:D0:D8
+2026-01-25 12:41:03,639 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:82:D0:D8)
+2026-01-25 12:41:03,640 [INFO] Moving MAC(00:1A:79:82:D0:D8) for Portal(goodchannel)
+2026-01-25 12:41:03,669 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:17:28:3A):Channel(2006667)
+2026-01-25 12:41:03,669 [DEBUG] Getting token for MAC 00:1A:79:17:28:3A from http://goodchannel.lol/portal.php
+2026-01-25 12:41:05,259 [DEBUG] Token request status: 200
+2026-01-25 12:41:05,259 [INFO] Successfully got token for MAC 00:1A:79:17:28:3A
+2026-01-25 12:41:05,291 [DEBUG] Getting all channels for MAC 00:1A:79:17:28:3A
+2026-01-25 12:41:06,664 [DEBUG] Channels request status: 200
+2026-01-25 12:41:07,135 [INFO] Got 30813 channels for MAC 00:1A:79:17:28:3A
+2026-01-25 12:41:07,301 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:17:28:3A)
+2026-01-25 12:41:07,301 [INFO] Moving MAC(00:1A:79:17:28:3A) for Portal(goodchannel)
+2026-01-25 12:41:07,340 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:17:28:67):Channel(2006667)
+2026-01-25 12:41:07,340 [DEBUG] Getting token for MAC 00:1A:79:17:28:67 from http://goodchannel.lol/portal.php
+2026-01-25 12:41:07,622 [DEBUG] Token request status: 200
+2026-01-25 12:41:07,622 [INFO] Successfully got token for MAC 00:1A:79:17:28:67
+2026-01-25 12:41:07,774 [DEBUG] Getting all channels for MAC 00:1A:79:17:28:67
+2026-01-25 12:41:08,352 [DEBUG] Channels request status: 200
+2026-01-25 12:41:08,567 [INFO] Got 15462 channels for MAC 00:1A:79:17:28:67
+2026-01-25 12:41:08,794 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:17:28:67)
+2026-01-25 12:41:08,795 [INFO] Moving MAC(00:1A:79:17:28:67) for Portal(goodchannel)
+2026-01-25 12:41:08,808 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:AD:55:64):Channel(2006667)
+2026-01-25 12:41:08,808 [DEBUG] Getting token for MAC 00:1A:79:AD:55:64 from http://goodchannel.lol/portal.php
+2026-01-25 12:41:08,839 [DEBUG] Token request status: 200
+2026-01-25 12:41:08,840 [INFO] Successfully got token for MAC 00:1A:79:AD:55:64
+2026-01-25 12:41:09,000 [DEBUG] Getting all channels for MAC 00:1A:79:AD:55:64
+2026-01-25 12:41:09,358 [DEBUG] Channels request status: 200
+2026-01-25 12:41:09,471 [INFO] Got 9526 channels for MAC 00:1A:79:AD:55:64
+2026-01-25 12:41:09,475 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:AD:55:64)
+2026-01-25 12:41:09,475 [INFO] Moving MAC(00:1A:79:AD:55:64) for Portal(goodchannel)
+2026-01-25 12:41:09,484 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:98:BA:92):Channel(2006667)
+2026-01-25 12:41:09,484 [DEBUG] Getting token for MAC 00:1A:79:98:BA:92 from http://goodchannel.lol/portal.php
+2026-01-25 12:41:09,567 [DEBUG] Token request status: 200
+2026-01-25 12:41:09,567 [INFO] Successfully got token for MAC 00:1A:79:98:BA:92
+2026-01-25 12:41:09,607 [DEBUG] Getting all channels for MAC 00:1A:79:98:BA:92
+2026-01-25 12:41:10,713 [DEBUG] Channels request status: 200
+2026-01-25 12:41:11,078 [INFO] Got 25953 channels for MAC 00:1A:79:98:BA:92
+2026-01-25 12:41:11,232 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:98:BA:92)
+2026-01-25 12:41:11,232 [INFO] Moving MAC(00:1A:79:98:BA:92) for Portal(goodchannel)
+2026-01-25 12:41:11,254 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:E7:B6:38):Channel(2006667)
+2026-01-25 12:41:11,254 [DEBUG] Getting token for MAC 00:1A:79:E7:B6:38 from http://goodchannel.lol/portal.php
+2026-01-25 12:41:11,475 [DEBUG] Token request status: 200
+2026-01-25 12:41:11,476 [INFO] Successfully got token for MAC 00:1A:79:E7:B6:38
+2026-01-25 12:41:11,512 [DEBUG] Getting all channels for MAC 00:1A:79:E7:B6:38
+2026-01-25 12:41:12,334 [DEBUG] Channels request status: 200
+2026-01-25 12:41:12,557 [INFO] Got 16838 channels for MAC 00:1A:79:E7:B6:38
+2026-01-25 12:41:12,776 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:E7:B6:38)
+2026-01-25 12:41:12,776 [INFO] Moving MAC(00:1A:79:E7:B6:38) for Portal(goodchannel)
+2026-01-25 12:41:12,795 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:82:D0:33):Channel(2006667)
+2026-01-25 12:41:12,795 [DEBUG] Getting token for MAC 00:1A:79:82:D0:33 from http://goodchannel.lol/portal.php
+2026-01-25 12:41:12,830 [DEBUG] Token request status: 200
+2026-01-25 12:41:12,830 [INFO] Successfully got token for MAC 00:1A:79:82:D0:33
+2026-01-25 12:41:12,874 [DEBUG] Getting all channels for MAC 00:1A:79:82:D0:33
+2026-01-25 12:41:13,787 [DEBUG] Channels request status: 200
+2026-01-25 12:41:13,830 [INFO] Got 4174 channels for MAC 00:1A:79:82:D0:33
+2026-01-25 12:41:13,962 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:82:D0:33)
+2026-01-25 12:41:13,962 [INFO] Moving MAC(00:1A:79:82:D0:33) for Portal(goodchannel)
+2026-01-25 12:41:13,968 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:17:28:69):Channel(2006667)
+2026-01-25 12:41:13,968 [DEBUG] Getting token for MAC 00:1A:79:17:28:69 from http://goodchannel.lol/portal.php
+2026-01-25 12:41:14,040 [DEBUG] Token request status: 200
+2026-01-25 12:41:14,040 [INFO] Successfully got token for MAC 00:1A:79:17:28:69
+2026-01-25 12:41:14,076 [DEBUG] Getting all channels for MAC 00:1A:79:17:28:69
+2026-01-25 12:41:15,131 [DEBUG] Channels request status: 200
+2026-01-25 12:41:15,593 [INFO] Got 31677 channels for MAC 00:1A:79:17:28:69
+2026-01-25 12:41:16,427 [INFO] IP(172.18.0.2) requested Portal(f6bef7b11d1a464f8b83f93d956f6fa9):Channel(2006667)
+2026-01-25 12:41:16,427 [INFO] Trying Portal(f6bef7b11d1a464f8b83f93d956f6fa9):MAC(A0:BB:3E:E9:EB:F1):Channel(2006667)
+2026-01-25 12:41:16,427 [DEBUG] Getting token for MAC A0:BB:3E:E9:EB:F1 from http://hottest.vip/portal.php
+2026-01-25 12:41:16,488 [DEBUG] Token request status: 200
+2026-01-25 12:41:16,488 [INFO] Successfully got token for MAC A0:BB:3E:E9:EB:F1
+2026-01-25 12:41:16,543 [DEBUG] Getting all channels for MAC A0:BB:3E:E9:EB:F1
+2026-01-25 12:41:17,720 [DEBUG] Channels request status: 200
+2026-01-25 12:41:18,430 [INFO] Got 32656 channels for MAC A0:BB:3E:E9:EB:F1
+2026-01-25 12:41:18,949 [INFO] Unable to connect to Portal(f6bef7b11d1a464f8b83f93d956f6fa9) using MAC(A0:BB:3E:E9:EB:F1)
+2026-01-25 12:41:18,949 [INFO] Moving MAC(A0:BB:3E:E9:EB:F1) for Portal(hottest.vip)
+2026-01-25 12:41:18,950 [INFO] No working streams found for Portal(f6bef7b11d1a464f8b83f93d956f6fa9):Channel(2006667)
+2026-01-25 12:41:21,160 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:17:28:69)
+2026-01-25 12:41:21,160 [INFO] Moving MAC(00:1A:79:17:28:69) for Portal(goodchannel)
+2026-01-25 12:41:21,189 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:7A:54:37):Channel(2006667)
+2026-01-25 12:41:21,189 [DEBUG] Getting token for MAC 00:1A:79:7A:54:37 from http://goodchannel.lol/portal.php
+2026-01-25 12:41:21,221 [DEBUG] Token request status: 200
+2026-01-25 12:41:21,221 [INFO] Successfully got token for MAC 00:1A:79:7A:54:37
+2026-01-25 12:41:21,271 [DEBUG] Getting all channels for MAC 00:1A:79:7A:54:37
+2026-01-25 12:41:21,524 [DEBUG] Channels request status: 200
+2026-01-25 12:41:21,579 [INFO] Got 3423 channels for MAC 00:1A:79:7A:54:37
+2026-01-25 12:41:21,580 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:7A:54:37)
+2026-01-25 12:41:21,580 [INFO] Moving MAC(00:1A:79:7A:54:37) for Portal(goodchannel)
+2026-01-25 12:41:21,583 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:B6:72:C6):Channel(2006667)
+2026-01-25 12:41:21,583 [DEBUG] Getting token for MAC 00:1A:79:B6:72:C6 from http://goodchannel.lol/portal.php
+2026-01-25 12:41:21,617 [DEBUG] Token request status: 200
+2026-01-25 12:41:21,617 [INFO] Successfully got token for MAC 00:1A:79:B6:72:C6
+2026-01-25 12:41:21,712 [DEBUG] Getting all channels for MAC 00:1A:79:B6:72:C6
+2026-01-25 12:41:22,312 [DEBUG] Channels request status: 200
+2026-01-25 12:41:22,605 [INFO] Got 17858 channels for MAC 00:1A:79:B6:72:C6
+2026-01-25 12:41:22,747 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:B6:72:C6)
+2026-01-25 12:41:22,747 [INFO] Moving MAC(00:1A:79:B6:72:C6) for Portal(goodchannel)
+2026-01-25 12:41:22,748 [INFO] No working streams found for Portal(e6171cd844774b96891ba48ebae19865):Channel(2006667)
+2026-01-25 12:41:29,543 [INFO] IP(172.18.0.2) requested Portal(e6171cd844774b96891ba48ebae19865):Channel(1960726)
+2026-01-25 12:41:29,544 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:82:D0:D8):Channel(1960726)
+2026-01-25 12:41:29,544 [DEBUG] Getting token for MAC 00:1A:79:82:D0:D8 from http://goodchannel.lol/portal.php
+2026-01-25 12:41:29,589 [DEBUG] Token request status: 200
+2026-01-25 12:41:29,589 [INFO] Successfully got token for MAC 00:1A:79:82:D0:D8
+2026-01-25 12:41:29,623 [DEBUG] Getting all channels for MAC 00:1A:79:82:D0:D8
+2026-01-25 12:41:30,690 [DEBUG] Channels request status: 200
+2026-01-25 12:41:31,208 [INFO] Got 23920 channels for MAC 00:1A:79:82:D0:D8
+2026-01-25 12:41:37,382 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:82:D0:D8)
+2026-01-25 12:41:37,382 [INFO] Moving MAC(00:1A:79:82:D0:D8) for Portal(goodchannel)
+2026-01-25 12:41:37,404 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:17:28:3A):Channel(1960726)
+2026-01-25 12:41:37,404 [DEBUG] Getting token for MAC 00:1A:79:17:28:3A from http://goodchannel.lol/portal.php
+2026-01-25 12:41:37,442 [DEBUG] Token request status: 200
+2026-01-25 12:41:37,443 [INFO] Successfully got token for MAC 00:1A:79:17:28:3A
+2026-01-25 12:41:37,481 [DEBUG] Getting all channels for MAC 00:1A:79:17:28:3A
+2026-01-25 12:41:38,573 [DEBUG] Channels request status: 200
+2026-01-25 12:41:38,965 [INFO] Got 30813 channels for MAC 00:1A:79:17:28:3A
+2026-01-25 12:41:38,976 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:17:28:3A)
+2026-01-25 12:41:38,977 [INFO] Moving MAC(00:1A:79:17:28:3A) for Portal(goodchannel)
+2026-01-25 12:41:39,001 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:17:28:67):Channel(1960726)
+2026-01-25 12:41:39,001 [DEBUG] Getting token for MAC 00:1A:79:17:28:67 from http://goodchannel.lol/portal.php
+2026-01-25 12:41:39,051 [DEBUG] Token request status: 200
+2026-01-25 12:41:39,051 [INFO] Successfully got token for MAC 00:1A:79:17:28:67
+2026-01-25 12:41:39,085 [DEBUG] Getting all channels for MAC 00:1A:79:17:28:67
+2026-01-25 12:41:39,870 [DEBUG] Channels request status: 200
+2026-01-25 12:41:40,107 [INFO] Got 15462 channels for MAC 00:1A:79:17:28:67
+2026-01-25 12:41:40,111 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:17:28:67)
+2026-01-25 12:41:40,111 [INFO] Moving MAC(00:1A:79:17:28:67) for Portal(goodchannel)
+2026-01-25 12:41:40,124 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:AD:55:64):Channel(1960726)
+2026-01-25 12:41:40,124 [DEBUG] Getting token for MAC 00:1A:79:AD:55:64 from http://goodchannel.lol/portal.php
+2026-01-25 12:41:40,182 [DEBUG] Token request status: 200
+2026-01-25 12:41:40,182 [INFO] Successfully got token for MAC 00:1A:79:AD:55:64
+2026-01-25 12:41:40,215 [DEBUG] Getting all channels for MAC 00:1A:79:AD:55:64
+2026-01-25 12:41:41,647 [DEBUG] Channels request status: 200
+2026-01-25 12:41:41,753 [INFO] Got 9526 channels for MAC 00:1A:79:AD:55:64
+2026-01-25 12:41:41,756 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:AD:55:64)
+2026-01-25 12:41:41,757 [INFO] Moving MAC(00:1A:79:AD:55:64) for Portal(goodchannel)
+2026-01-25 12:41:41,765 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:98:BA:92):Channel(1960726)
+2026-01-25 12:41:41,765 [DEBUG] Getting token for MAC 00:1A:79:98:BA:92 from http://goodchannel.lol/portal.php
+2026-01-25 12:41:41,810 [DEBUG] Token request status: 200
+2026-01-25 12:41:41,810 [INFO] Successfully got token for MAC 00:1A:79:98:BA:92
+2026-01-25 12:41:41,860 [DEBUG] Getting all channels for MAC 00:1A:79:98:BA:92
+2026-01-25 12:41:42,936 [DEBUG] Channels request status: 200
+2026-01-25 12:41:43,305 [INFO] Got 25953 channels for MAC 00:1A:79:98:BA:92
+2026-01-25 12:41:43,312 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:98:BA:92)
+2026-01-25 12:41:43,312 [INFO] Moving MAC(00:1A:79:98:BA:92) for Portal(goodchannel)
+2026-01-25 12:41:43,332 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:E7:B6:38):Channel(1960726)
+2026-01-25 12:41:43,332 [DEBUG] Getting token for MAC 00:1A:79:E7:B6:38 from http://goodchannel.lol/portal.php
+2026-01-25 12:41:43,368 [DEBUG] Token request status: 200
+2026-01-25 12:41:43,368 [INFO] Successfully got token for MAC 00:1A:79:E7:B6:38
+2026-01-25 12:41:43,437 [DEBUG] Getting all channels for MAC 00:1A:79:E7:B6:38
+2026-01-25 12:41:43,731 [INFO] Starting channel cache refresh...
+2026-01-25 12:41:43,740 [INFO] Fetching channels for portal: goodchannel
+2026-01-25 12:41:43,740 [INFO] Trying MAC: 00:1A:79:E7:B6:38
+2026-01-25 12:41:43,740 [DEBUG] Getting token for MAC 00:1A:79:E7:B6:38 from http://goodchannel.lol/portal.php
+2026-01-25 12:41:43,846 [DEBUG] Token request status: 200
+2026-01-25 12:41:43,846 [INFO] Successfully got token for MAC 00:1A:79:E7:B6:38
+2026-01-25 12:41:43,897 [DEBUG] Getting all channels for MAC 00:1A:79:E7:B6:38
+2026-01-25 12:41:44,562 [DEBUG] Channels request status: 200
+2026-01-25 12:41:44,799 [INFO] Got 16838 channels for MAC 00:1A:79:E7:B6:38
+2026-01-25 12:41:44,952 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:E7:B6:38)
+2026-01-25 12:41:44,952 [INFO] Moving MAC(00:1A:79:E7:B6:38) for Portal(goodchannel)
+2026-01-25 12:41:44,967 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:82:D0:33):Channel(1960726)
+2026-01-25 12:41:44,967 [DEBUG] Getting token for MAC 00:1A:79:82:D0:33 from http://goodchannel.lol/portal.php
+2026-01-25 12:41:45,009 [DEBUG] Token request status: 200
+2026-01-25 12:41:45,009 [INFO] Successfully got token for MAC 00:1A:79:82:D0:33
+2026-01-25 12:41:45,042 [DEBUG] Getting all channels for MAC 00:1A:79:82:D0:33
+2026-01-25 12:41:45,201 [DEBUG] Channels request status: 200
+2026-01-25 12:41:45,724 [INFO] Got 16838 channels for MAC 00:1A:79:E7:B6:38
+2026-01-25 12:41:45,729 [DEBUG] Channels request status: 200
+2026-01-25 12:41:45,785 [INFO] Got 4174 channels for MAC 00:1A:79:82:D0:33
+2026-01-25 12:41:45,787 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:82:D0:33)
+2026-01-25 12:41:45,787 [INFO] Moving MAC(00:1A:79:82:D0:33) for Portal(goodchannel)
+2026-01-25 12:41:45,791 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:17:28:69):Channel(1960726)
+2026-01-25 12:41:45,791 [DEBUG] Getting token for MAC 00:1A:79:17:28:69 from http://goodchannel.lol/portal.php
+2026-01-25 12:41:45,874 [DEBUG] Token request status: 200
+2026-01-25 12:41:45,874 [INFO] Successfully got token for MAC 00:1A:79:17:28:69
+2026-01-25 12:41:45,921 [DEBUG] Getting all channels for MAC 00:1A:79:17:28:69
+2026-01-25 12:41:46,151 [INFO] Processing 16838 channels for goodchannel
+2026-01-25 12:41:46,391 [INFO] Successfully cached 16838 channels for goodchannel
+2026-01-25 12:41:46,391 [INFO] Fetching channels for portal: iptvde.de
+2026-01-25 12:41:46,405 [INFO] Trying MAC: 00:1A:79:3B:89:78
+2026-01-25 12:41:46,405 [DEBUG] Getting token for MAC 00:1A:79:3B:89:78 from http://iptvde.de:8080/portal.php
+2026-01-25 12:41:46,566 [DEBUG] Token request status: 200
+2026-01-25 12:41:46,566 [INFO] Successfully got token for MAC 00:1A:79:3B:89:78
+2026-01-25 12:41:46,709 [DEBUG] Getting all channels for MAC 00:1A:79:3B:89:78
+2026-01-25 12:41:47,220 [DEBUG] Channels request status: 200
+2026-01-25 12:41:47,310 [INFO] Got 4153 channels for MAC 00:1A:79:3B:89:78
+2026-01-25 12:41:47,425 [INFO] Processing 4153 channels for iptvde.de
+2026-01-25 12:41:47,451 [DEBUG] Channels request status: 200
+2026-01-25 12:41:47,932 [INFO] Got 31677 channels for MAC 00:1A:79:17:28:69
+2026-01-25 12:41:47,941 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:17:28:69)
+2026-01-25 12:41:47,942 [INFO] Moving MAC(00:1A:79:17:28:69) for Portal(goodchannel)
+2026-01-25 12:41:47,972 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:7A:54:37):Channel(1960726)
+2026-01-25 12:41:47,972 [DEBUG] Getting token for MAC 00:1A:79:7A:54:37 from http://goodchannel.lol/portal.php
+2026-01-25 12:41:48,030 [INFO] Successfully cached 4153 channels for iptvde.de
+2026-01-25 12:41:48,030 [INFO] Fetching channels for portal: dragoniptv
+2026-01-25 12:41:48,034 [INFO] Trying MAC: 00:1A:79:42:2E:DD
+2026-01-25 12:41:48,034 [DEBUG] Getting token for MAC 00:1A:79:42:2E:DD from http://dragoniptv.de:80/portal.php
+2026-01-25 12:41:48,081 [DEBUG] Token request status: 200
+2026-01-25 12:41:48,082 [INFO] Successfully got token for MAC 00:1A:79:7A:54:37
+2026-01-25 12:41:48,084 [DEBUG] Token request status: 200
+2026-01-25 12:41:48,084 [INFO] Successfully got token for MAC 00:1A:79:42:2E:DD
+2026-01-25 12:41:48,114 [DEBUG] Getting all channels for MAC 00:1A:79:7A:54:37
+2026-01-25 12:41:48,135 [DEBUG] Getting all channels for MAC 00:1A:79:42:2E:DD
+2026-01-25 12:41:48,411 [DEBUG] Channels request status: 200
+2026-01-25 12:41:48,512 [INFO] Got 4616 channels for MAC 00:1A:79:42:2E:DD
+2026-01-25 12:41:48,597 [INFO] Processing 4616 channels for dragoniptv
+2026-01-25 12:41:48,699 [INFO] Successfully cached 4616 channels for dragoniptv
+2026-01-25 12:41:48,700 [INFO] Fetching channels for portal: hottest.vip
+2026-01-25 12:41:48,706 [INFO] Trying MAC: A0:BB:3E:E9:EB:F1
+2026-01-25 12:41:48,706 [DEBUG] Getting token for MAC A0:BB:3E:E9:EB:F1 from http://hottest.vip/portal.php
+2026-01-25 12:41:48,837 [DEBUG] Token request status: 200
+2026-01-25 12:41:48,838 [INFO] Successfully got token for MAC A0:BB:3E:E9:EB:F1
+2026-01-25 12:41:48,872 [DEBUG] Getting all channels for MAC A0:BB:3E:E9:EB:F1
+2026-01-25 12:41:48,904 [DEBUG] Channels request status: 200
+2026-01-25 12:41:48,944 [INFO] Got 3423 channels for MAC 00:1A:79:7A:54:37
+2026-01-25 12:41:48,945 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:7A:54:37)
+2026-01-25 12:41:48,945 [INFO] Moving MAC(00:1A:79:7A:54:37) for Portal(goodchannel)
+2026-01-25 12:41:48,950 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:B6:72:C6):Channel(1960726)
+2026-01-25 12:41:48,950 [DEBUG] Getting token for MAC 00:1A:79:B6:72:C6 from http://goodchannel.lol/portal.php
+2026-01-25 12:41:48,987 [DEBUG] Token request status: 200
+2026-01-25 12:41:48,988 [INFO] Successfully got token for MAC 00:1A:79:B6:72:C6
+2026-01-25 12:41:49,060 [DEBUG] Getting all channels for MAC 00:1A:79:B6:72:C6
+2026-01-25 12:41:49,926 [DEBUG] Channels request status: 200
+2026-01-25 12:41:50,181 [INFO] Got 17858 channels for MAC 00:1A:79:B6:72:C6
+2026-01-25 12:41:50,227 [DEBUG] Channels request status: 200
+2026-01-25 12:41:50,799 [INFO] Got 32656 channels for MAC A0:BB:3E:E9:EB:F1
+2026-01-25 12:41:50,804 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:B6:72:C6)
+2026-01-25 12:41:50,804 [INFO] Moving MAC(00:1A:79:B6:72:C6) for Portal(goodchannel)
+2026-01-25 12:41:50,805 [INFO] No working streams found for Portal(e6171cd844774b96891ba48ebae19865):Channel(1960726)
+2026-01-25 12:41:51,310 [INFO] Processing 32656 channels for hottest.vip
+2026-01-25 12:41:51,825 [INFO] Successfully cached 32656 channels for hottest.vip
+2026-01-25 12:41:51,825 [INFO] Fetching channels for portal: main.light-ott.net
+2026-01-25 12:41:51,855 [INFO] Trying MAC: A0:BB:3E:00:17:63
+2026-01-25 12:41:51,855 [DEBUG] Getting token for MAC A0:BB:3E:00:17:63 from http://main.light-ott.net:80/portal.php
+2026-01-25 12:41:52,207 [DEBUG] Token request status: 200
+2026-01-25 12:41:52,207 [INFO] Successfully got token for MAC A0:BB:3E:00:17:63
+2026-01-25 12:41:52,519 [DEBUG] Getting all channels for MAC A0:BB:3E:00:17:63
+2026-01-25 12:41:53,613 [DEBUG] Channels request status: 200
+2026-01-25 12:41:53,753 [INFO] Got 11851 channels for MAC A0:BB:3E:00:17:63
+2026-01-25 12:41:54,068 [INFO] Processing 11851 channels for main.light-ott.net
+2026-01-25 12:41:54,202 [INFO] Successfully cached 11851 channels for main.light-ott.net
+2026-01-25 12:41:54,202 [INFO] Fetching channels for portal: ds.raptortv.de
+2026-01-25 12:41:54,211 [INFO] Trying MAC: A0:BB:3E:04:90:C8
+2026-01-25 12:41:54,211 [DEBUG] Getting token for MAC A0:BB:3E:04:90:C8 from http://ds.raptortv.de/portal.php
+2026-01-25 12:41:54,271 [DEBUG] Token request status: 200
+2026-01-25 12:41:54,271 [INFO] Successfully got token for MAC A0:BB:3E:04:90:C8
+2026-01-25 12:41:54,322 [DEBUG] Getting all channels for MAC A0:BB:3E:04:90:C8
+2026-01-25 12:41:54,561 [DEBUG] Channels request status: 200
+2026-01-25 12:41:54,644 [INFO] Got 4353 channels for MAC A0:BB:3E:04:90:C8
+2026-01-25 12:41:54,709 [INFO] Processing 4353 channels for ds.raptortv.de
+2026-01-25 12:41:54,779 [INFO] Successfully cached 4353 channels for ds.raptortv.de
+2026-01-25 12:41:54,779 [INFO] Fetching channels for portal: focusmag.eu01.live
+2026-01-25 12:41:54,783 [INFO] Trying MAC: 00:1A:79:BA:D2:58
+2026-01-25 12:41:54,783 [DEBUG] Getting token for MAC 00:1A:79:BA:D2:58 from http://focusmag.eu01.live:8080/portal.php
+2026-01-25 12:41:55,902 [DEBUG] Token request status: 200
+2026-01-25 12:41:55,902 [INFO] Successfully got token for MAC 00:1A:79:BA:D2:58
+2026-01-25 12:41:55,957 [DEBUG] Getting all channels for MAC 00:1A:79:BA:D2:58
+2026-01-25 12:41:56,005 [DEBUG] Channels request status: 200
+2026-01-25 12:41:56,005 [ERROR] Error getting channels for MAC 00:1A:79:BA:D2:58: list indices must be integers or slices, not str
+2026-01-25 12:41:56,103 [ERROR] Failed to fetch channels for portal: focusmag.eu01.live
+2026-01-25 12:41:56,103 [INFO] Fetching channels for portal: pi.xc-clubtv.xyz
+2026-01-25 12:41:56,103 [INFO] Trying MAC: 00:1A:79:CE:03:52
+2026-01-25 12:41:56,103 [DEBUG] Getting token for MAC 00:1A:79:CE:03:52 from http://pi.xc-clubtv.xyz:8080/portal.php
+2026-01-25 12:41:57,174 [DEBUG] Token request status: 200
+2026-01-25 12:41:57,174 [INFO] Successfully got token for MAC 00:1A:79:CE:03:52
+2026-01-25 12:41:57,228 [DEBUG] Getting all channels for MAC 00:1A:79:CE:03:52
+2026-01-25 12:41:57,287 [DEBUG] Channels request status: 200
+2026-01-25 12:41:57,287 [ERROR] Error getting channels for MAC 00:1A:79:CE:03:52: list indices must be integers or slices, not str
+2026-01-25 12:41:57,381 [ERROR] Failed to fetch channels for portal: pi.xc-clubtv.xyz
+2026-01-25 12:41:57,382 [INFO] Channel cache refresh complete. Total channels: 74467
+2026-01-25 12:41:57,382 [INFO] Channel cache refreshed: 74467 channels
+2026-01-25 12:42:31,299 [INFO] IP(172.18.0.2) requested Portal(643bffc727fa4fb6b1205ac56c5170a0):Channel(1120139)
+2026-01-25 12:42:31,299 [INFO] Trying Portal(643bffc727fa4fb6b1205ac56c5170a0):MAC(A0:BB:3E:00:17:63):Channel(1120139)
+2026-01-25 12:42:31,299 [DEBUG] Getting token for MAC A0:BB:3E:00:17:63 from http://main.light-ott.net:80/portal.php
+2026-01-25 12:42:31,464 [DEBUG] Token request status: 200
+2026-01-25 12:42:31,464 [INFO] Successfully got token for MAC A0:BB:3E:00:17:63
+2026-01-25 12:42:31,626 [DEBUG] Getting all channels for MAC A0:BB:3E:00:17:63
+2026-01-25 12:42:32,605 [DEBUG] Channels request status: 200
+2026-01-25 12:42:32,854 [INFO] Got 11851 channels for MAC A0:BB:3E:00:17:63
+2026-01-25 12:42:34,230 [INFO] Occupied Portal(643bffc727fa4fb6b1205ac56c5170a0):MAC(A0:BB:3E:00:17:63)
+2026-01-25 12:42:38,686 [INFO] Unoccupied Portal(643bffc727fa4fb6b1205ac56c5170a0):MAC(A0:BB:3E:00:17:63)
+2026-01-25 12:46:53,330 [INFO] Settings saved!
+2026-01-25 12:46:53,331 [INFO] Refreshing XMLTV...
+2026-01-25 12:46:53,335 [INFO] Loaded existing programme data from cache.
+2026-01-25 12:46:53,336 [INFO] Fetching EPG | Portal: goodchannel | offset: 0 |
+2026-01-25 12:46:53,336 [INFO] Fetching EPG | Portal: iptvde.de | offset: 0 |
+2026-01-25 12:46:53,336 [INFO] Fetching EPG | Portal: dragoniptv | offset: 0 |
+2026-01-25 12:46:53,336 [INFO] Fetching EPG | Portal: hottest.vip | offset: 0 |
+2026-01-25 12:46:53,336 [INFO] Fetching EPG | Portal: main.light-ott.net | offset: 0 |
+2026-01-25 12:46:53,336 [INFO] Fetching EPG | Portal: ds.raptortv.de | offset: 0 |
+2026-01-25 12:46:53,336 [INFO] Fetching EPG | Portal: focusmag.eu01.live | offset: 0 |
+2026-01-25 12:46:53,336 [INFO] Fetching EPG | Portal: pi.xc-clubtv.xyz | offset: 0 |
+2026-01-25 12:46:53,337 [INFO] XMLTV cache updated.
+2026-01-25 12:48:09,271 [INFO] Settings saved!
+2026-01-25 12:48:09,272 [INFO] Refreshing XMLTV...
+2026-01-25 12:48:09,273 [INFO] Loaded existing programme data from cache.
+2026-01-25 12:48:09,274 [INFO] Fetching EPG | Portal: goodchannel | offset: 0 |
+2026-01-25 12:48:09,274 [INFO] Fetching EPG | Portal: iptvde.de | offset: 0 |
+2026-01-25 12:48:09,274 [INFO] Fetching EPG | Portal: dragoniptv | offset: 0 |
+2026-01-25 12:48:09,274 [INFO] Fetching EPG | Portal: hottest.vip | offset: 0 |
+2026-01-25 12:48:09,274 [INFO] Fetching EPG | Portal: main.light-ott.net | offset: 0 |
+2026-01-25 12:48:09,274 [INFO] Fetching EPG | Portal: ds.raptortv.de | offset: 0 |
+2026-01-25 12:48:09,274 [INFO] Fetching EPG | Portal: focusmag.eu01.live | offset: 0 |
+2026-01-25 12:48:09,274 [INFO] Fetching EPG | Portal: pi.xc-clubtv.xyz | offset: 0 |
+2026-01-25 12:48:09,275 [INFO] XMLTV cache updated.
+2026-01-25 12:48:18,166 [INFO] Guide Requested
+2026-01-25 12:48:31,643 [INFO] Playlist Requested
+2026-01-25 12:48:31,643 [INFO] Regenerating playlist due to host change: None -> stb-proxy.sb.leonderi.xyz
+2026-01-25 12:48:31,643 [INFO] Generating playlist.m3u from database...
+2026-01-25 12:48:31,644 [INFO] Playlist generated and cached with 0 channels.
+2026-01-25 12:49:12,757 [INFO] IP(172.18.0.2) requested Portal(e6171cd844774b96891ba48ebae19865):Channel(836406)
+2026-01-25 12:49:12,758 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:82:D0:D8):Channel(836406)
+2026-01-25 12:49:12,758 [DEBUG] Getting token for MAC 00:1A:79:82:D0:D8 from http://goodchannel.lol/portal.php
+2026-01-25 12:49:12,818 [DEBUG] Token request status: 200
+2026-01-25 12:49:12,818 [INFO] Successfully got token for MAC 00:1A:79:82:D0:D8
+2026-01-25 12:49:12,848 [DEBUG] Getting all channels for MAC 00:1A:79:82:D0:D8
+2026-01-25 12:49:13,809 [DEBUG] Channels request status: 200
+2026-01-25 12:49:14,292 [INFO] Got 23920 channels for MAC 00:1A:79:82:D0:D8
+2026-01-25 12:49:20,103 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:82:D0:D8)
+2026-01-25 12:49:20,103 [INFO] Moving MAC(00:1A:79:82:D0:D8) for Portal(goodchannel)
+2026-01-25 12:49:20,125 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:17:28:3A):Channel(836406)
+2026-01-25 12:49:20,125 [DEBUG] Getting token for MAC 00:1A:79:17:28:3A from http://goodchannel.lol/portal.php
+2026-01-25 12:49:20,155 [DEBUG] Token request status: 200
+2026-01-25 12:49:20,156 [INFO] Successfully got token for MAC 00:1A:79:17:28:3A
+2026-01-25 12:49:20,189 [DEBUG] Getting all channels for MAC 00:1A:79:17:28:3A
+2026-01-25 12:49:21,601 [DEBUG] Channels request status: 200
+2026-01-25 12:49:22,257 [INFO] Got 30813 channels for MAC 00:1A:79:17:28:3A
+2026-01-25 12:49:22,270 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:17:28:3A)
+2026-01-25 12:49:22,270 [INFO] Moving MAC(00:1A:79:17:28:3A) for Portal(goodchannel)
+2026-01-25 12:49:22,295 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:17:28:67):Channel(836406)
+2026-01-25 12:49:22,295 [DEBUG] Getting token for MAC 00:1A:79:17:28:67 from http://goodchannel.lol/portal.php
+2026-01-25 12:49:22,460 [DEBUG] Token request status: 200
+2026-01-25 12:49:22,460 [INFO] Successfully got token for MAC 00:1A:79:17:28:67
+2026-01-25 12:49:22,494 [DEBUG] Getting all channels for MAC 00:1A:79:17:28:67
+2026-01-25 12:49:23,068 [DEBUG] Channels request status: 200
+2026-01-25 12:49:23,261 [INFO] Got 15462 channels for MAC 00:1A:79:17:28:67
+2026-01-25 12:49:23,269 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:17:28:67)
+2026-01-25 12:49:23,269 [INFO] Moving MAC(00:1A:79:17:28:67) for Portal(goodchannel)
+2026-01-25 12:49:23,281 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:AD:55:64):Channel(836406)
+2026-01-25 12:49:23,281 [DEBUG] Getting token for MAC 00:1A:79:AD:55:64 from http://goodchannel.lol/portal.php
+2026-01-25 12:49:23,364 [DEBUG] Token request status: 200
+2026-01-25 12:49:23,364 [INFO] Successfully got token for MAC 00:1A:79:AD:55:64
+2026-01-25 12:49:23,426 [DEBUG] Getting all channels for MAC 00:1A:79:AD:55:64
+2026-01-25 12:49:23,833 [DEBUG] Channels request status: 200
+2026-01-25 12:49:23,984 [INFO] Got 9526 channels for MAC 00:1A:79:AD:55:64
+2026-01-25 12:49:23,987 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:AD:55:64)
+2026-01-25 12:49:23,987 [INFO] Moving MAC(00:1A:79:AD:55:64) for Portal(goodchannel)
+2026-01-25 12:49:23,996 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:98:BA:92):Channel(836406)
+2026-01-25 12:49:23,996 [DEBUG] Getting token for MAC 00:1A:79:98:BA:92 from http://goodchannel.lol/portal.php
+2026-01-25 12:49:24,195 [DEBUG] Token request status: 200
+2026-01-25 12:49:24,195 [INFO] Successfully got token for MAC 00:1A:79:98:BA:92
+2026-01-25 12:49:24,230 [DEBUG] Getting all channels for MAC 00:1A:79:98:BA:92
+2026-01-25 12:49:25,128 [DEBUG] Channels request status: 200
+2026-01-25 12:49:25,599 [INFO] Got 25953 channels for MAC 00:1A:79:98:BA:92
+2026-01-25 12:49:25,609 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:98:BA:92)
+2026-01-25 12:49:25,611 [INFO] Moving MAC(00:1A:79:98:BA:92) for Portal(goodchannel)
+2026-01-25 12:49:25,634 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:E7:B6:38):Channel(836406)
+2026-01-25 12:49:25,634 [DEBUG] Getting token for MAC 00:1A:79:E7:B6:38 from http://goodchannel.lol/portal.php
+2026-01-25 12:49:25,798 [DEBUG] Token request status: 200
+2026-01-25 12:49:25,798 [INFO] Successfully got token for MAC 00:1A:79:E7:B6:38
+2026-01-25 12:49:25,833 [DEBUG] Getting all channels for MAC 00:1A:79:E7:B6:38
+2026-01-25 12:49:26,433 [DEBUG] Channels request status: 200
+2026-01-25 12:49:26,651 [INFO] Got 16838 channels for MAC 00:1A:79:E7:B6:38
+2026-01-25 12:49:26,803 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:E7:B6:38)
+2026-01-25 12:49:26,803 [INFO] Moving MAC(00:1A:79:E7:B6:38) for Portal(goodchannel)
+2026-01-25 12:49:26,818 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:82:D0:33):Channel(836406)
+2026-01-25 12:49:26,818 [DEBUG] Getting token for MAC 00:1A:79:82:D0:33 from http://goodchannel.lol/portal.php
+2026-01-25 12:49:26,863 [DEBUG] Token request status: 200
+2026-01-25 12:49:26,864 [INFO] Successfully got token for MAC 00:1A:79:82:D0:33
+2026-01-25 12:49:26,899 [DEBUG] Getting all channels for MAC 00:1A:79:82:D0:33
+2026-01-25 12:49:27,109 [DEBUG] Channels request status: 200
+2026-01-25 12:49:27,180 [INFO] Got 4174 channels for MAC 00:1A:79:82:D0:33
+2026-01-25 12:49:27,181 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:82:D0:33)
+2026-01-25 12:49:27,181 [INFO] Moving MAC(00:1A:79:82:D0:33) for Portal(goodchannel)
+2026-01-25 12:49:27,185 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:17:28:69):Channel(836406)
+2026-01-25 12:49:27,185 [DEBUG] Getting token for MAC 00:1A:79:17:28:69 from http://goodchannel.lol/portal.php
+2026-01-25 12:49:27,229 [DEBUG] Token request status: 200
+2026-01-25 12:49:27,229 [INFO] Successfully got token for MAC 00:1A:79:17:28:69
+2026-01-25 12:49:27,262 [DEBUG] Getting all channels for MAC 00:1A:79:17:28:69
+2026-01-25 12:49:28,602 [DEBUG] Channels request status: 200
+2026-01-25 12:49:29,094 [INFO] Got 31677 channels for MAC 00:1A:79:17:28:69
+2026-01-25 12:49:29,106 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:17:28:69)
+2026-01-25 12:49:29,106 [INFO] Moving MAC(00:1A:79:17:28:69) for Portal(goodchannel)
+2026-01-25 12:49:29,133 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:7A:54:37):Channel(836406)
+2026-01-25 12:49:29,133 [DEBUG] Getting token for MAC 00:1A:79:7A:54:37 from http://goodchannel.lol/portal.php
+2026-01-25 12:49:29,164 [DEBUG] Token request status: 200
+2026-01-25 12:49:29,165 [INFO] Successfully got token for MAC 00:1A:79:7A:54:37
+2026-01-25 12:49:29,223 [DEBUG] Getting all channels for MAC 00:1A:79:7A:54:37
+2026-01-25 12:49:29,390 [DEBUG] Channels request status: 200
+2026-01-25 12:49:29,461 [INFO] Got 3423 channels for MAC 00:1A:79:7A:54:37
+2026-01-25 12:49:29,463 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:7A:54:37)
+2026-01-25 12:49:29,463 [INFO] Moving MAC(00:1A:79:7A:54:37) for Portal(goodchannel)
+2026-01-25 12:49:29,468 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:B6:72:C6):Channel(836406)
+2026-01-25 12:49:29,468 [DEBUG] Getting token for MAC 00:1A:79:B6:72:C6 from http://goodchannel.lol/portal.php
+2026-01-25 12:49:29,515 [DEBUG] Token request status: 200
+2026-01-25 12:49:29,516 [INFO] Successfully got token for MAC 00:1A:79:B6:72:C6
+2026-01-25 12:49:29,555 [DEBUG] Getting all channels for MAC 00:1A:79:B6:72:C6
+2026-01-25 12:49:30,353 [DEBUG] Channels request status: 200
+2026-01-25 12:49:30,617 [INFO] Got 17858 channels for MAC 00:1A:79:B6:72:C6
+2026-01-25 12:49:30,780 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:B6:72:C6)
+2026-01-25 12:49:30,780 [INFO] Moving MAC(00:1A:79:B6:72:C6) for Portal(goodchannel)
+2026-01-25 12:49:30,780 [INFO] No working streams found for Portal(e6171cd844774b96891ba48ebae19865):Channel(836406)
+2026-01-25 12:49:31,654 [INFO] IP(172.18.0.2) requested Portal(e6171cd844774b96891ba48ebae19865):Channel(836402)
+2026-01-25 12:49:31,654 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:82:D0:D8):Channel(836402)
+2026-01-25 12:49:31,654 [DEBUG] Getting token for MAC 00:1A:79:82:D0:D8 from http://goodchannel.lol/portal.php
+2026-01-25 12:49:31,818 [DEBUG] Token request status: 200
+2026-01-25 12:49:31,818 [INFO] Successfully got token for MAC 00:1A:79:82:D0:D8
+2026-01-25 12:49:31,846 [DEBUG] Getting all channels for MAC 00:1A:79:82:D0:D8
+2026-01-25 12:49:33,303 [DEBUG] Channels request status: 200
+2026-01-25 12:49:33,919 [INFO] Got 23920 channels for MAC 00:1A:79:82:D0:D8
+2026-01-25 12:49:34,554 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:82:D0:D8)
+2026-01-25 12:49:34,555 [INFO] Moving MAC(00:1A:79:82:D0:D8) for Portal(goodchannel)
+2026-01-25 12:49:34,581 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:17:28:3A):Channel(836402)
+2026-01-25 12:49:34,582 [DEBUG] Getting token for MAC 00:1A:79:17:28:3A from http://goodchannel.lol/portal.php
+2026-01-25 12:49:34,654 [DEBUG] Token request status: 200
+2026-01-25 12:49:34,655 [INFO] Successfully got token for MAC 00:1A:79:17:28:3A
+2026-01-25 12:49:34,686 [DEBUG] Getting all channels for MAC 00:1A:79:17:28:3A
+2026-01-25 12:49:36,708 [DEBUG] Channels request status: 200
+2026-01-25 12:49:37,117 [INFO] Got 30813 channels for MAC 00:1A:79:17:28:3A
+2026-01-25 12:49:37,128 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:17:28:3A)
+2026-01-25 12:49:37,128 [INFO] Moving MAC(00:1A:79:17:28:3A) for Portal(goodchannel)
+2026-01-25 12:49:37,152 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:17:28:67):Channel(836402)
+2026-01-25 12:49:37,152 [DEBUG] Getting token for MAC 00:1A:79:17:28:67 from http://goodchannel.lol/portal.php
+2026-01-25 12:49:37,190 [DEBUG] Token request status: 200
+2026-01-25 12:49:37,190 [INFO] Successfully got token for MAC 00:1A:79:17:28:67
+2026-01-25 12:49:37,300 [DEBUG] Getting all channels for MAC 00:1A:79:17:28:67
+2026-01-25 12:49:37,893 [DEBUG] Channels request status: 200
+2026-01-25 12:49:38,143 [INFO] Got 15462 channels for MAC 00:1A:79:17:28:67
+2026-01-25 12:49:38,147 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:17:28:67)
+2026-01-25 12:49:38,147 [INFO] Moving MAC(00:1A:79:17:28:67) for Portal(goodchannel)
+2026-01-25 12:49:38,161 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:AD:55:64):Channel(836402)
+2026-01-25 12:49:38,161 [DEBUG] Getting token for MAC 00:1A:79:AD:55:64 from http://goodchannel.lol/portal.php
+2026-01-25 12:49:38,194 [DEBUG] Token request status: 200
+2026-01-25 12:49:38,194 [INFO] Successfully got token for MAC 00:1A:79:AD:55:64
+2026-01-25 12:49:38,226 [DEBUG] Getting all channels for MAC 00:1A:79:AD:55:64
+2026-01-25 12:49:38,591 [DEBUG] Channels request status: 200
+2026-01-25 12:49:38,712 [INFO] Got 9526 channels for MAC 00:1A:79:AD:55:64
+2026-01-25 12:49:38,715 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:AD:55:64)
+2026-01-25 12:49:38,715 [INFO] Moving MAC(00:1A:79:AD:55:64) for Portal(goodchannel)
+2026-01-25 12:49:38,725 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:98:BA:92):Channel(836402)
+2026-01-25 12:49:38,725 [DEBUG] Getting token for MAC 00:1A:79:98:BA:92 from http://goodchannel.lol/portal.php
+2026-01-25 12:49:38,759 [DEBUG] Token request status: 200
+2026-01-25 12:49:38,759 [INFO] Successfully got token for MAC 00:1A:79:98:BA:92
+2026-01-25 12:49:38,790 [DEBUG] Getting all channels for MAC 00:1A:79:98:BA:92
+2026-01-25 12:49:40,045 [DEBUG] Channels request status: 200
+2026-01-25 12:49:40,445 [INFO] Got 25953 channels for MAC 00:1A:79:98:BA:92
+2026-01-25 12:49:40,458 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:98:BA:92)
+2026-01-25 12:49:40,458 [INFO] Moving MAC(00:1A:79:98:BA:92) for Portal(goodchannel)
+2026-01-25 12:49:40,480 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:E7:B6:38):Channel(836402)
+2026-01-25 12:49:40,480 [DEBUG] Getting token for MAC 00:1A:79:E7:B6:38 from http://goodchannel.lol/portal.php
+2026-01-25 12:49:40,513 [DEBUG] Token request status: 200
+2026-01-25 12:49:40,513 [INFO] Successfully got token for MAC 00:1A:79:E7:B6:38
+2026-01-25 12:49:40,554 [DEBUG] Getting all channels for MAC 00:1A:79:E7:B6:38
+2026-01-25 12:49:41,304 [DEBUG] Channels request status: 200
+2026-01-25 12:49:41,512 [INFO] Got 16838 channels for MAC 00:1A:79:E7:B6:38
+2026-01-25 12:49:41,658 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:E7:B6:38)
+2026-01-25 12:49:41,658 [INFO] Moving MAC(00:1A:79:E7:B6:38) for Portal(goodchannel)
+2026-01-25 12:49:41,675 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:82:D0:33):Channel(836402)
+2026-01-25 12:49:41,675 [DEBUG] Getting token for MAC 00:1A:79:82:D0:33 from http://goodchannel.lol/portal.php
+2026-01-25 12:49:41,710 [DEBUG] Token request status: 200
+2026-01-25 12:49:41,710 [INFO] Successfully got token for MAC 00:1A:79:82:D0:33
+2026-01-25 12:49:41,863 [DEBUG] Getting all channels for MAC 00:1A:79:82:D0:33
+2026-01-25 12:49:42,048 [DEBUG] Channels request status: 200
+2026-01-25 12:49:42,091 [INFO] Got 4174 channels for MAC 00:1A:79:82:D0:33
+2026-01-25 12:49:42,093 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:82:D0:33)
+2026-01-25 12:49:42,093 [INFO] Moving MAC(00:1A:79:82:D0:33) for Portal(goodchannel)
+2026-01-25 12:49:42,097 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:17:28:69):Channel(836402)
+2026-01-25 12:49:42,097 [DEBUG] Getting token for MAC 00:1A:79:17:28:69 from http://goodchannel.lol/portal.php
+2026-01-25 12:49:42,128 [DEBUG] Token request status: 200
+2026-01-25 12:49:42,129 [INFO] Successfully got token for MAC 00:1A:79:17:28:69
+2026-01-25 12:49:42,200 [DEBUG] Getting all channels for MAC 00:1A:79:17:28:69
+2026-01-25 12:49:43,312 [DEBUG] Channels request status: 200
+2026-01-25 12:49:43,854 [INFO] Got 31677 channels for MAC 00:1A:79:17:28:69
+2026-01-25 12:49:43,866 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:17:28:69)
+2026-01-25 12:49:43,866 [INFO] Moving MAC(00:1A:79:17:28:69) for Portal(goodchannel)
+2026-01-25 12:49:43,895 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:7A:54:37):Channel(836402)
+2026-01-25 12:49:43,895 [DEBUG] Getting token for MAC 00:1A:79:7A:54:37 from http://goodchannel.lol/portal.php
+2026-01-25 12:49:43,926 [DEBUG] Token request status: 200
+2026-01-25 12:49:43,926 [INFO] Successfully got token for MAC 00:1A:79:7A:54:37
+2026-01-25 12:49:43,956 [DEBUG] Getting all channels for MAC 00:1A:79:7A:54:37
+2026-01-25 12:49:44,152 [DEBUG] Channels request status: 200
+2026-01-25 12:49:44,203 [INFO] Got 3423 channels for MAC 00:1A:79:7A:54:37
+2026-01-25 12:49:44,205 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:7A:54:37)
+2026-01-25 12:49:44,205 [INFO] Moving MAC(00:1A:79:7A:54:37) for Portal(goodchannel)
+2026-01-25 12:49:44,209 [INFO] Trying Portal(e6171cd844774b96891ba48ebae19865):MAC(00:1A:79:B6:72:C6):Channel(836402)
+2026-01-25 12:49:44,209 [DEBUG] Getting token for MAC 00:1A:79:B6:72:C6 from http://goodchannel.lol/portal.php
+2026-01-25 12:49:44,237 [DEBUG] Token request status: 200
+2026-01-25 12:49:44,237 [INFO] Successfully got token for MAC 00:1A:79:B6:72:C6
+2026-01-25 12:49:44,267 [DEBUG] Getting all channels for MAC 00:1A:79:B6:72:C6
+2026-01-25 12:49:44,892 [DEBUG] Channels request status: 200
+2026-01-25 12:49:45,141 [INFO] Got 17858 channels for MAC 00:1A:79:B6:72:C6
+2026-01-25 12:49:45,295 [INFO] Unable to connect to Portal(e6171cd844774b96891ba48ebae19865) using MAC(00:1A:79:B6:72:C6)
+2026-01-25 12:49:45,295 [INFO] Moving MAC(00:1A:79:B6:72:C6) for Portal(goodchannel)
+2026-01-25 12:49:45,296 [INFO] No working streams found for Portal(e6171cd844774b96891ba48ebae19865):Channel(836402)
+2026-01-25 12:50:02,021 [INFO] IP(172.18.0.2) requested Portal(643bffc727fa4fb6b1205ac56c5170a0):Channel(861535)
+2026-01-25 12:50:02,021 [INFO] Trying Portal(643bffc727fa4fb6b1205ac56c5170a0):MAC(A0:BB:3E:00:17:63):Channel(861535)
+2026-01-25 12:50:02,022 [DEBUG] Getting token for MAC A0:BB:3E:00:17:63 from http://main.light-ott.net:80/portal.php
+2026-01-25 12:50:02,480 [DEBUG] Token request status: 200
+2026-01-25 12:50:02,480 [INFO] Successfully got token for MAC A0:BB:3E:00:17:63
+2026-01-25 12:50:02,890 [DEBUG] Getting all channels for MAC A0:BB:3E:00:17:63
+2026-01-25 12:50:04,093 [DEBUG] Channels request status: 200
+2026-01-25 12:50:04,433 [INFO] Got 11851 channels for MAC A0:BB:3E:00:17:63
+2026-01-25 12:50:05,233 [INFO] Occupied Portal(643bffc727fa4fb6b1205ac56c5170a0):MAC(A0:BB:3E:00:17:63)
+2026-01-25 12:50:08,276 [INFO] Unoccupied Portal(643bffc727fa4fb6b1205ac56c5170a0):MAC(A0:BB:3E:00:17:63)
+2026-01-25 12:50:24,432 [INFO] IP(172.18.0.2) requested Portal(643bffc727fa4fb6b1205ac56c5170a0):Channel(860849)
+2026-01-25 12:50:24,432 [INFO] Trying Portal(643bffc727fa4fb6b1205ac56c5170a0):MAC(A0:BB:3E:00:17:63):Channel(860849)
+2026-01-25 12:50:24,432 [DEBUG] Getting token for MAC A0:BB:3E:00:17:63 from http://main.light-ott.net:80/portal.php
+2026-01-25 12:50:24,815 [DEBUG] Token request status: 200
+2026-01-25 12:50:24,815 [INFO] Successfully got token for MAC A0:BB:3E:00:17:63
+2026-01-25 12:50:24,938 [DEBUG] Getting all channels for MAC A0:BB:3E:00:17:63
+2026-01-25 12:50:26,026 [DEBUG] Channels request status: 200
+2026-01-25 12:50:26,179 [INFO] Got 11851 channels for MAC A0:BB:3E:00:17:63
+2026-01-25 12:50:27,689 [INFO] Occupied Portal(643bffc727fa4fb6b1205ac56c5170a0):MAC(A0:BB:3E:00:17:63)
+2026-01-25 12:50:32,245 [INFO] Unoccupied Portal(643bffc727fa4fb6b1205ac56c5170a0):MAC(A0:BB:3E:00:17:63)
+2026-01-25 12:50:42,474 [INFO] Refreshing XMLTV...
+2026-01-25 12:50:42,474 [INFO] Refreshing Lineup from database...
+2026-01-25 12:50:42,476 [INFO] Loaded existing programme data from cache.
+2026-01-25 12:50:42,476 [INFO] Fetching EPG | Portal: goodchannel | offset: 0 |
+2026-01-25 12:50:42,476 [INFO] Fetching EPG | Portal: iptvde.de | offset: 0 |
+2026-01-25 12:50:42,476 [INFO] Fetching EPG | Portal: dragoniptv | offset: 0 |
+2026-01-25 12:50:42,476 [INFO] Fetching EPG | Portal: hottest.vip | offset: 0 |
+2026-01-25 12:50:42,476 [INFO] Fetching EPG | Portal: main.light-ott.net | offset: 0 |
+2026-01-25 12:50:42,476 [INFO] Fetching EPG | Portal: ds.raptortv.de | offset: 0 |
+2026-01-25 12:50:42,476 [INFO] Fetching EPG | Portal: focusmag.eu01.live | offset: 0 |
+2026-01-25 12:50:42,476 [INFO] Fetching EPG | Portal: pi.xc-clubtv.xyz | offset: 0 |
+2026-01-25 12:50:42,477 [INFO] Lineup refreshed with 0 channels.
+2026-01-25 12:50:42,477 [INFO] XMLTV cache updated.
+2026-01-25 12:50:42,496 [INFO] Channel edits saved to database!
+2026-01-25 12:50:47,111 [INFO] Playlist Requested
+2026-01-25 12:50:47,111 [INFO] Regenerating playlist due to host change: None -> stb-proxy.sb.leonderi.xyz
+2026-01-25 12:50:47,112 [INFO] Generating playlist.m3u from database...
+2026-01-25 12:50:47,112 [INFO] Playlist generated and cached with 18 channels.
+2026-01-25 12:50:55,498 [INFO] Guide Requested
+2026-01-25 12:51:27,396 [INFO] IP(172.18.0.2) requested Portal(dc9459747e3f40cfaf567b1398bbe7ab):Channel(92580)
+2026-01-25 12:51:27,396 [INFO] Trying Portal(dc9459747e3f40cfaf567b1398bbe7ab):MAC(00:1A:79:42:2E:DD):Channel(92580)
+2026-01-25 12:51:27,396 [DEBUG] Getting token for MAC 00:1A:79:42:2E:DD from http://dragoniptv.de:80/portal.php
+2026-01-25 12:51:27,446 [DEBUG] Token request status: 200
+2026-01-25 12:51:27,446 [INFO] Successfully got token for MAC 00:1A:79:42:2E:DD
+2026-01-25 12:51:27,493 [DEBUG] Getting all channels for MAC 00:1A:79:42:2E:DD
+2026-01-25 12:51:27,860 [DEBUG] Channels request status: 200
+2026-01-25 12:51:27,943 [INFO] Got 4616 channels for MAC 00:1A:79:42:2E:DD
+2026-01-25 12:51:28,392 [INFO] Occupied Portal(dc9459747e3f40cfaf567b1398bbe7ab):MAC(00:1A:79:42:2E:DD)
+2026-01-25 12:51:37,633 [INFO] Unoccupied Portal(dc9459747e3f40cfaf567b1398bbe7ab):MAC(00:1A:79:42:2E:DD)
+2026-01-25 12:51:51,203 [INFO] Refreshing XMLTV...
+2026-01-25 12:51:51,204 [INFO] Refreshing Lineup from database...
+2026-01-25 12:51:51,213 [INFO] Loaded existing programme data from cache.
+2026-01-25 12:51:51,213 [INFO] Fetching EPG | Portal: goodchannel | offset: 0 |
+2026-01-25 12:51:51,213 [INFO] Fetching EPG | Portal: iptvde.de | offset: 0 |
+2026-01-25 12:51:51,214 [INFO] Fetching EPG | Portal: dragoniptv | offset: 0 |
+2026-01-25 12:51:51,214 [INFO] Fetching EPG | Portal: hottest.vip | offset: 0 |
+2026-01-25 12:51:51,214 [INFO] Fetching EPG | Portal: main.light-ott.net | offset: 0 |
+2026-01-25 12:51:51,214 [INFO] Fetching EPG | Portal: ds.raptortv.de | offset: 0 |
+2026-01-25 12:51:51,214 [INFO] Fetching EPG | Portal: focusmag.eu01.live | offset: 0 |
+2026-01-25 12:51:51,214 [INFO] Fetching EPG | Portal: pi.xc-clubtv.xyz | offset: 0 |
+2026-01-25 12:51:51,215 [INFO] Lineup refreshed with 18 channels.
+2026-01-25 12:51:51,215 [INFO] XMLTV cache updated.
+2026-01-25 12:51:51,243 [INFO] Channel edits saved to database!
+2026-01-25 12:52:33,721 [INFO] Refreshing XMLTV...
+2026-01-25 12:52:33,722 [INFO] Loaded existing programme data from cache.
+2026-01-25 12:52:33,722 [INFO] Fetching EPG | Portal: goodchannel | offset: 0 |
+2026-01-25 12:52:33,722 [INFO] Fetching EPG | Portal: iptvde.de | offset: 0 |
+2026-01-25 12:52:33,722 [INFO] Fetching EPG | Portal: dragoniptv | offset: 0 |
+2026-01-25 12:52:33,722 [INFO] Fetching EPG | Portal: hottest.vip | offset: 0 |
+2026-01-25 12:52:33,722 [INFO] Fetching EPG | Portal: main.light-ott.net | offset: 0 |
+2026-01-25 12:52:33,722 [INFO] Fetching EPG | Portal: ds.raptortv.de | offset: 0 |
+2026-01-25 12:52:33,722 [INFO] Fetching EPG | Portal: focusmag.eu01.live | offset: 0 |
+2026-01-25 12:52:33,722 [INFO] Fetching EPG | Portal: pi.xc-clubtv.xyz | offset: 0 |
+2026-01-25 12:52:33,723 [INFO] XMLTV cache updated.
+2026-01-25 12:52:33,724 [INFO] Refreshing Lineup from database...
+2026-01-25 12:52:33,756 [INFO] Channel edits saved to database!
+2026-01-25 12:52:33,773 [INFO] Lineup refreshed with 111 channels.
+2026-01-25 12:52:41,459 [INFO] Playlist Requested
+2026-01-25 12:52:41,459 [INFO] Regenerating playlist due to host change: None -> stb-proxy.sb.leonderi.xyz
+2026-01-25 12:52:41,459 [INFO] Generating playlist.m3u from database...
+2026-01-25 12:52:41,460 [INFO] Playlist generated and cached with 111 channels.
+2026-01-25 12:52:45,838 [INFO] Guide Requested
+2026-01-25 12:52:49,323 [INFO] Refreshing Lineup from database...
+2026-01-25 12:52:49,325 [INFO] Lineup refreshed with 111 channels.
+2026-01-25 12:53:16,963 [INFO] Generating playlist.m3u from database...
+2026-01-25 12:53:16,965 [INFO] Playlist generated and cached with 111 channels.
+2026-01-25 12:53:29,728 [INFO] Guide Requested
+2026-01-25 12:54:15,307 [INFO] Refreshing XMLTV...
+2026-01-25 12:54:15,308 [INFO] Refreshing Lineup from database...
+2026-01-25 12:54:15,309 [INFO] Loaded existing programme data from cache.
+2026-01-25 12:54:15,309 [INFO] Fetching EPG | Portal: goodchannel | offset: 0 |
+2026-01-25 12:54:15,309 [INFO] Fetching EPG | Portal: iptvde.de | offset: 0 |
+2026-01-25 12:54:15,309 [INFO] Fetching EPG | Portal: dragoniptv | offset: 0 |
+2026-01-25 12:54:15,309 [INFO] Fetching EPG | Portal: hottest.vip | offset: 0 |
+2026-01-25 12:54:15,309 [INFO] Fetching EPG | Portal: main.light-ott.net | offset: 0 |
+2026-01-25 12:54:15,309 [INFO] Fetching EPG | Portal: ds.raptortv.de | offset: 0 |
+2026-01-25 12:54:15,309 [INFO] Fetching EPG | Portal: focusmag.eu01.live | offset: 0 |
+2026-01-25 12:54:15,309 [INFO] Fetching EPG | Portal: pi.xc-clubtv.xyz | offset: 0 |
+2026-01-25 12:54:15,310 [INFO] XMLTV cache updated.
+2026-01-25 12:54:15,311 [INFO] Lineup refreshed with 111 channels.
+2026-01-25 12:54:15,327 [INFO] Channel edits saved to database!
+2026-01-25 12:54:48,038 [INFO] IP(172.18.0.2) requested Portal(643bffc727fa4fb6b1205ac56c5170a0):Channel(1025160)
+2026-01-25 12:54:48,039 [INFO] Trying Portal(643bffc727fa4fb6b1205ac56c5170a0):MAC(A0:BB:3E:00:17:63):Channel(1025160)
+2026-01-25 12:54:48,039 [DEBUG] Getting token for MAC A0:BB:3E:00:17:63 from http://main.light-ott.net:80/portal.php
+2026-01-25 12:54:48,183 [DEBUG] Token request status: 200
+2026-01-25 12:54:48,183 [INFO] Successfully got token for MAC A0:BB:3E:00:17:63
+2026-01-25 12:54:48,312 [DEBUG] Getting all channels for MAC A0:BB:3E:00:17:63
+2026-01-25 12:54:49,411 [DEBUG] Channels request status: 200
+2026-01-25 12:54:49,556 [INFO] Got 11851 channels for MAC A0:BB:3E:00:17:63
+2026-01-25 12:54:50,202 [INFO] Occupied Portal(643bffc727fa4fb6b1205ac56c5170a0):MAC(A0:BB:3E:00:17:63)
+2026-01-25 12:54:51,644 [INFO] Unoccupied Portal(643bffc727fa4fb6b1205ac56c5170a0):MAC(A0:BB:3E:00:17:63)
+2026-01-25 12:54:57,725 [INFO] IP(172.18.0.2) requested Portal(643bffc727fa4fb6b1205ac56c5170a0):Channel(1025160)
+2026-01-25 12:54:57,725 [INFO] Trying Portal(643bffc727fa4fb6b1205ac56c5170a0):MAC(A0:BB:3E:00:17:63):Channel(1025160)
+2026-01-25 12:54:57,725 [DEBUG] Getting token for MAC A0:BB:3E:00:17:63 from http://main.light-ott.net:80/portal.php
+2026-01-25 12:54:58,083 [DEBUG] Token request status: 200
+2026-01-25 12:54:58,083 [INFO] Successfully got token for MAC A0:BB:3E:00:17:63
+2026-01-25 12:54:58,224 [DEBUG] Getting all channels for MAC A0:BB:3E:00:17:63
+2026-01-25 12:54:59,085 [DEBUG] Channels request status: 200
+2026-01-25 12:54:59,266 [INFO] Got 11851 channels for MAC A0:BB:3E:00:17:63
+2026-01-25 12:55:02,143 [INFO] Occupied Portal(643bffc727fa4fb6b1205ac56c5170a0):MAC(A0:BB:3E:00:17:63)
+2026-01-25 12:55:02,695 [INFO] IP(172.18.0.2) requested Portal(643bffc727fa4fb6b1205ac56c5170a0):Channel(1025127)
+2026-01-25 12:55:02,695 [INFO] Unable to connect to Portal(643bffc727fa4fb6b1205ac56c5170a0) using MAC(A0:BB:3E:00:17:63)
+2026-01-25 12:55:02,695 [INFO] Moving MAC(A0:BB:3E:00:17:63) for Portal(main.light-ott.net)
+2026-01-25 12:55:02,696 [INFO] Trying Portal(643bffc727fa4fb6b1205ac56c5170a0):MAC(A0:BB:3E:00:17:5B):Channel(1025127)
+2026-01-25 12:55:02,697 [DEBUG] Getting token for MAC A0:BB:3E:00:17:5B from http://main.light-ott.net:80/portal.php
+2026-01-25 12:55:02,727 [INFO] Unoccupied Portal(643bffc727fa4fb6b1205ac56c5170a0):MAC(A0:BB:3E:00:17:63)
+2026-01-25 12:55:03,087 [DEBUG] Token request status: 200
+2026-01-25 12:55:03,088 [INFO] Successfully got token for MAC A0:BB:3E:00:17:5B
+2026-01-25 12:55:03,413 [DEBUG] Getting all channels for MAC A0:BB:3E:00:17:5B
+2026-01-25 12:55:05,404 [DEBUG] Channels request status: 200
+2026-01-25 12:55:05,709 [INFO] Got 19503 channels for MAC A0:BB:3E:00:17:5B
+2026-01-25 12:55:06,443 [INFO] Occupied Portal(643bffc727fa4fb6b1205ac56c5170a0):MAC(A0:BB:3E:00:17:5B)
+2026-01-25 12:55:25,661 [INFO] Unoccupied Portal(643bffc727fa4fb6b1205ac56c5170a0):MAC(A0:BB:3E:00:17:5B)
+2026-01-25 12:55:30,579 [INFO] Refreshing XMLTV...
+2026-01-25 12:55:30,579 [INFO] Refreshing Lineup from database...
+2026-01-25 12:55:30,581 [INFO] Loaded existing programme data from cache.
+2026-01-25 12:55:30,581 [INFO] Fetching EPG | Portal: goodchannel | offset: 0 |
+2026-01-25 12:55:30,581 [INFO] Fetching EPG | Portal: iptvde.de | offset: 0 |
+2026-01-25 12:55:30,581 [INFO] Fetching EPG | Portal: dragoniptv | offset: 0 |
+2026-01-25 12:55:30,581 [INFO] Fetching EPG | Portal: hottest.vip | offset: 0 |
+2026-01-25 12:55:30,581 [INFO] Fetching EPG | Portal: main.light-ott.net | offset: 0 |
+2026-01-25 12:55:30,581 [INFO] Fetching EPG | Portal: ds.raptortv.de | offset: 0 |
+2026-01-25 12:55:30,581 [INFO] Fetching EPG | Portal: focusmag.eu01.live | offset: 0 |
+2026-01-25 12:55:30,581 [INFO] Fetching EPG | Portal: pi.xc-clubtv.xyz | offset: 0 |
+2026-01-25 12:55:30,581 [INFO] XMLTV cache updated.
+2026-01-25 12:55:30,582 [INFO] Lineup refreshed with 127 channels.
+2026-01-25 12:55:30,606 [INFO] Channel edits saved to database!
+2026-01-25 12:55:57,569 [INFO] Guide Requested
+2026-01-25 12:56:11,632 [INFO] Starting channel cache refresh...
+2026-01-25 12:56:11,632 [INFO] Fetching channels for portal: goodchannel
+2026-01-25 12:56:11,633 [INFO] Trying MAC: 00:1A:79:82:D0:D8
+2026-01-25 12:56:11,633 [DEBUG] Getting token for MAC 00:1A:79:82:D0:D8 from http://goodchannel.lol/portal.php
+2026-01-25 12:56:12,268 [DEBUG] Token request status: 200
+2026-01-25 12:56:12,268 [INFO] Successfully got token for MAC 00:1A:79:82:D0:D8
+2026-01-25 12:56:12,304 [DEBUG] Getting all channels for MAC 00:1A:79:82:D0:D8
+2026-01-25 12:56:13,311 [DEBUG] Channels request status: 200
+2026-01-25 12:56:13,646 [INFO] Got 23920 channels for MAC 00:1A:79:82:D0:D8
+2026-01-25 12:56:14,104 [INFO] Processing 23920 channels for goodchannel
+2026-01-25 12:56:14,738 [INFO] Successfully cached 23920 channels for goodchannel
+2026-01-25 12:56:14,739 [INFO] Fetching channels for portal: iptvde.de
+2026-01-25 12:56:14,757 [INFO] Trying MAC: 00:1A:79:3B:89:78
+2026-01-25 12:56:14,757 [DEBUG] Getting token for MAC 00:1A:79:3B:89:78 from http://iptvde.de:8080/portal.php
+2026-01-25 12:56:14,919 [DEBUG] Token request status: 200
+2026-01-25 12:56:14,919 [INFO] Successfully got token for MAC 00:1A:79:3B:89:78
+2026-01-25 12:56:15,064 [DEBUG] Getting all channels for MAC 00:1A:79:3B:89:78
+2026-01-25 12:56:15,579 [DEBUG] Channels request status: 200
+2026-01-25 12:56:15,626 [INFO] Got 4153 channels for MAC 00:1A:79:3B:89:78
+2026-01-25 12:56:15,741 [INFO] Processing 4153 channels for iptvde.de
+2026-01-25 12:56:15,814 [INFO] Successfully cached 4153 channels for iptvde.de
+2026-01-25 12:56:15,814 [INFO] Fetching channels for portal: dragoniptv
+2026-01-25 12:56:15,818 [INFO] Trying MAC: 00:1A:79:42:2E:DD
+2026-01-25 12:56:15,818 [DEBUG] Getting token for MAC 00:1A:79:42:2E:DD from http://dragoniptv.de:80/portal.php
+2026-01-25 12:56:15,866 [DEBUG] Token request status: 200
+2026-01-25 12:56:15,866 [INFO] Successfully got token for MAC 00:1A:79:42:2E:DD
+2026-01-25 12:56:15,921 [DEBUG] Getting all channels for MAC 00:1A:79:42:2E:DD
+2026-01-25 12:56:16,226 [DEBUG] Channels request status: 200
+2026-01-25 12:56:16,361 [INFO] Got 4616 channels for MAC 00:1A:79:42:2E:DD
+2026-01-25 12:56:16,430 [INFO] Processing 4616 channels for dragoniptv
+2026-01-25 12:56:16,505 [INFO] Successfully cached 4616 channels for dragoniptv
+2026-01-25 12:56:16,505 [INFO] Fetching channels for portal: hottest.vip
+2026-01-25 12:56:16,511 [INFO] Trying MAC: A0:BB:3E:E9:EB:F1
+2026-01-25 12:56:16,511 [DEBUG] Getting token for MAC A0:BB:3E:E9:EB:F1 from http://hottest.vip/portal.php
+2026-01-25 12:56:16,568 [DEBUG] Token request status: 200
+2026-01-25 12:56:16,569 [INFO] Successfully got token for MAC A0:BB:3E:E9:EB:F1
+2026-01-25 12:56:16,599 [DEBUG] Getting all channels for MAC A0:BB:3E:E9:EB:F1
+2026-01-25 12:56:17,973 [DEBUG] Channels request status: 200
+2026-01-25 12:56:18,532 [INFO] Got 32656 channels for MAC A0:BB:3E:E9:EB:F1
+2026-01-25 12:56:19,064 [INFO] Processing 32656 channels for hottest.vip
+2026-01-25 12:56:19,330 [INFO] Successfully cached 32656 channels for hottest.vip
+2026-01-25 12:56:19,331 [INFO] Fetching channels for portal: main.light-ott.net
+2026-01-25 12:56:19,362 [INFO] Trying MAC: A0:BB:3E:00:17:5B
+2026-01-25 12:56:19,362 [DEBUG] Getting token for MAC A0:BB:3E:00:17:5B from http://main.light-ott.net:80/portal.php
+2026-01-25 12:56:19,672 [DEBUG] Token request status: 200
+2026-01-25 12:56:19,672 [INFO] Successfully got token for MAC A0:BB:3E:00:17:5B
+2026-01-25 12:56:19,797 [DEBUG] Getting all channels for MAC A0:BB:3E:00:17:5B
+2026-01-25 12:56:21,906 [DEBUG] Channels request status: 200
+2026-01-25 12:56:22,161 [INFO] Got 19503 channels for MAC A0:BB:3E:00:17:5B
+2026-01-25 12:56:22,444 [INFO] Processing 19503 channels for main.light-ott.net
+2026-01-25 12:56:22,677 [INFO] Successfully cached 19503 channels for main.light-ott.net
+2026-01-25 12:56:22,678 [INFO] Fetching channels for portal: ds.raptortv.de
+2026-01-25 12:56:22,694 [INFO] Trying MAC: A0:BB:3E:04:90:C8
+2026-01-25 12:56:22,695 [DEBUG] Getting token for MAC A0:BB:3E:04:90:C8 from http://ds.raptortv.de/portal.php
+2026-01-25 12:56:22,746 [DEBUG] Token request status: 200
+2026-01-25 12:56:22,746 [INFO] Successfully got token for MAC A0:BB:3E:04:90:C8
+2026-01-25 12:56:22,796 [DEBUG] Getting all channels for MAC A0:BB:3E:04:90:C8
+2026-01-25 12:56:23,034 [DEBUG] Channels request status: 200
+2026-01-25 12:56:23,078 [INFO] Got 4353 channels for MAC A0:BB:3E:04:90:C8
+2026-01-25 12:56:23,134 [INFO] Processing 4353 channels for ds.raptortv.de
+2026-01-25 12:56:23,195 [INFO] Successfully cached 4353 channels for ds.raptortv.de
+2026-01-25 12:56:23,195 [INFO] Fetching channels for portal: focusmag.eu01.live
+2026-01-25 12:56:23,199 [INFO] Trying MAC: 00:1A:79:BA:D2:58
+2026-01-25 12:56:23,199 [DEBUG] Getting token for MAC 00:1A:79:BA:D2:58 from http://focusmag.eu01.live:8080/portal.php
+2026-01-25 12:56:24,297 [DEBUG] Token request status: 200
+2026-01-25 12:56:24,297 [INFO] Successfully got token for MAC 00:1A:79:BA:D2:58
+2026-01-25 12:56:24,362 [DEBUG] Getting all channels for MAC 00:1A:79:BA:D2:58
+2026-01-25 12:56:24,415 [DEBUG] Channels request status: 200
+2026-01-25 12:56:24,415 [ERROR] Error getting channels for MAC 00:1A:79:BA:D2:58: list indices must be integers or slices, not str
+2026-01-25 12:56:24,518 [ERROR] Failed to fetch channels for portal: focusmag.eu01.live
+2026-01-25 12:56:24,518 [INFO] Fetching channels for portal: pi.xc-clubtv.xyz
+2026-01-25 12:56:24,518 [INFO] Trying MAC: 00:1A:79:CE:03:52
+2026-01-25 12:56:24,519 [DEBUG] Getting token for MAC 00:1A:79:CE:03:52 from http://pi.xc-clubtv.xyz:8080/portal.php
+2026-01-25 12:56:25,622 [DEBUG] Token request status: 200
+2026-01-25 12:56:25,622 [INFO] Successfully got token for MAC 00:1A:79:CE:03:52
+2026-01-25 12:56:25,665 [DEBUG] Getting all channels for MAC 00:1A:79:CE:03:52
+2026-01-25 12:56:25,715 [DEBUG] Channels request status: 200
+2026-01-25 12:56:25,715 [ERROR] Error getting channels for MAC 00:1A:79:CE:03:52: list indices must be integers or slices, not str
+2026-01-25 12:56:25,808 [ERROR] Failed to fetch channels for portal: pi.xc-clubtv.xyz
+2026-01-25 12:56:25,809 [INFO] Channel cache refresh complete. Total channels: 89201
+2026-01-25 12:56:25,809 [INFO] Channel cache refreshed: 89201 channels
+2026-01-25 12:59:46,724 [INFO] Guide Requested
+2026-01-25 13:03:21,354 [ERROR] Error getting URL for Portal(c02tv.xyz)
+2026-01-25 13:03:50,333 [ERROR] Error getting URL for Portal(http://c02tv.xyz:8080/c)
+2026-01-25 13:04:28,449 [ERROR] Error getting URL for Portal(http://c02tv.xyz:8080/c)
+2026-01-25 13:04:58,535 [ERROR] Error getting URL for Portal(http://c02tv.xyz:8080/c)
+2026-01-25 13:07:31,803 [INFO] Testing MAC(00:1A:79:BF:AF:03) for Portal(pi.xc-clubtv.xyz)...
+2026-01-25 13:07:31,804 [DEBUG] Getting token for MAC 00:1A:79:BF:AF:03 from http://pi.xc-clubtv.xyz:8080/portal.php
+2026-01-25 13:07:32,941 [DEBUG] Token request status: 200
+2026-01-25 13:07:32,942 [INFO] Successfully got token for MAC 00:1A:79:BF:AF:03
+2026-01-25 13:07:33,014 [DEBUG] Getting expiry for MAC 00:1A:79:BF:AF:03
+2026-01-25 13:07:33,088 [DEBUG] Expiry request status: 200
+2026-01-25 13:07:33,089 [INFO] Got expiry for MAC 00:1A:79:BF:AF:03: June 12, 2026, 9:52 pm
+2026-01-25 13:07:33,089 [INFO] Successfully tested MAC(00:1A:79:BF:AF:03) for Portal(pi.xc-clubtv.xyz)
+2026-01-25 13:07:33,090 [INFO] Portal(pi.xc-clubtv.xyz) updated!
+2026-01-25 13:07:39,739 [INFO] Testing MAC(00:1A:79:BF:AF:03) for Portal(pi.xc-clubtv.xyz)...
+2026-01-25 13:07:39,740 [DEBUG] Getting token for MAC 00:1A:79:BF:AF:03 from http://pi.xc-clubtv.xyz:8080/portal.php
+2026-01-25 13:07:40,831 [DEBUG] Token request status: 200
+2026-01-25 13:07:40,831 [INFO] Successfully got token for MAC 00:1A:79:BF:AF:03
+2026-01-25 13:07:40,913 [DEBUG] Getting expiry for MAC 00:1A:79:BF:AF:03
+2026-01-25 13:07:40,992 [DEBUG] Expiry request status: 200
+2026-01-25 13:07:40,992 [INFO] Got expiry for MAC 00:1A:79:BF:AF:03: June 12, 2026, 9:52 pm
+2026-01-25 13:07:40,992 [INFO] Successfully tested MAC(00:1A:79:BF:AF:03) for Portal(pi.xc-clubtv.xyz)
+2026-01-25 13:07:40,992 [INFO] Testing MAC(00:1A:79:CE:03:52) for Portal(pi.xc-clubtv.xyz)...
+2026-01-25 13:07:40,992 [DEBUG] Getting token for MAC 00:1A:79:CE:03:52 from http://pi.xc-clubtv.xyz:8080/portal.php
+2026-01-25 13:07:42,060 [DEBUG] Token request status: 200
+2026-01-25 13:07:42,060 [INFO] Successfully got token for MAC 00:1A:79:CE:03:52
+2026-01-25 13:07:42,142 [DEBUG] Getting expiry for MAC 00:1A:79:CE:03:52
+2026-01-25 13:07:42,205 [DEBUG] Expiry request status: 200
+2026-01-25 13:07:42,205 [INFO] Got expiry for MAC 00:1A:79:CE:03:52: March 30, 2026, 7:12 pm
+2026-01-25 13:07:42,205 [INFO] Successfully tested MAC(00:1A:79:CE:03:52) for Portal(pi.xc-clubtv.xyz)
+2026-01-25 13:07:42,206 [INFO] Portal(pi.xc-clubtv.xyz) updated!
+2026-01-25 13:07:59,279 [INFO] Starting channel cache refresh...
+2026-01-25 13:07:59,279 [INFO] Fetching channels for portal: goodchannel
+2026-01-25 13:07:59,279 [INFO] Trying MAC: 00:1A:79:82:D0:D8
+2026-01-25 13:07:59,280 [DEBUG] Getting token for MAC 00:1A:79:82:D0:D8 from http://goodchannel.lol/portal.php
+2026-01-25 13:07:59,341 [DEBUG] Token request status: 200
+2026-01-25 13:07:59,341 [INFO] Successfully got token for MAC 00:1A:79:82:D0:D8
+2026-01-25 13:07:59,416 [DEBUG] Getting all channels for MAC 00:1A:79:82:D0:D8
+2026-01-25 13:08:00,732 [DEBUG] Channels request status: 200
+2026-01-25 13:08:01,139 [INFO] Got 23920 channels for MAC 00:1A:79:82:D0:D8
+2026-01-25 13:08:02,150 [INFO] Processing 23920 channels for goodchannel
+2026-01-25 13:08:02,428 [INFO] Successfully cached 23920 channels for goodchannel
+2026-01-25 13:08:02,428 [INFO] Fetching channels for portal: iptvde.de
+2026-01-25 13:08:02,448 [INFO] Trying MAC: 00:1A:79:3B:89:78
+2026-01-25 13:08:02,448 [DEBUG] Getting token for MAC 00:1A:79:3B:89:78 from http://iptvde.de:8080/portal.php
+2026-01-25 13:08:02,614 [DEBUG] Token request status: 200
+2026-01-25 13:08:02,615 [INFO] Successfully got token for MAC 00:1A:79:3B:89:78
+2026-01-25 13:08:02,756 [DEBUG] Getting all channels for MAC 00:1A:79:3B:89:78
+2026-01-25 13:08:03,287 [DEBUG] Channels request status: 200
+2026-01-25 13:08:03,341 [INFO] Got 4153 channels for MAC 00:1A:79:3B:89:78
+2026-01-25 13:08:03,455 [INFO] Processing 4153 channels for iptvde.de
+2026-01-25 13:08:03,521 [INFO] Successfully cached 4153 channels for iptvde.de
+2026-01-25 13:08:03,522 [INFO] Fetching channels for portal: dragoniptv
+2026-01-25 13:08:03,526 [INFO] Trying MAC: 00:1A:79:42:2E:DD
+2026-01-25 13:08:03,526 [DEBUG] Getting token for MAC 00:1A:79:42:2E:DD from http://dragoniptv.de:80/portal.php
+2026-01-25 13:08:03,580 [DEBUG] Token request status: 200
+2026-01-25 13:08:03,580 [INFO] Successfully got token for MAC 00:1A:79:42:2E:DD
+2026-01-25 13:08:03,634 [DEBUG] Getting all channels for MAC 00:1A:79:42:2E:DD
+2026-01-25 13:08:03,933 [DEBUG] Channels request status: 200
+2026-01-25 13:08:03,986 [INFO] Got 4616 channels for MAC 00:1A:79:42:2E:DD
+2026-01-25 13:08:04,044 [INFO] Processing 4616 channels for dragoniptv
+2026-01-25 13:08:04,119 [INFO] Successfully cached 4616 channels for dragoniptv
+2026-01-25 13:08:04,120 [INFO] Fetching channels for portal: hottest.vip
+2026-01-25 13:08:04,125 [INFO] Trying MAC: A0:BB:3E:E9:EB:F1
+2026-01-25 13:08:04,125 [DEBUG] Getting token for MAC A0:BB:3E:E9:EB:F1 from http://hottest.vip/portal.php
+2026-01-25 13:08:04,723 [DEBUG] Token request status: 200
+2026-01-25 13:08:04,723 [INFO] Successfully got token for MAC A0:BB:3E:E9:EB:F1
+2026-01-25 13:08:04,791 [DEBUG] Getting all channels for MAC A0:BB:3E:E9:EB:F1
+2026-01-25 13:08:05,956 [DEBUG] Channels request status: 200
+2026-01-25 13:08:06,441 [INFO] Got 32656 channels for MAC A0:BB:3E:E9:EB:F1
+2026-01-25 13:08:07,520 [INFO] Processing 32656 channels for hottest.vip
+2026-01-25 13:08:07,893 [INFO] Successfully cached 32656 channels for hottest.vip
+2026-01-25 13:08:07,893 [INFO] Fetching channels for portal: main.light-ott.net
+2026-01-25 13:08:07,925 [INFO] Trying MAC: A0:BB:3E:00:17:5B
+2026-01-25 13:08:07,925 [DEBUG] Getting token for MAC A0:BB:3E:00:17:5B from http://main.light-ott.net:80/portal.php
+2026-01-25 13:08:08,072 [DEBUG] Token request status: 200
+2026-01-25 13:08:08,072 [INFO] Successfully got token for MAC A0:BB:3E:00:17:5B
+2026-01-25 13:08:08,190 [DEBUG] Getting all channels for MAC A0:BB:3E:00:17:5B
+2026-01-25 13:08:09,395 [DEBUG] Channels request status: 200
+2026-01-25 13:08:09,675 [INFO] Got 19503 channels for MAC A0:BB:3E:00:17:5B
+2026-01-25 13:08:09,941 [INFO] Processing 19503 channels for main.light-ott.net
+2026-01-25 13:08:10,120 [INFO] Successfully cached 19503 channels for main.light-ott.net
+2026-01-25 13:08:10,121 [INFO] Fetching channels for portal: ds.raptortv.de
+2026-01-25 13:08:10,141 [INFO] Trying MAC: A0:BB:3E:04:90:C8
+2026-01-25 13:08:10,141 [DEBUG] Getting token for MAC A0:BB:3E:04:90:C8 from http://ds.raptortv.de/portal.php
+2026-01-25 13:08:10,192 [DEBUG] Token request status: 200
+2026-01-25 13:08:10,192 [INFO] Successfully got token for MAC A0:BB:3E:04:90:C8
+2026-01-25 13:08:10,242 [DEBUG] Getting all channels for MAC A0:BB:3E:04:90:C8
+2026-01-25 13:08:10,483 [DEBUG] Channels request status: 200
+2026-01-25 13:08:10,552 [INFO] Got 4353 channels for MAC A0:BB:3E:04:90:C8
+2026-01-25 13:08:10,608 [INFO] Processing 4353 channels for ds.raptortv.de
+2026-01-25 13:08:10,659 [INFO] Successfully cached 4353 channels for ds.raptortv.de
+2026-01-25 13:08:10,659 [INFO] Fetching channels for portal: focusmag.eu01.live
+2026-01-25 13:08:10,665 [INFO] Trying MAC: 00:1A:79:BA:D2:58
+2026-01-25 13:08:10,665 [DEBUG] Getting token for MAC 00:1A:79:BA:D2:58 from http://focusmag.eu01.live:8080/portal.php
+2026-01-25 13:08:11,863 [DEBUG] Token request status: 200
+2026-01-25 13:08:11,863 [INFO] Successfully got token for MAC 00:1A:79:BA:D2:58
+2026-01-25 13:08:11,953 [DEBUG] Getting all channels for MAC 00:1A:79:BA:D2:58
+2026-01-25 13:08:12,047 [DEBUG] Channels request status: 200
+2026-01-25 13:08:12,047 [ERROR] Error getting channels for MAC 00:1A:79:BA:D2:58: list indices must be integers or slices, not str
+2026-01-25 13:08:12,175 [ERROR] Failed to fetch channels for portal: focusmag.eu01.live
+2026-01-25 13:08:12,175 [INFO] Fetching channels for portal: pi.xc-clubtv.xyz
+2026-01-25 13:08:12,175 [INFO] Trying MAC: 00:1A:79:BF:AF:03
+2026-01-25 13:08:12,175 [DEBUG] Getting token for MAC 00:1A:79:BF:AF:03 from http://pi.xc-clubtv.xyz:8080/portal.php
+2026-01-25 13:08:13,303 [DEBUG] Token request status: 200
+2026-01-25 13:08:13,303 [INFO] Successfully got token for MAC 00:1A:79:BF:AF:03
+2026-01-25 13:08:13,374 [DEBUG] Getting all channels for MAC 00:1A:79:BF:AF:03
+2026-01-25 13:08:13,469 [DEBUG] Channels request status: 200
+2026-01-25 13:08:13,469 [ERROR] Error getting channels for MAC 00:1A:79:BF:AF:03: list indices must be integers or slices, not str
+2026-01-25 13:08:13,625 [INFO] Trying MAC: 00:1A:79:CE:03:52
+2026-01-25 13:08:13,625 [DEBUG] Getting token for MAC 00:1A:79:CE:03:52 from http://pi.xc-clubtv.xyz:8080/portal.php
+2026-01-25 13:08:14,701 [DEBUG] Token request status: 200
+2026-01-25 13:08:14,701 [INFO] Successfully got token for MAC 00:1A:79:CE:03:52
+2026-01-25 13:08:14,831 [DEBUG] Getting all channels for MAC 00:1A:79:CE:03:52
+2026-01-25 13:08:14,925 [DEBUG] Channels request status: 200
+2026-01-25 13:08:14,926 [ERROR] Error getting channels for MAC 00:1A:79:CE:03:52: list indices must be integers or slices, not str
+2026-01-25 13:08:15,092 [ERROR] Failed to fetch channels for portal: pi.xc-clubtv.xyz
+2026-01-25 13:08:15,092 [INFO] Channel cache refresh complete. Total channels: 89201
+2026-01-25 13:08:15,092 [INFO] Channel cache refreshed: 89201 channels
+2026-01-25 13:53:45,907 [INFO] Testing MAC(00:1A:79:BF:AF:03) for Portal(pi.xc-clubtv.xyz)...
+2026-01-25 13:53:45,907 [DEBUG] Getting token for MAC 00:1A:79:BF:AF:03 from http://pi.xc-clubtv.xyz:8080/portal.php
+2026-01-25 13:53:46,999 [DEBUG] Token request status: 200
+2026-01-25 13:53:46,999 [INFO] Successfully got token for MAC 00:1A:79:BF:AF:03
+2026-01-25 13:53:47,046 [DEBUG] Getting expiry for MAC 00:1A:79:BF:AF:03
+2026-01-25 13:53:47,110 [DEBUG] Expiry request status: 200
+2026-01-25 13:53:47,111 [INFO] Got expiry for MAC 00:1A:79:BF:AF:03: June 12, 2026, 9:52 pm
+2026-01-25 13:53:47,111 [INFO] Successfully tested MAC(00:1A:79:BF:AF:03) for Portal(pi.xc-clubtv.xyz)
+2026-01-25 13:53:47,111 [INFO] Testing MAC(00:1A:79:CE:03:52) for Portal(pi.xc-clubtv.xyz)...
+2026-01-25 13:53:47,111 [DEBUG] Getting token for MAC 00:1A:79:CE:03:52 from http://pi.xc-clubtv.xyz:8080/portal.php
+2026-01-25 13:53:48,176 [DEBUG] Token request status: 200
+2026-01-25 13:53:48,176 [INFO] Successfully got token for MAC 00:1A:79:CE:03:52
+2026-01-25 13:53:48,246 [DEBUG] Getting expiry for MAC 00:1A:79:CE:03:52
+2026-01-25 13:53:48,305 [DEBUG] Expiry request status: 200
+2026-01-25 13:53:48,305 [INFO] Got expiry for MAC 00:1A:79:CE:03:52: March 30, 2026, 7:12 pm
+2026-01-25 13:53:48,305 [INFO] Successfully tested MAC(00:1A:79:CE:03:52) for Portal(pi.xc-clubtv.xyz)
+2026-01-25 13:53:48,305 [INFO] Portal(pi.xc-clubtv.xyz) updated!
