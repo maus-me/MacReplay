@@ -167,19 +167,19 @@
         <div class="col-md-3">
             <label for="portalFilter" class="form-label text-light">Portal</label>
             <select class="form-select" id="portalFilter">
-                <option value="">All Portals</option>
+                <option value=""></option>
             </select>
         </div>
         <div class="col-md-3">
             <label for="genreFilter" class="form-label text-light">Genre</label>
             <select class="form-select" id="genreFilter">
-                <option value="">All Genres</option>
+                <option value=""></option>
             </select>
         </div>
         <div class="col-md-3">
             <label for="duplicateFilter" class="form-label text-light">Duplicates</label>
             <select class="form-select" id="duplicateFilter">
-                <option value="">All Channels</option>
+                <option value=""></option>
                 <option value="enabled_only">Enabled Duplicates Only</option>
                 <option value="unique_only">Unique Only</option>
             </select>
@@ -420,39 +420,43 @@
 
     // Populate filter dropdowns
     function populateFilters() {
-        // Populate portals dropdown
+        // Initialize Select2 FIRST for portals
+        const portalSelect = $('#portalFilter').select2({
+            theme: 'bootstrap-5',
+            placeholder: 'All Portals',
+            allowClear: true,
+            width: '100%'
+        });
+
+        // Then load portal data
         fetch('/editor/portals')
             .then(res => res.json())
             .then(data => {
-                const select = $('#portalFilter');
                 data.portals.forEach(portal => {
-                    select.append(new Option(portal, portal, false, false));
+                    const option = new Option(portal, portal, false, false);
+                    portalSelect.append(option);
                 });
-                // Initialize Select2 for portals
-                select.select2({
-                    theme: 'bootstrap-5',
-                    placeholder: 'All Portals',
-                    allowClear: true,
-                    width: '100%'
-                });
+                portalSelect.trigger('change');
             })
             .catch(err => console.error('Error loading portals:', err));
 
-        // Populate genres dropdown
+        // Initialize Select2 FIRST for genres
+        const genreSelect = $('#genreFilter').select2({
+            theme: 'bootstrap-5',
+            placeholder: 'All Genres',
+            allowClear: true,
+            width: '100%'
+        });
+
+        // Then load genre data
         fetch('/editor/genres')
             .then(res => res.json())
             .then(data => {
-                const select = $('#genreFilter');
                 data.genres.forEach(genre => {
-                    select.append(new Option(genre, genre, false, false));
+                    const option = new Option(genre, genre, false, false);
+                    genreSelect.append(option);
                 });
-                // Initialize Select2 for genres
-                select.select2({
-                    theme: 'bootstrap-5',
-                    placeholder: 'All Genres',
-                    allowClear: true,
-                    width: '100%'
-                });
+                genreSelect.trigger('change');
             })
             .catch(err => console.error('Error loading genres:', err));
 
