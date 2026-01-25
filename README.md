@@ -68,16 +68,17 @@ The playlist editor features a completely redesigned interface with powerful man
 
 ## **Getting Started**
 
-### **Option 1: Pre-built Executable**
+### **Option 1: Docker (Recommended)**
+1. **Clone** or download this repository
+2. **Build and run**: `docker-compose up -d --build`
+3. **Open** your browser to `http://localhost:8001`
+
+For detailed Docker setup instructions, see [README-Docker.md](README-Docker.md)
+
+### **Option 2: Pre-built Executable**
 1. **Download** the latest release for your platform from the [Releases page](https://github.com/Evilvir-us/MacReplay/releases)
 2. **Run** the executable
 3. **Open** your browser to the server URL shown in console
-
-### **Option 2: Python Script**
-1. **Clone** or download this repository
-2. **Install dependencies**: `pip install -r requirements.txt`
-3. **Run**: `python3 app.py`
-4. **Open** your browser to `http://localhost:13681`
 
 ### **Configuration Workflow**
 1. **Add Portals**: Go to Portals page and add your portal URLs and MAC addresses
@@ -87,12 +88,12 @@ The playlist editor features a completely redesigned interface with powerful man
    - Set up custom channel names and numbers
    - Configure fallback channels for reliability
    - Remove duplicate channels with one click
-3. **Setup Plex**: 
+3. **Setup Plex**:
    - In Plex settings, go to *Live TV and DVR*
    - Click *Set Up Plex Tuner*
    - Select *Have an XMLTV guide*
-   - Enter: `http://YOUR_SERVER_IP:13681/xmltv`
-   - Use playlist: `http://YOUR_SERVER_IP:13681/playlist.m3u`
+   - Enter: `http://YOUR_SERVER_IP:8001/xmltv`
+   - Use playlist: `http://YOUR_SERVER_IP:8001/playlist.m3u`
 
 ---
 

@@ -20,7 +20,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application files
-COPY app-docker-new.py app.py
+COPY app.py .
 COPY stb.py .
 COPY templates/ templates/
 COPY static/ static/

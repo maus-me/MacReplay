@@ -11,34 +11,51 @@ import threading
 from threading import Thread
 import logging
 logger = logging.getLogger("MacReplay")
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 logFormat = logging.Formatter("%(asctime)s [%(levelname)s] %(message)s")
 
+# ----------------------------
+# Docker / Volume friendly paths
+# ----------------------------
+DATA_DIR = os.getenv("DATA_DIR", "/app/data")
+LOG_DIR  = os.getenv("LOG_DIR", "/app/logs")
 
-home_dir = os.path.expanduser("~")  # Get the user's home directory
-log_dir = os.path.join(home_dir, "Evilvir.us")  # Subdirectory for logs
-# Create the directory if it doesn't already exist
-os.makedirs(log_dir, exist_ok=True)
-# Full path to the log file
-log_file_path = os.path.join(log_dir, "MacReplay.log")
-# Set up the FileHandler
+# CONFIG: allow absolute config file path from env
+configFile = os.getenv("CONFIG", os.path.join(DATA_DIR, "MacReplay.json"))
+
+# DB: allow absolute db path from env
+dbPath = os.getenv("DB_PATH", os.path.join(DATA_DIR, "channels.db"))
+
+# Ensure directories exist
+os.makedirs(os.path.dirname(configFile), exist_ok=True)
+os.makedirs(DATA_DIR, exist_ok=True)
+os.makedirs(LOG_DIR, exist_ok=True)
+
+log_file_path = os.path.join(LOG_DIR, "MacReplay.log")
+
+# File logging
 fileHandler = logging.FileHandler(log_file_path)
 fileHandler.setFormatter(logFormat)
-
 logger.addHandler(fileHandler)
+
+# Console logging (docker logs)
 consoleFormat = logging.Formatter("[%(levelname)s] %(message)s")
 consoleHandler = logging.StreamHandler()
 consoleHandler.setFormatter(consoleFormat)
 logger.addHandler(consoleHandler)
 
 # Use system-installed ffmpeg and ffprobe (like STB-Proxy does)
+ffmpeg_path = os.getenv("FFMPEG", "ffmpeg")
+ffprobe_path = os.getenv("FFPROBE", "ffprobe")
+
 # Check if the binaries exist
 try:
-    subprocess.run(["ffmpeg", "-version"], capture_output=True, check=True)
-    subprocess.run(["ffprobe", "-version"], capture_output=True, check=True)
+    subprocess.run([ffmpeg_path, "-version"], capture_output=True, check=True)
+    subprocess.run([ffprobe_path, "-version"], capture_output=True, check=True)
     logger.info("FFmpeg and FFprobe found and working")
 except (subprocess.CalledProcessError, FileNotFoundError):
-    logger.error("Error: ffmpeg or ffprobe not found! Please install ffmpeg.")
+    logger.error("Error: ffmpeg or ffprobe not found!")
+
 
 import flask
 from flask import Flask, jsonify
@@ -69,35 +86,23 @@ app = Flask(__name__)
 app.secret_key = secrets.token_urlsafe(32)
 
 
-basePath = os.path.abspath(os.getcwd())
+# Bind settings (container internal)
+BIND_HOST = os.getenv("BIND_HOST", "0.0.0.0")
+PORT = int(os.getenv("PORT", "8001"))
 
-if os.getenv("HOST"):
-    host = os.getenv("HOST")
-else:
-    host = "ubuntu.verbergwest.appboxes.co:13681"
-logger.info(f"Server started on http://{host}")
+# Public hostname used inside generated URLs (m3u / hdhr / play links)
+PUBLIC_HOST = os.getenv("PUBLIC_HOST")
+if not PUBLIC_HOST:
+    # Backward compatible fallback
+    PUBLIC_HOST = os.getenv("HOST", f"{BIND_HOST}:{PORT}")
 
-# Get the base path for the user directory
-basePath = os.path.expanduser("~")
+# IMPORTANT: the variable "host" is used all over the app to generate URLs
+host = PUBLIC_HOST
 
-# Determine the config file path, placing it in 'evilvir.us' subdirectory
-if os.getenv("CONFIG"):
-    configFile = os.getenv("CONFIG")
-else:
-    configFile = os.path.join(basePath, "evilvir.us", "MacReplay.json")
-
-# Ensure the subdirectory exists
-os.makedirs(os.path.dirname(configFile), exist_ok=True)
-
+logger.info(f"Public BaseURL: http://{host}")
 logger.info(f"Using config file: {configFile}")
-
-# Database path for channel caching
-if os.getenv("DB_PATH"):
-    dbPath = os.getenv("DB_PATH")
-else:
-    dbPath = os.path.join(basePath, "evilvir.us", "channels.db")
-
 logger.info(f"Using database file: {dbPath}")
+
 
 occupied = {}
 config = {}
@@ -2319,20 +2324,13 @@ def streaming():
 @app.route("/log")
 @authorise
 def log():
-    # Get the base path for the user directory
-    basePath = os.path.expanduser("~")
+    logFilePath = os.path.join(LOG_DIR, "MacReplay.log")
+    try:
+        with open(logFilePath) as f:
+            return f.read()
+    except FileNotFoundError:
+        return "Log file not found"
 
-    # Define the path for the log file in the 'evilvir.us' subdirectory
-    logFilePath = os.path.join(basePath, "evilvir.us", "MacReplay.log")
-
-    # Ensure the subdirectory exists
-    os.makedirs(os.path.dirname(logFilePath), exist_ok=True)
-
-    # Open and read the log file
-    with open(logFilePath) as f:
-        log_content = f.read()
-    
-    return log_content
 
 
 # HD Homerun #
@@ -2528,6 +2526,6 @@ if __name__ == "__main__":
 
     # Start the server
     if "TERM_PROGRAM" in os.environ.keys() and os.environ["TERM_PROGRAM"] == "vscode":
-        app.run(host="0.0.0.0", port=13681, debug=True)
+        app.run(host=BIND_HOST, port=PORT, debug=True)
     else:
-        waitress.serve(app, port=13681, _quiet=True, threads=24)
+        waitress.serve(app, host=BIND_HOST, port=PORT, _quiet=True, threads=24)

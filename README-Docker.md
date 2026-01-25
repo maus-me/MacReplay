@@ -20,7 +20,7 @@ Ensure you have the following files:
 - `Dockerfile`
 - `docker-compose.yml`
 - `requirements.txt`
-- `app.py` (or `app-docker.py`)
+- `app.py`
 - `stb.py`
 - `templates/` directory
 - `static/` directory
