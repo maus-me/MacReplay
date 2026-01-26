@@ -2394,6 +2394,38 @@ def log():
         return "Log file not found"
 
 
+@app.route("/logs")
+@authorise
+def logs_page():
+    return render_template("logs.html")
+
+
+@app.route("/logs/stream")
+@authorise
+def logs_stream():
+    logFilePath = os.path.join(LOG_DIR, "MacReplay.log")
+    lines_param = request.args.get('lines', '500')
+
+    try:
+        with open(logFilePath, 'r', encoding='utf-8', errors='replace') as f:
+            all_lines = f.readlines()
+
+        # Clean up lines (remove empty lines, strip whitespace)
+        all_lines = [line.rstrip() for line in all_lines if line.strip()]
+
+        if lines_param != 'all':
+            try:
+                num_lines = int(lines_param)
+                all_lines = all_lines[-num_lines:]
+            except ValueError:
+                pass
+
+        return flask.jsonify({"lines": all_lines, "total": len(all_lines)})
+    except FileNotFoundError:
+        return flask.jsonify({"lines": [], "error": "Log file not found"})
+    except Exception as e:
+        return flask.jsonify({"lines": [], "error": str(e)})
+
 
 # HD Homerun #
 
