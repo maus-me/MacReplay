@@ -891,13 +891,6 @@ def portals():
     return render_template("portals.html", portals=getPortals())
 
 
-@app.route("/portals-v2", methods=["GET"])
-@authorise
-def portals_v2():
-    """New portals page with list/accordion design"""
-    return render_template("portals_v2.html", portals=getPortals())
-
-
 @app.route("/api/portal/mac/delete", methods=["POST"])
 @authorise
 def delete_portal_mac():
