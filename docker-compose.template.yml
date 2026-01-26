@@ -1,0 +1,44 @@
+services:
+  macreplay:
+    build: .
+    container_name: macreplay
+    environment:
+      # User/Group IDs for file permissions
+      PUID: "1000"
+      PGID: "1000"
+      # Timezone
+      TZ: "Europe/Berlin"
+      # Application settings
+      HOST: "0.0.0.0:8001"
+      CONFIG: "/app/data/MacReplay.json"
+      DB_PATH: "/app/data/channels.db"
+      DATA_DIR: "/app/data"
+      LOG_DIR: "/app/logs"
+      BIND_HOST: "0.0.0.0"
+      PORT: "8001"
+      # Public hostname for M3U/XMLTV URLs (change to your domain or IP)
+      PUBLIC_HOST: "localhost:8001"
+    hostname: macreplay
+    ports:
+      - "8001:8001"
+    restart: unless-stopped
+    volumes:
+      # Data persistence
+      - ./data:/app/data
+      - ./logs:/app/logs
+      # Timezone (optional, for accurate EPG times)
+      - /etc/localtime:/etc/localtime:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+# Optional: Use with reverse proxy (Traefik, nginx, etc.)
+# Uncomment and configure networks as needed:
+#
+# networks:
+#   default:
+#     external: true
+#     name: your-proxy-network

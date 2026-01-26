@@ -1,5 +1,30 @@
 __pycache__/
-node_modules
-frontend/node_modules
+*.pyc
+*.pyo
+
+# Node modules
+node_modules/
+frontend/node_modules/
+
+# Data and logs (user-specific)
 data/
 logs/
+
+# Docker compose (user-specific configuration)
+docker-compose.yml
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Python
+*.egg-info/
+dist/
+build/
+*.spec
