@@ -888,7 +888,40 @@ def moveMac(portalId, mac):
 @authorise
 def portals():
     """Legacy template route"""
-    return render_template("portals.html", portals=getPortals())
+    portal_data = getPortals()
+
+    # Get channel and group counts per portal from database
+    portal_stats = {}
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Get channel count per portal
+        cursor.execute("""
+            SELECT portal, COUNT(*) as channel_count
+            FROM channels
+            GROUP BY portal
+        """)
+        for row in cursor.fetchall():
+            portal_stats[row['portal']] = {'channels': row['channel_count'], 'groups': 0}
+
+        # Get distinct genre count per portal
+        cursor.execute("""
+            SELECT portal, COUNT(DISTINCT COALESCE(NULLIF(custom_genre, ''), genre)) as group_count
+            FROM channels
+            GROUP BY portal
+        """)
+        for row in cursor.fetchall():
+            if row['portal'] in portal_stats:
+                portal_stats[row['portal']]['groups'] = row['group_count']
+            else:
+                portal_stats[row['portal']] = {'channels': 0, 'groups': row['group_count']}
+
+        conn.close()
+    except Exception as e:
+        logger.error(f"Error getting portal stats: {e}")
+
+    return render_template("portals.html", portals=portal_data, portal_stats=portal_stats)
 
 
 @app.route("/api/portal/mac/delete", methods=["POST"])
@@ -912,7 +945,7 @@ def delete_portal_mac():
 
         # Delete the MAC
         del portals[portal_id]["macs"][mac]
-        saveData()
+        savePortals(portals)
 
         logger.info(f"Deleted MAC({mac}) from Portal({portals[portal_id].get('name', portal_id)})")
         return jsonify({"success": True})

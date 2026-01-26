@@ -254,6 +254,14 @@
                         <strong>URL:</strong><br>
                         <small class="text-muted">{{ portal.url[:50] }}{% if portal.url|length > 50 %}...{% endif %}</small>
                     </p>
+                    <div class="row mb-2">
+                        <div class="col-6">
+                            <strong><i class="fas fa-tv"></i> Channels:</strong> {{ portal_stats.get(portal_id, {}).get('channels', 0) }}
+                        </div>
+                        <div class="col-6">
+                            <strong><i class="fas fa-folder"></i> Groups:</strong> {{ portal_stats.get(portal_id, {}).get('groups', 0) }}
+                        </div>
+                    </div>
                     <p class="card-text">
                         <strong>MAC Addresses:</strong> {{ portal.macs|length }}
                     </p>
@@ -293,9 +301,17 @@
                 <i class="fas fa-chevron-right expand-icon"></i>
                 <span class="portal-name">{{ portal.name or 'Unnamed Portal' }}</span>
                 <div class="portal-meta">
-                    <span class="portal-meta-item">
+                    <span class="portal-meta-item" title="Channels">
+                        <i class="fas fa-tv"></i>
+                        <span>{{ portal_stats.get(portal_id, {}).get('channels', 0) }}</span>
+                    </span>
+                    <span class="portal-meta-item" title="Groups">
+                        <i class="fas fa-folder"></i>
+                        <span>{{ portal_stats.get(portal_id, {}).get('groups', 0) }}</span>
+                    </span>
+                    <span class="portal-meta-item" title="MACs">
                         <i class="fas fa-network-wired"></i>
-                        <span>{{ portal.macs|length }} MACs</span>
+                        <span>{{ portal.macs|length }}</span>
                     </span>
                     <span class="badge bg-{{ 'success' if portal.enabled == 'true' else 'secondary' }}">
                         {{ 'Enabled' if portal.enabled == 'true' else 'Disabled' }}
@@ -315,6 +331,14 @@
                     <div class="portal-info-item">
                         <div class="portal-info-label">URL</div>
                         <div class="portal-info-value">{{ portal.url }}</div>
+                    </div>
+                    <div class="portal-info-item">
+                        <div class="portal-info-label">Channels</div>
+                        <div class="portal-info-value">{{ portal_stats.get(portal_id, {}).get('channels', 0) }}</div>
+                    </div>
+                    <div class="portal-info-item">
+                        <div class="portal-info-label">Groups</div>
+                        <div class="portal-info-value">{{ portal_stats.get(portal_id, {}).get('groups', 0) }}</div>
                     </div>
                     <div class="portal-info-item">
                         <div class="portal-info-label">Streams per MAC</div>
@@ -693,6 +717,38 @@ async function confirmMacDelete() {
     bootstrap.Modal.getInstance(document.getElementById('deleteMacModal')).hide();
 }
 
+// Parse date string like "March 2, 2026, 12:00 am" to Date object
+function parseExpiryDate(dateStr) {
+    if (!dateStr) return null;
+    try {
+        return new Date(dateStr);
+    } catch (e) {
+        return null;
+    }
+}
+
+// Sort MAC tables by expiration date (earliest first)
+function sortMacTablesByExpiry() {
+    document.querySelectorAll('.mac-table tbody').forEach(tbody => {
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+
+        rows.sort((a, b) => {
+            const expiryA = parseExpiryDate(a.querySelector('.mac-expiry')?.dataset.expiry);
+            const expiryB = parseExpiryDate(b.querySelector('.mac-expiry')?.dataset.expiry);
+
+            // Handle null dates (put them at the end)
+            if (!expiryA && !expiryB) return 0;
+            if (!expiryA) return 1;
+            if (!expiryB) return -1;
+
+            return expiryA - expiryB; // Earliest first
+        });
+
+        // Re-append sorted rows
+        rows.forEach(row => tbody.appendChild(row));
+    });
+}
+
 // Highlight expiring MACs
 function highlightExpiringMacs() {
     const now = new Date();
@@ -737,6 +793,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Load saved view preference
     const savedView = localStorage.getItem('portalsView') || 'card';
     setView(savedView);
+
+    // Sort MACs by expiration date (earliest first)
+    sortMacTablesByExpiry();
 
     // Highlight expiring MACs
     highlightExpiringMacs();
