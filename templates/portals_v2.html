@@ -1,0 +1,641 @@
+{% extends "base.html" %}
+
+{% block title %}Portals - MacReplay{% endblock %}
+
+{% block head %}
+<style>
+    .portal-list-item {
+        background-color: var(--bs-card-bg);
+        border: 1px solid var(--bs-border-color);
+        border-radius: 0.5rem;
+        margin-bottom: 0.5rem;
+        transition: all 0.2s ease;
+    }
+
+    .portal-list-item:hover {
+        border-color: var(--bs-primary);
+    }
+
+    .portal-list-item.expanded {
+        border-color: var(--bs-primary);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .portal-header {
+        display: flex;
+        align-items: center;
+        padding: 1rem 1.25rem;
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .portal-header:hover {
+        background-color: var(--bs-tertiary-bg);
+        border-radius: 0.5rem;
+    }
+
+    .portal-list-item.expanded .portal-header {
+        border-bottom: 1px solid var(--bs-border-color);
+        border-radius: 0.5rem 0.5rem 0 0;
+    }
+
+    .portal-name {
+        font-weight: 600;
+        font-size: 1.1rem;
+        flex-grow: 1;
+    }
+
+    .portal-meta {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-right: 1rem;
+    }
+
+    .portal-meta-item {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        font-size: 0.875rem;
+        color: var(--bs-secondary-color);
+    }
+
+    .portal-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .portal-actions .btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+    }
+
+    .portal-details {
+        display: none;
+        padding: 1.25rem;
+        background-color: var(--bs-tertiary-bg);
+        border-radius: 0 0 0.5rem 0.5rem;
+    }
+
+    .portal-list-item.expanded .portal-details {
+        display: block;
+    }
+
+    .portal-info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .portal-info-item {
+        background-color: var(--bs-body-bg);
+        padding: 0.75rem 1rem;
+        border-radius: 0.375rem;
+        border: 1px solid var(--bs-border-color);
+    }
+
+    .portal-info-label {
+        font-size: 0.75rem;
+        color: var(--bs-secondary-color);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 0.25rem;
+    }
+
+    .portal-info-value {
+        font-weight: 500;
+        word-break: break-all;
+    }
+
+    .mac-table {
+        width: 100%;
+        background-color: var(--bs-body-bg);
+        border-radius: 0.375rem;
+        overflow: hidden;
+    }
+
+    .mac-table th {
+        background-color: var(--bs-secondary-bg);
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 0.75rem 1rem;
+        font-weight: 600;
+        color: var(--bs-secondary-color);
+    }
+
+    .mac-table td {
+        padding: 0.75rem 1rem;
+        border-top: 1px solid var(--bs-border-color);
+        vertical-align: middle;
+    }
+
+    .mac-table tr:hover td {
+        background-color: var(--bs-tertiary-bg);
+    }
+
+    .mac-address {
+        font-family: monospace;
+        font-size: 0.9rem;
+    }
+
+    .mac-expiry {
+        font-size: 0.875rem;
+    }
+
+    .mac-expiry.expired {
+        color: var(--bs-danger);
+    }
+
+    .mac-expiry.expiring-soon {
+        color: var(--bs-warning);
+    }
+
+    .mac-expiry.valid {
+        color: var(--bs-success);
+    }
+
+    .btn-delete-mac {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+        line-height: 1;
+    }
+
+    .expand-icon {
+        transition: transform 0.2s ease;
+        margin-right: 0.75rem;
+        color: var(--bs-secondary-color);
+    }
+
+    .portal-list-item.expanded .expand-icon {
+        transform: rotate(90deg);
+    }
+
+    .mac-section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.75rem;
+    }
+
+    .mac-section-title {
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+
+    .no-macs {
+        text-align: center;
+        padding: 2rem;
+        color: var(--bs-secondary-color);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h2><i class="fas fa-satellite-dish"></i> Portal Management</h2>
+                <p class="text-muted mb-0">Manage your IPTV portals and MAC addresses</p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="/portals" class="btn btn-outline-secondary btn-sm" title="Switch to Card View">
+                    <i class="fas fa-th-large"></i>
+                </a>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addPortalModal">
+                    <i class="fas fa-plus"></i> Add Portal
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if portals %}
+<div class="portal-list">
+    {% for portal_id, portal in portals.items() %}
+    <div class="portal-list-item" data-portal-id="{{ portal_id }}">
+        <div class="portal-header" onclick="togglePortal('{{ portal_id }}')">
+            <i class="fas fa-chevron-right expand-icon"></i>
+            <span class="portal-name">{{ portal.name or 'Unnamed Portal' }}</span>
+            <div class="portal-meta">
+                <span class="portal-meta-item">
+                    <i class="fas fa-network-wired"></i>
+                    <span>{{ portal.macs|length }} MACs</span>
+                </span>
+                <span class="badge bg-{{ 'success' if portal.enabled == 'true' else 'secondary' }}">
+                    {{ 'Enabled' if portal.enabled == 'true' else 'Disabled' }}
+                </span>
+            </div>
+            <div class="portal-actions" onclick="event.stopPropagation()">
+                <button class="btn btn-outline-primary" data-action="edit" data-portal-id="{{ portal_id }}" title="Edit Portal">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn btn-outline-danger" data-action="delete" data-portal-id="{{ portal_id }}" data-portal-name="{{ portal.name | e }}" title="Delete Portal">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+        <div class="portal-details">
+            <div class="portal-info-grid">
+                <div class="portal-info-item">
+                    <div class="portal-info-label">URL</div>
+                    <div class="portal-info-value">{{ portal.url }}</div>
+                </div>
+                <div class="portal-info-item">
+                    <div class="portal-info-label">Streams per MAC</div>
+                    <div class="portal-info-value">{{ portal['streams per mac'] }}</div>
+                </div>
+                <div class="portal-info-item">
+                    <div class="portal-info-label">EPG Offset</div>
+                    <div class="portal-info-value">{{ portal['epg offset'] }} hours</div>
+                </div>
+                <div class="portal-info-item">
+                    <div class="portal-info-label">Fetch EPG</div>
+                    <div class="portal-info-value">
+                        <span class="badge bg-{{ 'success' if portal.get('fetch epg', 'true') == 'true' else 'secondary' }}">
+                            {{ 'Yes' if portal.get('fetch epg', 'true') == 'true' else 'No' }}
+                        </span>
+                    </div>
+                </div>
+                {% if portal.proxy %}
+                <div class="portal-info-item">
+                    <div class="portal-info-label">Proxy</div>
+                    <div class="portal-info-value">{{ portal.proxy }}</div>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="mac-section-header">
+                <span class="mac-section-title">
+                    <i class="fas fa-list"></i> MAC Addresses ({{ portal.macs|length }})
+                </span>
+            </div>
+
+            {% if portal.macs %}
+            <table class="mac-table">
+                <thead>
+                    <tr>
+                        <th>MAC Address</th>
+                        <th>Expires</th>
+                        <th style="width: 50px;"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for mac, expiry in portal.macs.items() %}
+                    <tr data-mac="{{ mac }}">
+                        <td class="mac-address">{{ mac }}</td>
+                        <td class="mac-expiry" data-expiry="{{ expiry }}">{{ expiry }}</td>
+                        <td>
+                            <button class="btn btn-outline-danger btn-delete-mac"
+                                    onclick="deleteMac('{{ portal_id }}', '{{ mac }}')"
+                                    title="Delete MAC">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="no-macs">
+                <i class="fas fa-network-wired fa-2x mb-2"></i>
+                <p>No MAC addresses configured</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="alert alert-info">
+    <i class="fas fa-info-circle"></i> No portals configured. Add your first portal to get started.
+</div>
+{% endif %}
+
+<!-- Add Portal Modal -->
+<div class="modal fade" id="addPortalModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="POST" action="/portal/add">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add New Portal</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Portal Name</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="url" class="form-label">Portal URL</label>
+                        <input type="url" class="form-control" id="url" name="url" placeholder="http://portal.example.com" required>
+                        <div class="form-text">Enter the portal domain or full URL</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="macs" class="form-label">MAC Addresses</label>
+                        <textarea class="form-control" id="macs" name="macs" rows="3" placeholder="00:1A:79:XX:XX:XX,00:1A:79:YY:YY:YY" required></textarea>
+                        <div class="form-text">Enter MAC addresses separated by commas</div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label for="streams_per_mac" class="form-label">Streams per MAC</label>
+                            <input type="number" class="form-control" id="streams_per_mac" name="streams per mac" value="1" min="0" max="10">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="epg_offset" class="form-label">EPG Offset (hours)</label>
+                            <input type="number" class="form-control" id="epg_offset" name="epg offset" value="0" min="-12" max="12">
+                        </div>
+                    </div>
+                    <div class="mb-3 mt-3">
+                        <label for="proxy" class="form-label">Proxy (Optional)</label>
+                        <input type="text" class="form-control" id="proxy" name="proxy" placeholder="http://proxy:port">
+                        <div class="form-text">Leave empty if no proxy needed</div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="fetch_epg" name="fetch epg" value="true" checked>
+                            <label class="form-check-label" for="fetch_epg">
+                                Fetch EPG data from this portal
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Portal</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Portal Modal -->
+<div class="modal fade" id="editPortalModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="POST" action="/portal/update" id="editPortalForm">
+                <input type="hidden" id="edit_portal_id" name="id">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Portal</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="edit_enabled" name="enabled" value="true">
+                            <label class="form-check-label" for="edit_enabled">
+                                Portal Enabled
+                            </label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_name" class="form-label">Portal Name</label>
+                        <input type="text" class="form-control" id="edit_name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_url" class="form-label">Portal URL</label>
+                        <input type="url" class="form-control" id="edit_url" name="url" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_macs" class="form-label">MAC Addresses</label>
+                        <textarea class="form-control" id="edit_macs" name="macs" rows="3" required></textarea>
+                        <div class="form-text">Enter MAC addresses separated by commas</div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label for="edit_streams_per_mac" class="form-label">Streams per MAC</label>
+                            <input type="number" class="form-control" id="edit_streams_per_mac" name="streams per mac" min="0" max="10">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="edit_epg_offset" class="form-label">EPG Offset (hours)</label>
+                            <input type="number" class="form-control" id="edit_epg_offset" name="epg offset" min="-12" max="12">
+                        </div>
+                    </div>
+                    <div class="mb-3 mt-3">
+                        <label for="edit_proxy" class="form-label">Proxy (Optional)</label>
+                        <input type="text" class="form-control" id="edit_proxy" name="proxy">
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="edit_fetch_epg" name="fetch epg" value="true">
+                            <label class="form-check-label" for="edit_fetch_epg">
+                                Fetch EPG data from this portal
+                            </label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="retest" name="retest" value="true">
+                            <label class="form-check-label" for="retest">
+                                Retest all MAC addresses
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Portal</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Portal Modal -->
+<div class="modal fade" id="deletePortalModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="/portal/remove">
+                <input type="hidden" id="delete_portal_id" name="deleteId">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirm Delete</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete the portal "<span id="delete_portal_name"></span>"?</p>
+                    <p class="text-danger"><strong>This action cannot be undone.</strong></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Delete Portal</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete MAC Confirmation Modal -->
+<div class="modal fade" id="deleteMacModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Delete MAC</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Delete MAC address:</p>
+                <p class="mac-address text-center" id="delete_mac_address"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger btn-sm" id="confirmDeleteMac">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const portalsData = {{ portals | tojson }};
+
+// Toggle portal expand/collapse
+function togglePortal(portalId) {
+    const item = document.querySelector(`.portal-list-item[data-portal-id="${portalId}"]`);
+    if (item) {
+        item.classList.toggle('expanded');
+    }
+}
+
+// Edit portal
+function editPortal(portalId) {
+    const portal = portalsData[portalId];
+    if (!portal) return;
+
+    document.getElementById('edit_portal_id').value = portalId;
+    document.getElementById('edit_enabled').checked = portal.enabled === 'true';
+    document.getElementById('edit_name').value = portal.name;
+    document.getElementById('edit_url').value = portal.url;
+    document.getElementById('edit_macs').value = Object.keys(portal.macs).join(',');
+    document.getElementById('edit_streams_per_mac').value = portal['streams per mac'];
+    document.getElementById('edit_epg_offset').value = portal['epg offset'];
+    document.getElementById('edit_proxy').value = portal.proxy || '';
+    document.getElementById('edit_fetch_epg').checked = (portal['fetch epg'] || 'true') === 'true';
+
+    new bootstrap.Modal(document.getElementById('editPortalModal')).show();
+}
+
+// Delete portal
+function deletePortal(portalId, portalName) {
+    document.getElementById('delete_portal_id').value = portalId;
+    document.getElementById('delete_portal_name').textContent = portalName;
+    new bootstrap.Modal(document.getElementById('deletePortalModal')).show();
+}
+
+// Delete individual MAC
+let pendingMacDelete = { portalId: null, mac: null };
+
+function deleteMac(portalId, mac) {
+    pendingMacDelete = { portalId, mac };
+    document.getElementById('delete_mac_address').textContent = mac;
+    new bootstrap.Modal(document.getElementById('deleteMacModal')).show();
+}
+
+document.getElementById('confirmDeleteMac').addEventListener('click', async function() {
+    const { portalId, mac } = pendingMacDelete;
+    if (!portalId || !mac) return;
+
+    try {
+        const response = await fetch('/api/portal/mac/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ portal_id: portalId, mac: mac })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            // Remove the row from the table
+            const row = document.querySelector(`tr[data-mac="${mac}"]`);
+            if (row) {
+                row.remove();
+            }
+
+            // Update MAC count in the header
+            const item = document.querySelector(`.portal-list-item[data-portal-id="${portalId}"]`);
+            if (item) {
+                const countSpan = item.querySelector('.portal-meta-item span');
+                const currentCount = parseInt(countSpan.textContent) - 1;
+                countSpan.textContent = `${currentCount} MACs`;
+
+                // Update section title
+                const sectionTitle = item.querySelector('.mac-section-title');
+                if (sectionTitle) {
+                    sectionTitle.innerHTML = `<i class="fas fa-list"></i> MAC Addresses (${currentCount})`;
+                }
+
+                // Show "no macs" message if all deleted
+                if (currentCount === 0) {
+                    const tableWrapper = item.querySelector('.mac-table');
+                    if (tableWrapper) {
+                        tableWrapper.outerHTML = `
+                            <div class="no-macs">
+                                <i class="fas fa-network-wired fa-2x mb-2"></i>
+                                <p>No MAC addresses configured</p>
+                            </div>`;
+                    }
+                }
+            }
+
+            // Update local data
+            if (portalsData[portalId] && portalsData[portalId].macs) {
+                delete portalsData[portalId].macs[mac];
+            }
+        } else {
+            alert('Error: ' + (data.message || 'Failed to delete MAC'));
+        }
+    } catch (error) {
+        console.error('Error deleting MAC:', error);
+        alert('Error deleting MAC address');
+    }
+
+    bootstrap.Modal.getInstance(document.getElementById('deleteMacModal')).hide();
+});
+
+// Highlight expiring MACs
+function highlightExpiringMacs() {
+    const now = new Date();
+    const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+    document.querySelectorAll('.mac-expiry').forEach(cell => {
+        const expiryStr = cell.dataset.expiry;
+        if (!expiryStr) return;
+
+        try {
+            const expiry = new Date(expiryStr);
+            if (expiry < now) {
+                cell.classList.add('expired');
+            } else if (expiry < thirtyDaysFromNow) {
+                cell.classList.add('expiring-soon');
+            } else {
+                cell.classList.add('valid');
+            }
+        } catch (e) {
+            // Invalid date format, skip
+        }
+    });
+}
+
+// Event delegation for portal actions
+document.addEventListener('click', function(e) {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+
+    const action = btn.dataset.action;
+    const portalId = btn.dataset.portalId;
+
+    if (action === 'edit') {
+        editPortal(portalId);
+    } else if (action === 'delete') {
+        deletePortal(portalId, btn.dataset.portalName);
+    }
+});
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    highlightExpiringMacs();
+});
+</script>
+{% endblock %}

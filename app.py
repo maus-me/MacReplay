@@ -891,6 +891,44 @@ def portals():
     return render_template("portals.html", portals=getPortals())
 
 
+@app.route("/portals-v2", methods=["GET"])
+@authorise
+def portals_v2():
+    """New portals page with list/accordion design"""
+    return render_template("portals_v2.html", portals=getPortals())
+
+
+@app.route("/api/portal/mac/delete", methods=["POST"])
+@authorise
+def delete_portal_mac():
+    """API endpoint to delete a single MAC from a portal"""
+    try:
+        data = request.get_json()
+        portal_id = data.get("portal_id")
+        mac = data.get("mac")
+
+        if not portal_id or not mac:
+            return jsonify({"success": False, "message": "Missing portal_id or mac"})
+
+        portals = getPortals()
+        if portal_id not in portals:
+            return jsonify({"success": False, "message": "Portal not found"})
+
+        if mac not in portals[portal_id].get("macs", {}):
+            return jsonify({"success": False, "message": "MAC not found in portal"})
+
+        # Delete the MAC
+        del portals[portal_id]["macs"][mac]
+        saveData()
+
+        logger.info(f"Deleted MAC({mac}) from Portal({portals[portal_id].get('name', portal_id)})")
+        return jsonify({"success": True})
+
+    except Exception as e:
+        logger.error(f"Error deleting MAC: {e}")
+        return jsonify({"success": False, "message": str(e)})
+
+
 @app.route("/api/portals/data", methods=["GET"])
 @authorise
 def portals_data():
