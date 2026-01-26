@@ -94,16 +94,36 @@
                     </div>
                     
                     <div class="form-check mb-3">
-                        <input class="form-check-input" type="checkbox" id="try_all_macs" name="try all macs" 
+                        <input class="form-check-input" type="checkbox" id="try_all_macs" name="try all macs"
                                value="true" {{ 'checked' if settings['try all macs'] == 'true' }}>
                         <label class="form-check-label" for="try_all_macs">
                             Try all MAC addresses on failure
                         </label>
                     </div>
+
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="parallel_mac_probing" name="parallel mac probing"
+                               value="true" {{ 'checked' if settings['parallel mac probing'] == 'true' }}>
+                        <label class="form-check-label" for="parallel_mac_probing">
+                            Parallel MAC probing
+                        </label>
+                        <div class="form-text">
+                            Test multiple MAC addresses simultaneously for faster channel lookup.
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="parallel_mac_workers" class="form-label">Parallel Workers</label>
+                        <input type="number" class="form-control" id="parallel_mac_workers" name="parallel mac workers"
+                               value="{{ settings['parallel mac workers'] }}" min="2" max="10">
+                        <div class="form-text">
+                            Number of MACs to test in parallel. Higher = faster but more server load.
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-        
+
         <div class="col-md-6">
             <div class="card">
                 <div class="card-header">

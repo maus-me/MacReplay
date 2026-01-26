@@ -9,6 +9,7 @@ import xml.etree.ElementTree as ET
 import xml.dom.minidom as minidom
 import threading
 from threading import Thread
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import logging
 logger = logging.getLogger("MacReplay")
 logger.setLevel(logging.INFO)
@@ -224,6 +225,8 @@ defaultSettings = {
     "epg past hours": "2",
     "test streams": "true",
     "try all macs": "true",
+    "parallel mac probing": "false",
+    "parallel mac workers": "3",
     "use channel genres": "true",
     "use channel numbers": "true",
     "sort playlist by channel genre": "false",
@@ -2324,89 +2327,173 @@ def channel(portalId, channelId):
         "IP({}) requested Portal({}):Channel({})".format(ip, portalId, channelId)
     )
 
-    freeMac = False
+    # Helper function to probe a single MAC
+    def probe_single_mac(mac_to_test):
+        """Probe a single MAC and return result dict or None if failed."""
+        try:
+            if streamsPerMac != 0 and not isMacFree():
+                return None
 
-    for mac in macs:
-        channels = None
-        cmd = None
-        link = None
-        if streamsPerMac == 0 or isMacFree():
             logger.info(
-                "Trying Portal({}):MAC({}):Channel({})".format(portalId, mac, channelId)
+                "Trying Portal({}):MAC({}):Channel({})".format(portalId, mac_to_test, channelId)
             )
-            freeMac = True
-            token = stb.getToken(url, mac, proxy)
-            if token:
-                stb.getProfile(url, mac, token, proxy)
-                channels = stb.getAllChannels(url, mac, token, proxy)
 
-        if channels:
+            token = stb.getToken(url, mac_to_test, proxy)
+            if not token:
+                return None
+
+            stb.getProfile(url, mac_to_test, token, proxy)
+            channels = stb.getAllChannels(url, mac_to_test, token, proxy)
+
+            if not channels:
+                return None
+
+            cmd = None
+            found_channel_name = portal.get("custom channel names", {}).get(channelId)
             for c in channels:
                 if str(c["id"]) == channelId:
-                    channelName = portal.get("custom channel names", {}).get(channelId)
-                    if channelName == None:
-                        channelName = c["name"]
+                    if found_channel_name is None:
+                        found_channel_name = c["name"]
                     cmd = c["cmd"]
                     break
 
-        if cmd:
+            if not cmd:
+                return None
+
             if "http://localhost/" in cmd:
-                link = stb.getLink(url, mac, token, cmd, proxy)
+                link = stb.getLink(url, mac_to_test, token, cmd, proxy)
             else:
                 link = cmd.split(" ")[1]
 
-        if link:
-            if getSettings().get("test streams", "true") == "false" or testStream():
-                if web:
-                    ffmpegcmd = [
-                        "ffmpeg",
-                        "-loglevel",
-                        "panic",
-                        "-hide_banner",
-                        "-i",
-                        link,
-                        "-vcodec",
-                        "copy",
-                        "-f",
-                        "mp4",
-                        "-movflags",
-                        "frag_keyframe+empty_moov",
-                        "pipe:",
-                    ]
-                    if proxy:
-                        ffmpegcmd.insert(1, "-http_proxy")
-                        ffmpegcmd.insert(2, proxy)
-                    return Response(streamData(), mimetype="application/octet-stream")
+            if not link:
+                return None
 
-                else:
-                    if getSettings().get("stream method", "ffmpeg") == "ffmpeg":
-                        ffmpegcmd = str(getSettings()["ffmpeg command"])
-                        ffmpegcmd = ffmpegcmd.replace("<url>", link)
-                        ffmpegcmd = ffmpegcmd.replace(
-                            "<timeout>",
-                            str(int(getSettings()["ffmpeg timeout"]) * int(1000000)),
-                        )
-                        if proxy:
-                            ffmpegcmd = ffmpegcmd.replace("<proxy>", proxy)
-                        else:
-                            ffmpegcmd = ffmpegcmd.replace("-http_proxy <proxy>", "")
-                        " ".join(ffmpegcmd.split())  # cleans up multiple whitespaces
-                        ffmpegcmd = ffmpegcmd.split()
-                        return Response(
-                            streamData(), mimetype="application/octet-stream"
-                        )
+            # Test stream if enabled
+            if getSettings().get("test streams", "true") != "false":
+                timeout = int(getSettings()["ffmpeg timeout"]) * int(1000000)
+                ffprobecmd = ["ffprobe", "-timeout", str(timeout), "-i", link]
+                if proxy:
+                    ffprobecmd.insert(1, "-http_proxy")
+                    ffprobecmd.insert(2, proxy)
+
+                with subprocess.Popen(
+                    ffprobecmd,
+                    stdin=subprocess.DEVNULL,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                ) as ffprobe_sb:
+                    ffprobe_sb.communicate()
+                    if ffprobe_sb.returncode != 0:
+                        return None
+
+            return {
+                "mac": mac_to_test,
+                "token": token,
+                "link": link,
+                "channelName": found_channel_name
+            }
+        except Exception as e:
+            logger.error(f"Error probing MAC({mac_to_test}): {e}")
+            return None
+
+    freeMac = False
+    result = None
+    failed_macs = []
+
+    # Check if parallel probing is enabled
+    parallel_enabled = getSettings().get("parallel mac probing", "false") == "true"
+    max_workers = int(getSettings().get("parallel mac workers", "3"))
+
+    if parallel_enabled and len(macs) > 1:
+        # Parallel MAC probing
+        logger.info(f"Using parallel MAC probing with {max_workers} workers for {len(macs)} MACs")
+
+        with ThreadPoolExecutor(max_workers=min(max_workers, len(macs))) as executor:
+            # Submit all MAC probing tasks
+            future_to_mac = {executor.submit(probe_single_mac, mac): mac for mac in macs}
+
+            # Process results as they complete
+            for future in as_completed(future_to_mac):
+                mac = future_to_mac[future]
+                try:
+                    probe_result = future.result()
+                    if probe_result:
+                        result = probe_result
+                        freeMac = True
+                        # Cancel remaining futures
+                        for f in future_to_mac:
+                            f.cancel()
+                        break
                     else:
-                        logger.info("Redirect sent")
-                        return redirect(link)
+                        failed_macs.append(mac)
+                except Exception as e:
+                    logger.error(f"Exception probing MAC({mac}): {e}")
+                    failed_macs.append(mac)
+    else:
+        # Sequential MAC probing (original behavior)
+        for mac in macs:
+            probe_result = probe_single_mac(mac)
+            if probe_result:
+                result = probe_result
+                freeMac = True
+                break
+            else:
+                failed_macs.append(mac)
+                if not getSettings().get("try all macs", "true") == "true":
+                    break
 
-        logger.info(
-            "Unable to connect to Portal({}) using MAC({})".format(portalId, mac)
-        )
-        logger.info("Moving MAC({}) for Portal({})".format(mac, portalName))
-        moveMac(portalId, mac)
+    # Move failed MACs to end of list
+    for failed_mac in failed_macs:
+        logger.info("Moving MAC({}) for Portal({})".format(failed_mac, portalName))
+        moveMac(portalId, failed_mac)
 
-        if not getSettings().get("try all macs", "true") == "true":
-            break
+    # If we found a working MAC, stream it
+    if result:
+        mac = result["mac"]
+        link = result["link"]
+        channelName = result["channelName"]
+
+        if web:
+            ffmpegcmd = [
+                "ffmpeg",
+                "-loglevel",
+                "panic",
+                "-hide_banner",
+                "-i",
+                link,
+                "-vcodec",
+                "copy",
+                "-f",
+                "mp4",
+                "-movflags",
+                "frag_keyframe+empty_moov",
+                "pipe:",
+            ]
+            if proxy:
+                ffmpegcmd.insert(1, "-http_proxy")
+                ffmpegcmd.insert(2, proxy)
+            return Response(streamData(), mimetype="application/octet-stream")
+
+        else:
+            if getSettings().get("stream method", "ffmpeg") == "ffmpeg":
+                ffmpegcmd = str(getSettings()["ffmpeg command"])
+                ffmpegcmd = ffmpegcmd.replace("<url>", link)
+                ffmpegcmd = ffmpegcmd.replace(
+                    "<timeout>",
+                    str(int(getSettings()["ffmpeg timeout"]) * int(1000000)),
+                )
+                if proxy:
+                    ffmpegcmd = ffmpegcmd.replace("<proxy>", proxy)
+                else:
+                    ffmpegcmd = ffmpegcmd.replace("-http_proxy <proxy>", "")
+                " ".join(ffmpegcmd.split())  # cleans up multiple whitespaces
+                ffmpegcmd = ffmpegcmd.split()
+                return Response(
+                    streamData(), mimetype="application/octet-stream"
+                )
+            else:
+                logger.info("Redirect sent")
+                return redirect(link)
 
     if not web:
         logger.info(
