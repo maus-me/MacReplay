@@ -4,6 +4,44 @@
 
 {% block head %}
 <style>
+    /* Toast notification styles */
+    .toast-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+    }
+    .toast-notification {
+        background-color: var(--bs-body-bg);
+        border: 1px solid var(--bs-border-color);
+        border-radius: 8px;
+        padding: 15px 20px;
+        margin-bottom: 10px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        animation: slideIn 0.3s ease;
+        max-width: 350px;
+    }
+    .toast-notification.success {
+        border-left: 4px solid var(--bs-success);
+    }
+    .toast-notification.info {
+        border-left: 4px solid var(--bs-info);
+    }
+    .toast-notification.error {
+        border-left: 4px solid var(--bs-danger);
+    }
+    .toast-notification .spinner-border {
+        width: 1rem;
+        height: 1rem;
+    }
+    @keyframes slideIn {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+
     .epg-container {
         background-color: var(--bs-body-bg);
         border: 1px solid var(--bs-border-color);
@@ -153,6 +191,9 @@
 {% endblock %}
 
 {% block content %}
+<!-- Toast notifications container -->
+<div class="toast-container" id="toastContainer"></div>
+
 <div class="row">
     <div class="col-12">
         <h2><i class="fas fa-calendar-alt"></i> EPG Viewer</h2>
@@ -275,11 +316,25 @@ function renderChannelList(filter = '') {
 
 function getCurrentProgramme(channelId) {
     const now = new Date();
-    return epgData.programmes.find(p =>
-        p.channel === channelId &&
-        new Date(p.start) <= now &&
-        new Date(p.stop) > now
-    );
+    // Find all current programmes for this channel
+    const currentProgs = epgData.programmes.filter(p => {
+        const start = new Date(p.start);
+        const stop = new Date(p.stop);
+        const duration = stop - start;
+        return p.channel === channelId &&
+               start <= now &&
+               stop > now &&
+               duration > 0;
+    });
+
+    if (currentProgs.length === 0) return null;
+
+    // Return the one with shortest duration (most specific)
+    return currentProgs.reduce((best, prog) => {
+        const bestDuration = new Date(best.stop) - new Date(best.start);
+        const progDuration = new Date(prog.stop) - new Date(prog.start);
+        return progDuration < bestDuration ? prog : best;
+    });
 }
 
 function selectChannel(channelId, channelName) {
@@ -308,12 +363,36 @@ function showProgrammes(channelId) {
     let html = '';
     let lastDateStr = '';
 
+    // Find the BEST current programme (shortest duration that contains now)
+    // This handles overlapping programmes from bad EPG data
+    let bestCurrentProg = null;
+    let bestCurrentDuration = Infinity;
+
     programmes.forEach(prog => {
         const start = new Date(prog.start);
         const stop = new Date(prog.stop);
-        const isPast = stop < now;
-        const isCurrent = start <= now && stop > now;
+        const duration = stop - start;
+
+        if (start <= now && stop > now && duration > 0) {
+            // This programme is currently running
+            // Prefer the one with shortest duration (more specific)
+            if (duration < bestCurrentDuration) {
+                bestCurrentDuration = duration;
+                bestCurrentProg = prog;
+            }
+        }
+    });
+
+    programmes.forEach(prog => {
+        const start = new Date(prog.start);
+        const stop = new Date(prog.stop);
+        const duration = stop - start;
+        const isPast = stop <= now;
+        const isCurrent = start <= now && stop > now && duration > 0;
         const isFuture = start > now;
+
+        // Only mark as "NOW" if this is the best current programme
+        const isTheBestCurrent = bestCurrentProg && prog.start === bestCurrentProg.start && prog.stop === bestCurrentProg.stop;
 
         // Check if date changed - add date header
         const dateStr = formatDate(start);
@@ -326,7 +405,7 @@ function showProgrammes(channelId) {
         let nowBadge = '';
         let progressBar = '';
 
-        if (isCurrent) {
+        if (isTheBestCurrent) {
             statusClass = 'current';
             nowBadge = '<span class="now-indicator">NOW</span>';
 
@@ -339,6 +418,9 @@ function showProgrammes(channelId) {
             statusClass = 'past';
         } else if (isFuture) {
             statusClass = 'future';
+        } else if (isCurrent && !isTheBestCurrent) {
+            // Overlapping current programme but not the best one
+            statusClass = 'past';
         }
 
         const timeStr = `${formatTime(start)} - ${formatTime(stop)}`;
@@ -427,6 +509,81 @@ document.getElementById('channelSearch').addEventListener('input', function(e) {
     renderChannelList(e.target.value);
 });
 
+// Toast notification system
+function showToast(message, type = 'info', duration = 0) {
+    const container = document.getElementById('toastContainer');
+    const toast = document.createElement('div');
+    toast.className = `toast-notification ${type}`;
+
+    let icon = '';
+    if (type === 'success') {
+        icon = '<i class="fas fa-check-circle text-success"></i>';
+    } else if (type === 'error') {
+        icon = '<i class="fas fa-exclamation-circle text-danger"></i>';
+    } else if (type === 'info') {
+        icon = '<div class="spinner-border text-info" role="status"></div>';
+    }
+
+    toast.innerHTML = `${icon}<span>${message}</span>`;
+    container.appendChild(toast);
+
+    if (duration > 0) {
+        setTimeout(() => {
+            toast.style.animation = 'slideIn 0.3s ease reverse';
+            setTimeout(() => toast.remove(), 300);
+        }, duration);
+    }
+
+    return toast;
+}
+
+function removeToast(toast) {
+    if (toast && toast.parentNode) {
+        toast.style.animation = 'slideIn 0.3s ease reverse';
+        setTimeout(() => toast.remove(), 300);
+    }
+}
+
+// Poll EPG refresh status
+async function pollEpgStatus(toast) {
+    const maxAttempts = 120; // Max 2 minutes (120 * 1 second)
+    let attempts = 0;
+
+    while (attempts < maxAttempts) {
+        try {
+            const response = await fetch('/api/epg/status');
+            const data = await response.json();
+
+            if (!data.is_refreshing) {
+                // Refresh complete
+                removeToast(toast);
+                showToast('EPG refresh complete!', 'success', 3000);
+
+                // Reload EPG data
+                loadEPG();
+
+                const btn = document.getElementById('refreshEpgBtn');
+                btn.classList.remove('refreshing');
+                btn.disabled = false;
+                return true;
+            }
+        } catch (e) {
+            console.error('Error polling EPG status:', e);
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        attempts++;
+    }
+
+    // Timeout
+    removeToast(toast);
+    showToast('EPG refresh timed out', 'error', 5000);
+    const btn = document.getElementById('refreshEpgBtn');
+    btn.classList.remove('refreshing');
+    btn.disabled = false;
+    return false;
+}
+
 // Refresh EPG data
 function refreshEPG() {
     const btn = document.getElementById('refreshEpgBtn');
@@ -436,22 +593,19 @@ function refreshEPG() {
     fetch('/api/epg/refresh', { method: 'POST' })
         .then(response => response.json())
         .then(data => {
-            if (data.status === 'started' || data.status === 'success') {
-                // Wait a bit then reload EPG data
-                setTimeout(() => {
-                    loadEPG();
-                    btn.classList.remove('refreshing');
-                    btn.disabled = false;
-                }, 2000);
+            if (data.status === 'started' || data.status === 'success' || data.status === 'already_running') {
+                // Show loading toast and start polling
+                const toast = showToast('EPG wird aktualisiert...', 'info');
+                pollEpgStatus(toast);
             } else {
-                alert('Error refreshing EPG: ' + (data.message || 'Unknown error'));
+                showToast('Error: ' + (data.message || 'Unknown error'), 'error', 5000);
                 btn.classList.remove('refreshing');
                 btn.disabled = false;
             }
         })
         .catch(error => {
             console.error('Error refreshing EPG:', error);
-            alert('Error refreshing EPG');
+            showToast('Error refreshing EPG', 'error', 5000);
             btn.classList.remove('refreshing');
             btn.disabled = false;
         });

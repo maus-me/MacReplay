@@ -96,6 +96,13 @@ import atexit
 app = Flask(__name__)
 app.secret_key = secrets.token_urlsafe(32)
 
+# EPG refresh status tracking
+epg_refresh_status = {
+    "is_refreshing": False,
+    "started_at": None,
+    "completed_at": None,
+    "last_error": None
+}
 
 # Bind settings (container internal)
 BIND_HOST = os.getenv("BIND_HOST", "0.0.0.0")
@@ -1911,6 +1918,11 @@ def generate_playlist():
     logger.info(f"Playlist generated and cached with {len(channels)} channels.")
     
 def refresh_xmltv():
+    global epg_refresh_status
+    epg_refresh_status["is_refreshing"] = True
+    epg_refresh_status["started_at"] = datetime.utcnow().isoformat()
+    epg_refresh_status["last_error"] = None
+
     settings = getSettings()
     logger.info("Refreshing XMLTV...")
 
@@ -2128,7 +2140,13 @@ def refresh_xmltv():
 
     # Save to persistent cache file
     save_epg_cache()
-    
+
+    # Update refresh status
+    epg_refresh_status["is_refreshing"] = False
+    epg_refresh_status["completed_at"] = datetime.utcnow().isoformat()
+    logger.info("EPG refresh completed successfully.")
+
+
 # Endpoint to get the XMLTV data
 @app.route("/xmltv", methods=["GET"])
 @authorise
@@ -2299,7 +2317,16 @@ def api_epg():
 @authorise
 def api_epg_refresh():
     """Trigger a manual EPG refresh."""
+    global epg_refresh_status
     try:
+        # Check if already refreshing
+        if epg_refresh_status["is_refreshing"]:
+            return jsonify({
+                "status": "already_running",
+                "message": "EPG refresh is already in progress",
+                "started_at": epg_refresh_status["started_at"]
+            })
+
         # Start refresh in background thread
         refresh_thread = threading.Thread(target=refresh_xmltv, daemon=True)
         refresh_thread.start()
@@ -2308,6 +2335,19 @@ def api_epg_refresh():
     except Exception as e:
         logger.error(f"Error triggering EPG refresh: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route("/api/epg/status", methods=["GET"])
+@authorise
+def api_epg_status():
+    """Get EPG refresh status."""
+    return jsonify({
+        "is_refreshing": epg_refresh_status["is_refreshing"],
+        "started_at": epg_refresh_status["started_at"],
+        "completed_at": epg_refresh_status["completed_at"],
+        "last_error": epg_refresh_status["last_error"],
+        "last_updated": last_updated
+    })
 
 
 @app.route("/play/<portalId>/<channelId>", methods=["GET"])
