@@ -103,6 +103,36 @@
         </div>
     </div>
 
+    <!-- Confirmation Modal -->
+    <div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="confirmModalTitle">Confirm</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="d-flex align-items-start">
+                        <div class="confirm-icon me-3" id="confirmModalIcon">
+                            <i class="fas fa-question-circle fa-2x text-warning"></i>
+                        </div>
+                        <div>
+                            <p class="mb-0" id="confirmModalMessage">Are you sure?</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                    <button type="button" class="btn btn-primary" id="confirmModalOk">
+                        <i class="fas fa-check"></i> <span id="confirmModalOkText">OK</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>
 
 {% endblock %}
@@ -153,6 +183,59 @@
         const overlay = document.getElementById('toastOverlay');
         toast.classList.remove('show');
         overlay.classList.remove('show');
+    }
+
+    // Confirmation Dialog Function
+    function showConfirmDialog(options) {
+        return new Promise((resolve) => {
+            const modal = document.getElementById('confirmModal');
+            const titleEl = document.getElementById('confirmModalTitle');
+            const messageEl = document.getElementById('confirmModalMessage');
+            const iconEl = document.getElementById('confirmModalIcon');
+            const okBtn = document.getElementById('confirmModalOk');
+            const okTextEl = document.getElementById('confirmModalOkText');
+
+            // Set content
+            titleEl.textContent = options.title || 'Confirm';
+            messageEl.textContent = options.message || 'Are you sure?';
+            okTextEl.textContent = options.okText || 'OK';
+
+            // Set icon and button style based on type
+            const type = options.type || 'warning';
+            if (type === 'danger') {
+                iconEl.innerHTML = '<i class="fas fa-exclamation-triangle fa-2x text-danger"></i>';
+                okBtn.className = 'btn btn-danger';
+            } else if (type === 'info') {
+                iconEl.innerHTML = '<i class="fas fa-info-circle fa-2x text-info"></i>';
+                okBtn.className = 'btn btn-primary';
+            } else {
+                iconEl.innerHTML = '<i class="fas fa-question-circle fa-2x text-warning"></i>';
+                okBtn.className = 'btn btn-warning';
+            }
+
+            // Create bootstrap modal instance
+            const bsModal = new bootstrap.Modal(modal);
+
+            // Handle OK button click
+            const handleOk = () => {
+                okBtn.removeEventListener('click', handleOk);
+                modal.removeEventListener('hidden.bs.modal', handleCancel);
+                bsModal.hide();
+                resolve(true);
+            };
+
+            // Handle Cancel/Close
+            const handleCancel = () => {
+                okBtn.removeEventListener('click', handleOk);
+                resolve(false);
+            };
+
+            okBtn.addEventListener('click', handleOk);
+            modal.addEventListener('hidden.bs.modal', handleCancel, { once: true });
+
+            // Show modal
+            bsModal.show();
+        });
     }
 
     var enabledEdits = [];
@@ -487,8 +570,14 @@
                         text: '<i class="fas fa-undo"></i> Reset',
                         titleAttr: 'Reset',
                         className: "btn btn-danger",
-                        action: function () {
-                            if (confirm("Confirm Reset\nThis will clear all edits!") == true) {
+                        action: async function () {
+                            const confirmed = await showConfirmDialog({
+                                title: 'Confirm Reset',
+                                message: 'This will clear all edits! Are you sure?',
+                                type: 'danger',
+                                okText: 'Reset'
+                            });
+                            if (confirmed) {
                                 document.getElementById('reset').submit();
                             }
                         }
@@ -644,10 +733,14 @@
     });
     
     // Function to deactivate duplicate enabled channels
-    function deactivateDuplicates() {
-        if (!confirm('This will deactivate all duplicate enabled channels, keeping only the first occurrence of each. Continue?')) {
-            return;
-        }
+    async function deactivateDuplicates() {
+        const confirmed = await showConfirmDialog({
+            title: 'Deactivate Duplicates',
+            message: 'This will deactivate all duplicate enabled channels, keeping only the first occurrence of each. Continue?',
+            type: 'warning',
+            okText: 'Deactivate'
+        });
+        if (!confirmed) return;
 
         fetch('/editor/deactivate-duplicates', {
             method: 'POST',
@@ -670,10 +763,14 @@
     }
 
     // Function to refresh channels from portal
-    function refreshChannels() {
-        if (!confirm('This will fetch the latest channel list from your portals. This may take a few minutes. Continue?')) {
-            return;
-        }
+    async function refreshChannels() {
+        const confirmed = await showConfirmDialog({
+            title: 'Refresh Channels',
+            message: 'This will fetch the latest channel list from your portals. This may take a few minutes. Continue?',
+            type: 'info',
+            okText: 'Refresh'
+        });
+        if (!confirmed) return;
 
         // Show loading indicator
         var btn = $('.btn-primary').first();

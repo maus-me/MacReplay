@@ -54,7 +54,13 @@
                             <strong><i class="fas fa-tv"></i> Channels:</strong> {{ portal_stats.get(portal_id, {}).get('channels', 0) }}
                         </div>
                         <div class="col-6">
-                            <strong><i class="fas fa-folder"></i> Groups:</strong> {{ portal_stats.get(portal_id, {}).get('groups', 0) }}
+                            <strong><i class="fas fa-folder"></i> Groups:</strong>
+                            {% set selected = portal.get('selected_genres', [])|length %}
+                            {% if selected > 0 %}
+                                <span class="text-primary">{{ selected }}</span> / {{ portal_stats.get(portal_id, {}).get('total_groups', portal_stats.get(portal_id, {}).get('groups', 0)) }}
+                            {% else %}
+                                {{ portal_stats.get(portal_id, {}).get('groups', 0) }} <small class="text-muted">(all)</small>
+                            {% endif %}
                         </div>
                     </div>
                     <p class="card-text">
@@ -67,12 +73,17 @@
                         <strong>EPG Offset:</strong> {{ portal['epg offset'] }} hours
                     </p>
                 </div>
-                <div class="card-footer">
-                    <button class="btn btn-sm btn-outline-primary" data-action="edit" data-portal-id="{{ portal_id }}">
-                        <i class="fas fa-edit"></i> Edit
-                    </button>
+                <div class="card-footer d-flex justify-content-between">
+                    <div>
+                        <button class="btn btn-sm btn-outline-primary" data-action="edit" data-portal-id="{{ portal_id }}">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                        <button class="btn btn-sm btn-outline-info" onclick="openGenreModal('{{ portal_id }}')">
+                            <i class="fas fa-folder"></i> Groups
+                        </button>
+                    </div>
                     <button class="btn btn-sm btn-outline-danger" data-action="delete" data-portal-id="{{ portal_id }}" data-portal-name="{{ portal.name | e }}">
-                        <i class="fas fa-trash"></i> Delete
+                        <i class="fas fa-trash"></i>
                     </button>
                 </div>
             </div>
@@ -88,15 +99,18 @@
         <div class="portal-list-item" data-portal-id="{{ portal_id }}">
             <div class="portal-header" onclick="togglePortal('{{ portal_id }}')">
                 <i class="fas fa-chevron-right expand-icon"></i>
-                <span class="portal-name">{{ portal.name or 'Unnamed Portal' }}</span>
+                <div class="portal-name-container">
+                    <span class="portal-name">{{ portal.name or 'Unnamed Portal' }}</span>
+                    <span class="portal-url-small">{{ portal.url[:60] }}{% if portal.url|length > 60 %}...{% endif %}</span>
+                </div>
                 <div class="portal-meta">
                     <span class="portal-meta-item portal-stat-channels" title="Channels">
                         <i class="fas fa-tv"></i>
                         <span class="portal-meta-value">{{ portal_stats.get(portal_id, {}).get('channels', 0) }}</span>
                     </span>
-                    <span class="portal-meta-item portal-stat-groups" title="Groups">
+                    <span class="portal-meta-item portal-stat-groups" title="Total Groups">
                         <i class="fas fa-folder"></i>
-                        <span class="portal-meta-value">{{ portal_stats.get(portal_id, {}).get('groups', 0) }}</span>
+                        <span class="portal-meta-value">{{ portal_stats.get(portal_id, {}).get('total_groups', portal_stats.get(portal_id, {}).get('groups', 0)) }}</span>
                     </span>
                     <span class="portal-meta-item portal-stat-macs" title="MACs">
                         <i class="fas fa-network-wired"></i>
@@ -115,6 +129,9 @@
                     <button class="btn btn-outline-primary" onclick="event.stopPropagation(); editPortal('{{ portal_id }}')" title="Edit Portal">
                         <i class="fas fa-edit"></i>
                     </button>
+                    <button class="btn btn-outline-info" onclick="event.stopPropagation(); openGenreModal('{{ portal_id }}')" title="Manage Groups">
+                        <i class="fas fa-folder"></i>
+                    </button>
                     <button class="btn btn-outline-danger" onclick="event.stopPropagation(); deletePortal('{{ portal_id }}', '{{ portal.name | e }}')" title="Delete Portal">
                         <i class="fas fa-trash"></i>
                     </button>
@@ -122,30 +139,46 @@
             </div>
             <div class="portal-details">
                 <div class="portal-info-grid">
-                    <div class="portal-info-item">
-                        <div class="portal-info-label">URL</div>
-                        <div class="portal-info-value">{{ portal.url }}</div>
+                    <div class="portal-info-item portal-info-tile">
+                        <div class="portal-info-label">Channels</div>
+                        <div class="portal-info-value-large">
+                            <span class="text-primary">{{ portal_stats.get(portal_id, {}).get('channels', 0) }}</span>
+                        </div>
                     </div>
-                    <div class="portal-info-item">
-                        <div class="portal-info-label">Streams per MAC</div>
-                        <div class="portal-info-value">{{ portal['streams per mac'] }}</div>
+                    <div class="portal-info-item portal-info-tile">
+                        <div class="portal-info-label">Groups</div>
+                        <div class="portal-info-value-large">
+                            {% set selected = portal.get('selected_genres', [])|length %}
+                            {% if selected > 0 %}
+                                <span class="text-primary">{{ selected }}</span><span class="text-muted"> / {{ portal_stats.get(portal_id, {}).get('total_groups', '?') }}</span>
+                            {% else %}
+                                <span class="text-primary">{{ portal_stats.get(portal_id, {}).get('groups', 0) }}</span>
+                            {% endif %}
+                        </div>
                     </div>
-                    <div class="portal-info-item">
+                    <div class="portal-info-item portal-info-tile">
+                        <div class="portal-info-label">Streams/MAC</div>
+                        <div class="portal-info-value-large">{{ portal['streams per mac'] }}</div>
+                    </div>
+                    <div class="portal-info-item portal-info-tile">
                         <div class="portal-info-label">EPG Offset</div>
-                        <div class="portal-info-value">{{ portal['epg offset'] }} hours</div>
+                        <div class="portal-info-value-large">{{ portal['epg offset'] }}h</div>
                     </div>
                     {% if portal.proxy %}
-                    <div class="portal-info-item">
+                    <div class="portal-info-item portal-info-tile">
                         <div class="portal-info-label">Proxy</div>
                         <div class="portal-info-value">{{ portal.proxy }}</div>
                     </div>
                     {% endif %}
                 </div>
 
-                <div class="mac-section-header">
+                <div class="mac-section-header d-flex justify-content-between align-items-center">
                     <span class="mac-section-title">
                         <i class="fas fa-list"></i> MAC Addresses ({{ portal.macs|length }})
                     </span>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="refreshPortalMacs('{{ portal_id }}')" title="Refresh MAC data">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
                 </div>
 
                 {% if portal.macs %}
@@ -155,15 +188,31 @@
                             <th>MAC Address</th>
                             <th>Expires</th>
                             <th style="width: 70px;">Days Left</th>
+                            <th style="width: 80px;">Watchdog</th>
+                            <th style="width: 80px;">Max Streams</th>
                             <th style="width: 50px;"></th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for mac, expiry in portal.macs.items() %}
+                        {% for mac, mac_data in portal.macs.items() %}
+                        {# Unterstütze sowohl altes Format (String) als auch neues Format (Dict) #}
+                        {% if mac_data is mapping %}
+                            {% set expiry = mac_data.expiry %}
+                            {% set watchdog = mac_data.watchdog_timeout|default(0) %}
+                            {% set playback = mac_data.playback_limit|default(0) %}
+                        {% else %}
+                            {% set expiry = mac_data %}
+                            {% set watchdog = 0 %}
+                            {% set playback = 0 %}
+                        {% endif %}
                         <tr data-mac="{{ mac }}">
                             <td class="mac-address">{{ mac }}</td>
                             <td class="mac-expiry" data-expiry="{{ expiry }}">{{ expiry }}</td>
                             <td class="mac-days-left" data-expiry="{{ expiry }}"></td>
+                            <td class="mac-watchdog" data-watchdog="{{ watchdog }}">
+                                <span class="watchdog-badge"></span>
+                            </td>
+                            <td class="mac-playback-limit">{{ playback if playback > 0 else '-' }}</td>
                             <td>
                                 <button class="btn btn-outline-danger btn-delete-mac"
                                         onclick="deleteMac('{{ portal_id }}', '{{ mac }}')"
@@ -196,53 +245,58 @@
 <div class="modal fade" id="addPortalModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <form method="POST" action="/portal/add">
+            <form method="POST" action="/portal/add" id="addPortalForm">
                 <div class="modal-header">
                     <h5 class="modal-title">Add New Portal</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label for="name" class="form-label">Portal Name</label>
-                        <input type="text" class="form-control" id="name" name="name" required>
+                        <label for="add_name" class="form-label">Portal Name</label>
+                        <input type="text" class="form-control" id="add_name" name="name" required>
                     </div>
                     <div class="mb-3">
-                        <label for="url" class="form-label">Portal URL</label>
-                        <input type="url" class="form-control" id="url" name="url" placeholder="http://portal.example.com" required>
+                        <label for="add_url" class="form-label">Portal URL</label>
+                        <input type="url" class="form-control" id="add_url" name="url" placeholder="http://portal.example.com" required>
                         <div class="form-text">Enter the portal domain or full URL</div>
                     </div>
                     <div class="mb-3">
-                        <label for="macs" class="form-label">MAC Addresses</label>
-                        <textarea class="form-control" id="macs" name="macs" rows="3" placeholder="00:1A:79:XX:XX:XX,00:1A:79:YY:YY:YY" required></textarea>
+                        <label for="add_macs" class="form-label">MAC Addresses</label>
+                        <textarea class="form-control" id="add_macs" name="macs" rows="3" placeholder="00:1A:79:XX:XX:XX,00:1A:79:YY:YY:YY" required></textarea>
                         <div class="form-text">Enter MAC addresses separated by commas</div>
                     </div>
                     <div class="row">
                         <div class="col-md-6">
-                            <label for="streams_per_mac" class="form-label">Streams per MAC</label>
-                            <input type="number" class="form-control" id="streams_per_mac" name="streams per mac" value="1" min="0" max="10">
+                            <label for="add_streams_per_mac" class="form-label">Streams per MAC</label>
+                            <input type="number" class="form-control" id="add_streams_per_mac" name="streams per mac" value="1" min="0" max="10">
                         </div>
                         <div class="col-md-6">
-                            <label for="epg_offset" class="form-label">EPG Offset (hours)</label>
-                            <input type="number" class="form-control" id="epg_offset" name="epg offset" value="0" min="-12" max="12">
+                            <label for="add_epg_offset" class="form-label">EPG Offset (hours)</label>
+                            <input type="number" class="form-control" id="add_epg_offset" name="epg offset" value="0" min="-12" max="12">
                         </div>
                     </div>
                     <div class="mb-3 mt-3">
-                        <label for="proxy" class="form-label">Proxy (Optional)</label>
-                        <input type="text" class="form-control" id="proxy" name="proxy" placeholder="http://proxy:port">
+                        <label for="add_proxy" class="form-label">Proxy (Optional)</label>
+                        <input type="text" class="form-control" id="add_proxy" name="proxy" placeholder="http://proxy:port">
                         <div class="form-text">Leave empty if no proxy needed</div>
                     </div>
                     <div class="mb-3">
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="fetch_epg" name="fetch epg" value="true" checked>
-                            <label class="form-check-label" for="fetch_epg">
+                            <input class="form-check-input" type="checkbox" id="add_fetch_epg" name="fetch epg" value="true" checked>
+                            <label class="form-check-label" for="add_fetch_epg">
                                 Fetch EPG data from this portal
                             </label>
                         </div>
                     </div>
+                    <div class="alert alert-secondary">
+                        <i class="fas fa-info-circle"></i> After adding the portal, use the <strong>Groups</strong> button to select which groups to import.
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Add Portal</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Add Portal
+                    </button>
                 </div>
             </form>
         </div>
@@ -311,6 +365,10 @@
                             </label>
                         </div>
                     </div>
+
+                    <div class="alert alert-secondary mt-3">
+                        <i class="fas fa-info-circle"></i> Use the <strong>Groups</strong> button in the portal list to manage which groups to import.
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -363,6 +421,65 @@
         </div>
     </div>
 </div>
+
+<!-- Genre/Groups Management Modal -->
+<div class="modal fade" id="genreModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-folder"></i> Manage Groups - <span id="genreModalPortalName"></span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info mb-3">
+                    <i class="fas fa-info-circle"></i> Select which groups to import. Deselecting a group will remove its channels. Leave all unchecked to import all channels.
+                </div>
+
+                <div id="genreModalLoading" class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-3">Loading groups from portal...</p>
+                </div>
+
+                <div id="genreModalContent" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-outline-primary" onclick="selectAllModalGenres()">
+                                <i class="fas fa-check-double"></i> All
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="deselectAllModalGenres()">
+                                <i class="fas fa-times"></i> None
+                            </button>
+                        </div>
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="text-muted" id="genreModalStats"></span>
+                            <div class="genre-search-container">
+                                <input type="text" class="form-control" id="genreModalSearchInput"
+                                       placeholder="Search groups..." oninput="filterModalGenres()">
+                            </div>
+                        </div>
+                    </div>
+                    <div id="genreModalTilesContainer" class="genre-tiles-grid genre-tiles-large">
+                        <!-- Genre tiles populated by JavaScript -->
+                    </div>
+                </div>
+
+                <div id="genreModalError" class="alert alert-danger" style="display: none;">
+                    <i class="fas fa-exclamation-triangle"></i> <span id="genreModalErrorMessage"></span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveGenresBtn" onclick="savePortalGenres()">
+                    <i class="fas fa-save"></i> Save & Refresh Channels
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -400,9 +517,15 @@ function togglePortal(portalId) {
 }
 
 // Edit portal
+let currentEditPortalId = null;
+let currentEditSelectedGenres = [];
+
 function editPortal(portalId) {
     const portal = portalsData[portalId];
     if (!portal) return;
+
+    currentEditPortalId = portalId;
+    currentEditSelectedGenres = portal.selected_genres || [];
 
     document.getElementById('edit_portal_id').value = portalId;
     document.getElementById('edit_enabled').checked = portal.enabled === 'true';
@@ -416,6 +539,21 @@ function editPortal(portalId) {
 
     new bootstrap.Modal(document.getElementById('editPortalModal')).show();
 }
+
+// Preserve selected_genres when updating portal
+document.getElementById('editPortalForm')?.addEventListener('submit', function(e) {
+    // Remove any existing hidden genre inputs
+    this.querySelectorAll('input[name="selected_genres"]').forEach(el => el.remove());
+
+    // Keep the original genre selection (genres are managed via separate modal)
+    currentEditSelectedGenres.forEach(g => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'selected_genres';
+        input.value = g;
+        this.appendChild(input);
+    });
+});
 
 // Delete portal
 function deletePortal(portalId, portalName) {
@@ -497,6 +635,104 @@ async function confirmMacDelete() {
     bootstrap.Modal.getInstance(document.getElementById('deleteMacModal')).hide();
 }
 
+// Refresh MAC data for a portal
+async function refreshPortalMacs(portalId) {
+    const btn = event.target.closest('button');
+    const originalContent = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
+
+    try {
+        const response = await fetch('/api/portal/macs/refresh', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ portal_id: portalId })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            // Update local data and refresh table
+            if (data.macs) {
+                portalsData[portalId].macs = data.macs;
+                updateMacTable(portalId, data.macs);
+            }
+            showToast(data.message, 'success');
+        } else {
+            showToast('Error: ' + (data.message || 'Failed to refresh MACs'), 'error');
+        }
+    } catch (error) {
+        console.error('Error refreshing MACs:', error);
+        showToast('Error refreshing MAC data', 'error');
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = originalContent;
+}
+
+// Update MAC table with new data
+function updateMacTable(portalId, macs) {
+    console.log('updateMacTable called for portal:', portalId, 'with macs:', macs);
+
+    const portalItem = document.querySelector(`.portal-list-item[data-portal-id="${portalId}"]`);
+    if (!portalItem) {
+        console.error('Portal item not found for ID:', portalId);
+        return;
+    }
+
+    const tbody = portalItem.querySelector('.mac-table tbody');
+    if (!tbody) {
+        console.error('MAC table tbody not found');
+        return;
+    }
+
+    for (const [mac, macData] of Object.entries(macs)) {
+        console.log('Processing MAC:', mac, 'Data:', macData);
+
+        const row = tbody.querySelector(`tr[data-mac="${mac}"]`);
+        if (!row) {
+            console.warn('Row not found for MAC:', mac);
+            continue;
+        }
+
+        const expiry = typeof macData === 'object' ? (macData.expiry || 'Unknown') : (macData || 'Unknown');
+        const watchdog = typeof macData === 'object' ? (macData.watchdog_timeout || 0) : 0;
+        const playback = typeof macData === 'object' ? (macData.playback_limit || 0) : 0;
+
+        console.log('Updating row - expiry:', expiry, 'watchdog:', watchdog, 'playback:', playback);
+
+        // Update expiry cell - both text and data attribute
+        const expiryCell = row.querySelector('.mac-expiry');
+        if (expiryCell) {
+            expiryCell.textContent = expiry;
+            expiryCell.setAttribute('data-expiry', expiry);
+        }
+
+        // Update days left cell - set data attribute for calculation
+        const daysCell = row.querySelector('.mac-days-left');
+        if (daysCell) {
+            daysCell.setAttribute('data-expiry', expiry);
+        }
+
+        // Update watchdog cell
+        const watchdogCell = row.querySelector('.mac-watchdog');
+        if (watchdogCell) {
+            watchdogCell.setAttribute('data-watchdog', watchdog);
+        }
+
+        // Update playback limit cell
+        const playbackCell = row.querySelector('.mac-playback-limit');
+        if (playbackCell) {
+            playbackCell.textContent = playback > 0 ? playback : '-';
+        }
+    }
+
+    // Re-calculate days left and watchdog badges
+    console.log('Recalculating expiry highlights and watchdog badges');
+    highlightExpiringMacs();
+    formatWatchdogBadges();
+}
+
 // Parse date string like "March 2, 2026, 12:00 am" to Date object
 function parseExpiryDate(dateStr) {
     if (!dateStr) return null;
@@ -534,13 +770,19 @@ function highlightExpiringMacs() {
     const now = new Date();
     const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
     const oneDay = 24 * 60 * 60 * 1000;
+    const statusClasses = ['status-expired', 'status-expiring-soon', 'status-valid'];
 
     document.querySelectorAll('.mac-expiry').forEach(cell => {
         const expiryStr = cell.dataset.expiry;
-        if (!expiryStr) return;
+        // Clear old status classes
+        cell.classList.remove(...statusClasses);
+
+        if (!expiryStr || expiryStr === 'Unknown') return;
 
         try {
             const expiry = new Date(expiryStr);
+            if (isNaN(expiry.getTime())) return; // Invalid date
+
             if (expiry < now) {
                 cell.classList.add('status-expired');
             } else if (expiry < thirtyDaysFromNow) {
@@ -556,10 +798,21 @@ function highlightExpiringMacs() {
     // Calculate and display remaining days
     document.querySelectorAll('.mac-days-left').forEach(cell => {
         const expiryStr = cell.dataset.expiry;
-        if (!expiryStr) return;
+        // Clear old status classes
+        cell.classList.remove(...statusClasses);
+
+        if (!expiryStr || expiryStr === 'Unknown') {
+            cell.textContent = '-';
+            return;
+        }
 
         try {
             const expiry = new Date(expiryStr);
+            if (isNaN(expiry.getTime())) {
+                cell.textContent = '-';
+                return;
+            }
+
             const diffTime = expiry - now;
             const diffDays = Math.ceil(diffTime / oneDay);
 
@@ -582,6 +835,50 @@ function highlightExpiringMacs() {
         } catch (e) {
             cell.textContent = '-';
         }
+    });
+}
+
+// Format watchdog timeout badges with color coding
+function formatWatchdogBadges() {
+    document.querySelectorAll('.mac-watchdog').forEach(cell => {
+        const watchdog = parseInt(cell.dataset.watchdog) || 0;
+        const badge = cell.querySelector('.watchdog-badge');
+        if (!badge) return;
+
+        let text, colorClass, title;
+        if (watchdog === 0) {
+            // Keine Daten verfügbar
+            text = '-';
+            colorClass = 'bg-secondary';
+            title = 'Keine Watchdog-Daten verfügbar';
+        } else if (watchdog < 60) {
+            // Sehr aktiv - rot
+            text = `${watchdog}s`;
+            colorClass = 'bg-danger';
+            title = 'Sehr aktiv (< 60s) - MAC wird gerade genutzt';
+        } else if (watchdog < 300) {
+            // Aktiv - gelb
+            const mins = Math.floor(watchdog / 60);
+            text = `${mins}m`;
+            colorClass = 'bg-warning text-dark';
+            title = 'Aktiv (1-5 min) - Kürzlich genutzt';
+        } else if (watchdog < 1800) {
+            // Moderat - blau
+            const mins = Math.floor(watchdog / 60);
+            text = `${mins}m`;
+            colorClass = 'bg-info';
+            title = 'Moderate Aktivität (5-30 min)';
+        } else {
+            // Idle - grün
+            const mins = Math.floor(watchdog / 60);
+            text = mins >= 60 ? `${Math.floor(mins / 60)}h` : `${mins}m`;
+            colorClass = 'bg-success';
+            title = 'Idle (> 30 min) - Sicher zu benutzen';
+        }
+
+        badge.className = `watchdog-badge badge ${colorClass}`;
+        badge.textContent = text;
+        badge.title = title;
     });
 }
 
@@ -646,6 +943,179 @@ document.addEventListener('click', function(e) {
     }
 });
 
+// ===== Genre Tile Helper =====
+function toggleGenreTile(tile) {
+    tile.classList.toggle('selected');
+}
+
+// ========== Standalone Genre Modal Functions ==========
+let currentGenreModalPortalId = null;
+let currentGenreModalMac = null;  // MAC used to fetch genres
+let genreModalGenres = [];
+
+async function openGenreModal(portalId) {
+    currentGenreModalPortalId = portalId;
+    const portal = portalsData[portalId];
+
+    if (!portal) {
+        alert('Portal not found');
+        return;
+    }
+
+    // Set modal title
+    document.getElementById('genreModalPortalName').textContent = portal.name || 'Unnamed Portal';
+
+    // Reset modal state
+    document.getElementById('genreModalLoading').style.display = 'block';
+    document.getElementById('genreModalContent').style.display = 'none';
+    document.getElementById('genreModalError').style.display = 'none';
+    document.getElementById('genreModalSearchInput').value = '';
+    document.getElementById('genreModalTilesContainer').innerHTML = '';
+
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('genreModal'));
+    modal.show();
+
+    // Fetch genres from portal
+    try {
+        const firstMac = Object.keys(portal.macs)[0];
+        currentGenreModalMac = firstMac;  // Store MAC for later use when saving
+        const response = await fetch('/api/portal/genres', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                url: portal.url,
+                mac: firstMac,
+                proxy: portal.proxy || ''
+            })
+        });
+
+        const data = await response.json();
+        document.getElementById('genreModalLoading').style.display = 'none';
+
+        if (data.success && data.genres && data.genres.length > 0) {
+            genreModalGenres = data.genres;
+            renderGenreModalTiles(data.genres, portal.selected_genres || []);
+            updateGenreModalStats();
+            document.getElementById('genreModalContent').style.display = 'block';
+        } else {
+            document.getElementById('genreModalErrorMessage').textContent =
+                data.message || 'No groups available from this portal';
+            document.getElementById('genreModalError').style.display = 'block';
+        }
+    } catch (error) {
+        document.getElementById('genreModalLoading').style.display = 'none';
+        document.getElementById('genreModalErrorMessage').textContent = 'Error fetching groups: ' + error;
+        document.getElementById('genreModalError').style.display = 'block';
+    }
+}
+
+function renderGenreModalTiles(genres, selectedGenres) {
+    const container = document.getElementById('genreModalTilesContainer');
+    const totalChannels = genres.reduce((sum, g) => sum + (g.channel_count || 0), 0);
+
+    container.innerHTML = genres.map(g => {
+        const isSelected = selectedGenres.length === 0 || selectedGenres.includes(g.id);
+        return `
+            <div class="genre-tile ${isSelected ? 'selected' : ''}"
+                 data-genre-id="${g.id}" data-genre-title="${g.title.toLowerCase()}"
+                 onclick="toggleGenreTile(this); updateGenreModalStats();">
+                <div class="genre-tile-title">${g.title}</div>
+                <div class="genre-tile-count">${g.channel_count || 0}</div>
+                <div class="genre-tile-label">Channels</div>
+            </div>
+        `;
+    }).join('');
+}
+
+function updateGenreModalStats() {
+    const selectedTiles = document.querySelectorAll('#genreModalTilesContainer .genre-tile.selected');
+    const totalTiles = document.querySelectorAll('#genreModalTilesContainer .genre-tile');
+
+    let selectedChannels = 0;
+    selectedTiles.forEach(tile => {
+        const genreId = tile.dataset.genreId;
+        const genre = genreModalGenres.find(g => g.id === genreId);
+        if (genre) selectedChannels += (genre.channel_count || 0);
+    });
+
+    const totalChannels = genreModalGenres.reduce((sum, g) => sum + (g.channel_count || 0), 0);
+
+    document.getElementById('genreModalStats').innerHTML =
+        `<strong>${selectedTiles.length}</strong> / ${totalTiles.length} groups selected · ` +
+        `<strong>${selectedChannels}</strong> / ${totalChannels} channels`;
+}
+
+function selectAllModalGenres() {
+    document.querySelectorAll('#genreModalTilesContainer .genre-tile:not([style*="display: none"])').forEach(tile => {
+        tile.classList.add('selected');
+    });
+    updateGenreModalStats();
+}
+
+function deselectAllModalGenres() {
+    document.querySelectorAll('#genreModalTilesContainer .genre-tile').forEach(tile => {
+        tile.classList.remove('selected');
+    });
+    updateGenreModalStats();
+}
+
+function filterModalGenres() {
+    const searchTerm = document.getElementById('genreModalSearchInput').value.toLowerCase();
+    document.querySelectorAll('#genreModalTilesContainer .genre-tile').forEach(tile => {
+        const title = tile.dataset.genreTitle;
+        tile.style.display = title.includes(searchTerm) ? '' : 'none';
+    });
+}
+
+async function savePortalGenres() {
+    const allTiles = document.querySelectorAll('#genreModalTilesContainer .genre-tile');
+    const selectedGenres = Array.from(document.querySelectorAll('#genreModalTilesContainer .genre-tile.selected'))
+        .map(tile => tile.dataset.genreId);
+
+    const btn = document.getElementById('saveGenresBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+
+    try {
+        const response = await fetch('/api/portal/genres/update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                portal_id: currentGenreModalPortalId,
+                selected_genres: selectedGenres,
+                total_groups: allTiles.length,
+                genres_mac: currentGenreModalMac  // MAC used for genre selection
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            // Close modal and reload page
+            bootstrap.Modal.getInstance(document.getElementById('genreModal')).hide();
+            window.location.reload();
+        } else {
+            alert('Error saving groups: ' + (data.message || 'Unknown error'));
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-save"></i> Save & Refresh Channels';
+        }
+    } catch (error) {
+        alert('Error saving groups: ' + error);
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-save"></i> Save & Refresh Channels';
+    }
+}
+
+// Reset genre modal when closed
+document.getElementById('genreModal')?.addEventListener('hidden.bs.modal', function() {
+    currentGenreModalPortalId = null;
+    currentGenreModalMac = null;
+    genreModalGenres = [];
+    document.getElementById('genreModalTilesContainer').innerHTML = '';
+    document.getElementById('genreModalSearchInput').value = '';
+});
+
 // Initialize
 document.addEventListener('DOMContentLoaded', function() {
     // Load saved view preference
@@ -657,6 +1127,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Highlight expiring MACs
     highlightExpiringMacs();
+
+    // Format watchdog badges
+    formatWatchdogBadges();
 
     // Update portal expiry indicators in list view
     updatePortalExpiryIndicators();

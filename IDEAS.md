@@ -33,6 +33,17 @@ Eine Sammlung von Verbesserungsvorschlägen und Feature-Ideen für zukünftige E
 - [ ] Portal-Konfiguration importieren
 - [ ] Channels zwischen Gruppen verschieben (Drag & Drop)
 
+### Genre/Gruppen-Auswahl beim Portal-Hinzufügen
+- [x] **Genre-Auswahl beim Hinzufügen eines Portals**
+  - 2-Schritt Wizard: Erst Portal-Info, dann Genre-Checkboxen
+  - API-Endpunkt `/api/portal/genres` holt verfügbare Genres vom Portal
+  - ✅ Implementiert: Nur ausgewählte Genres werden beim Channel-Sync importiert
+
+- [x] **Genre-Auswahl beim Bearbeiten eines Portals**
+  - Button "Load Genres" im Edit-Modal
+  - Bestehende Genre-Auswahl wird beibehalten
+  - ✅ Implementiert: Genre-Filter kann jederzeit geändert werden
+
 ### Portal-Import aus Textdateien
 - [ ] Import von Portalen aus formatierten Scan-Ergebnis-Dateien
 - [ ] Automatische Erkennung von Portal-URL und MAC-Adresse
@@ -86,6 +97,35 @@ patterns = {
 ---
 
 ## Analytics & Monitoring
+
+### Erweiterte MAC-Informationen (inspiriert von macreplay)
+Die Stalker Portal API liefert via `?type=stb&action=get_profile` zusätzliche Informationen:
+
+- [x] **Max Streams anzeigen** (`playback_limit`)
+  - Zeigt wie viele gleichzeitige Streams pro MAC erlaubt sind
+  - In der MAC-Übersicht als Spalte darstellen
+  - ✅ Implementiert: Wird beim Hinzufügen/Aktualisieren eines Portals abgerufen und in der MAC-Tabelle angezeigt
+
+- [x] **Watchdog Timeout anzeigen** (`watchdog_timeout`)
+  - Zeigt Sekunden seit letzter Aktivität der MAC-Adresse
+  - Interpretation:
+    - < 60s = Sehr aktiv (🔴 gerade am Streamen)
+    - 60-300s = Aktiv (🟡 kürzlich benutzt)
+    - 300-1800s = Moderate Aktivität (🔵)
+    - > 1800s = Idle (🟢 sicher zu benutzen)
+  - ✅ Implementiert: Farbkodierte Badges in der MAC-Übersicht
+
+- [ ] **MAC-Status-Prüfung**
+  - Button "Status prüfen" für einzelne MACs oder alle MACs eines Portals
+  - Zeigt: Watchdog, Max Streams, Account-Status, Ablaufdatum
+  - Hilft zu erkennen, ob eine MAC gerade von jemand anderem genutzt wird
+
+- [x] **Intelligente MAC-Auswahl**
+  - Automatisch die "beste" MAC für einen Stream wählen
+  - ✅ Implementiert: Scoring basierend auf Watchdog (idle bevorzugen) und verfügbare Streams
+  - MACs werden vor dem Streaming nach Score sortiert
+
+**Referenz:** Siehe `/host_opt/macreplay/stb.py` Zeilen 1522-1732 für Implementation
 
 ### Nutzungsstatistiken
 - [ ] Channel-Popularität tracken (Aufrufe zählen)

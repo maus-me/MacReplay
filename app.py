@@ -273,7 +273,68 @@ defaultPortal = {
     "epg offset": "0",
     "proxy": "",
     "fetch epg": "true",
+    "selected_genres": [],  # Liste der Genre-IDs zum Importieren (leer = alle)
 }
+
+
+def normalize_mac_data(mac_value):
+    """Konvertiert altes MAC-Format (String) zu neuem Format (Dict).
+
+    Altes Format: "April 23, 2026, 12:00 am" (nur Ablaufdatum als String)
+    Neues Format: {"expiry": "...", "watchdog_timeout": 0, "playback_limit": 0}
+    """
+    if isinstance(mac_value, str):
+        # Altes Format: nur Ablaufdatum als String
+        return {
+            "expiry": mac_value,
+            "watchdog_timeout": 0,
+            "playback_limit": 0
+        }
+    elif isinstance(mac_value, dict):
+        # Neues Format: sicherstellen dass alle Felder existieren
+        return {
+            "expiry": mac_value.get("expiry", "Unknown"),
+            "watchdog_timeout": mac_value.get("watchdog_timeout", 0),
+            "playback_limit": mac_value.get("playback_limit", 0)
+        }
+    return {"expiry": "Unknown", "watchdog_timeout": 0, "playback_limit": 0}
+
+
+def score_mac_for_selection(mac, mac_data, occupied_list, streams_per_mac):
+    """Bewertet eine MAC für die Stream-Auswahl. Höherer Score = bessere Wahl.
+
+    Scoring-Kriterien:
+    - Watchdog Timeout: Höhere Werte (länger inaktiv) = besser
+    - Verfügbare Stream-Slots: Mehr verfügbar = besser
+    - Rückgabe -1 wenn MAC nicht verfügbar (alle Slots belegt)
+    """
+    data = normalize_mac_data(mac_data)
+    score = 0
+
+    # Zähle aktuelle Streams auf dieser MAC
+    current_streams = sum(1 for o in occupied_list if o.get("mac") == mac)
+    available_slots = streams_per_mac - current_streams
+
+    if streams_per_mac != 0 and available_slots <= 0:
+        return -1  # MAC ist voll belegt
+
+    # Watchdog Timeout Scoring (höher = länger inaktiv = besser)
+    watchdog = int(data.get("watchdog_timeout", 0) or 0)
+    if watchdog > 1800:      # Grün: > 30 min idle
+        score += 100
+    elif watchdog > 300:     # Blau: 5-30 min
+        score += 75
+    elif watchdog >= 60:     # Gelb: 1-5 min
+        score += 50
+    elif watchdog > 0:       # Rot: < 1 min (sehr aktiv)
+        score += 10
+    # watchdog == 0 bedeutet keine Daten, neutral
+
+    # Verfügbare Slots Bonus
+    if streams_per_mac != 0:
+        score += available_slots * 20
+
+    return score
 
 
 class HLSStreamManager:
@@ -762,6 +823,7 @@ def init_db():
             name TEXT,
             number TEXT,
             genre TEXT,
+            genre_id TEXT,
             logo TEXT,
             enabled INTEGER DEFAULT 0,
             custom_name TEXT,
@@ -772,6 +834,18 @@ def init_db():
             PRIMARY KEY (portal, channel_id)
         )
     ''')
+
+    # Add genre_id column if it doesn't exist (migration for existing databases)
+    try:
+        cursor.execute("ALTER TABLE channels ADD COLUMN genre_id TEXT")
+    except:
+        pass  # Column already exists
+
+    # Add available_macs column to track which MACs can access the channel (comma-separated)
+    try:
+        cursor.execute("ALTER TABLE channels ADD COLUMN available_macs TEXT")
+    except:
+        pass  # Column already exists
     
     # Create indexes for better query performance
     cursor.execute('''
@@ -812,58 +886,121 @@ def refresh_channels_cache():
             proxy = portal["proxy"]
 
             logger.info(f"Fetching channels for portal: {portal_name}")
-            
-            # Try each MAC until we get channel data
-            all_channels = None
-            genres = None
+
+            # Get selected genres and genres_mac
+            selected_genres = portal.get("selected_genres", [])
+            genres_mac = portal.get("genres_mac", "")
+
+            # If we have selected_genres and a genres_mac, try that MAC first
+            # This ensures we use the same MAC that was used to select genres
+            if selected_genres and genres_mac and genres_mac in macs:
+                # Put genres_mac at the front
+                macs = [genres_mac] + [m for m in macs if m != genres_mac]
+                logger.info(f"Using genres_mac first: {genres_mac} (for genre filtering)")
+
+            # Query ALL MACs and collect which channels are available on which MACs
+            # Structure: {channel_id: {data: {...}, available_macs: [mac1, mac2, ...]}}
+            channels_by_id = {}
+            all_genres = {}  # Merged genres from all MACs
+
+            # Ensure all genre IDs are strings for comparison
+            selected_genres = [str(g) for g in selected_genres] if selected_genres else []
+            if selected_genres:
+                logger.info(f"Filtering by genres: {selected_genres}")
+
             for mac in macs:
-                logger.info(f"Trying MAC: {mac}")
+                logger.info(f"Querying MAC: {mac}")
                 try:
                     token = stb.getToken(url, mac, proxy)
-                    if token:
-                        stb.getProfile(url, mac, token, proxy)
-                        all_channels = stb.getAllChannels(url, mac, token, proxy)
-                        genres = stb.getGenreNames(url, mac, token, proxy)
-                        if all_channels and genres:
-                            break
+                    if not token:
+                        logger.warning(f"Could not get token for MAC {mac}")
+                        continue
+
+                    stb.getProfile(url, mac, token, proxy)
+                    mac_channels = stb.getAllChannels(url, mac, token, proxy)
+                    mac_genres = stb.getGenreNames(url, mac, token, proxy)
+
+                    if not mac_channels:
+                        logger.warning(f"No channels returned for MAC {mac}")
+                        continue
+
+                    # Merge genres
+                    if mac_genres:
+                        all_genres.update(mac_genres)
+
+                    logger.info(f"MAC {mac} returned {len(mac_channels)} channels")
+
+                    # Process channels from this MAC
+                    for channel in mac_channels:
+                        channel_id = str(channel["id"])
+                        genre_id = str(channel.get("tv_genre_id", ""))
+
+                        # Genre-Filter anwenden
+                        if selected_genres and genre_id not in selected_genres:
+                            continue
+
+                        if channel_id not in channels_by_id:
+                            # First time seeing this channel
+                            channels_by_id[channel_id] = {
+                                "data": channel,
+                                "available_macs": [mac]
+                            }
+                        else:
+                            # Channel already exists, add this MAC to available_macs
+                            if mac not in channels_by_id[channel_id]["available_macs"]:
+                                channels_by_id[channel_id]["available_macs"].append(mac)
+
                 except Exception as e:
                     logger.error(f"Error fetching from MAC {mac}: {e}")
-                    all_channels = None
-                    genres = None
-            
-            if all_channels and genres:
-                logger.info(f"Processing {len(all_channels)} channels for {portal_name}")
-                
-                for channel in all_channels:
-                    channel_id = str(channel["id"])
+
+            # Now insert all collected channels into the database
+            if channels_by_id:
+                logger.info(f"Processing {len(channels_by_id)} unique channels for {portal_name}")
+
+                channels_imported = 0
+                for channel_id, channel_info in channels_by_id.items():
+                    channel = channel_info["data"]
+                    available_macs = ",".join(channel_info["available_macs"])
+
                     channel_name = str(channel["name"])
                     channel_number = str(channel["number"])
                     genre_id = str(channel.get("tv_genre_id", ""))
-                    genre = str(genres.get(genre_id, ""))
+                    genre = str(all_genres.get(genre_id, ""))
                     logo = str(channel.get("logo", ""))
 
-                    # Upsert into database (new channels start disabled with empty custom values)
+                    # Upsert into database
                     cursor.execute('''
                         INSERT INTO channels (
-                            portal, channel_id, portal_name, name, number, genre, logo,
+                            portal, channel_id, portal_name, name, number, genre, genre_id, logo,
                             enabled, custom_name, custom_number, custom_genre,
-                            custom_epg_id, fallback_channel
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            custom_epg_id, fallback_channel, available_macs
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                         ON CONFLICT(portal, channel_id) DO UPDATE SET
                             portal_name = excluded.portal_name,
                             name = excluded.name,
                             number = excluded.number,
                             genre = excluded.genre,
-                            logo = excluded.logo
+                            genre_id = excluded.genre_id,
+                            logo = excluded.logo,
+                            available_macs = excluded.available_macs
                     ''', (
                         portal_id, channel_id, portal_name, channel_name, channel_number,
-                        genre, logo, 0, "", "", "", "", ""
+                        genre, genre_id, logo, 0, "", "", "", "", "", available_macs
                     ))
-                    
+
+                    channels_imported += 1
                     total_channels += 1
-                
+
                 conn.commit()
-                logger.info(f"Successfully cached {len(all_channels)} channels for {portal_name}")
+
+                # Log summary
+                mac_coverage = {}
+                for ch_info in channels_by_id.values():
+                    num_macs = len(ch_info["available_macs"])
+                    mac_coverage[num_macs] = mac_coverage.get(num_macs, 0) + 1
+
+                logger.info(f"Successfully cached {channels_imported} channels for {portal_name}")
+                logger.info(f"MAC coverage: {mac_coverage} (key=number of MACs, value=channel count)")
             else:
                 logger.error(f"Failed to fetch channels for portal: {portal_name}")
     
@@ -928,7 +1065,7 @@ def portals():
         for row in cursor.fetchall():
             portal_stats[row['portal']] = {'channels': row['channel_count'], 'groups': 0}
 
-        # Get distinct genre count per portal
+        # Get distinct genre count per portal (active groups = groups in database)
         cursor.execute("""
             SELECT portal, COUNT(DISTINCT COALESCE(NULLIF(custom_genre, ''), genre)) as group_count
             FROM channels
@@ -943,6 +1080,13 @@ def portals():
         conn.close()
     except Exception as e:
         logger.error(f"Error getting portal stats: {e}")
+
+    # Add total_groups from portal config (if available)
+    for portal_id, portal in portal_data.items():
+        if portal_id not in portal_stats:
+            portal_stats[portal_id] = {'channels': 0, 'groups': 0}
+        # Use stored total_groups or fall back to groups count
+        portal_stats[portal_id]['total_groups'] = portal.get('total_groups', portal_stats[portal_id]['groups'])
 
     return render_template("portals.html", portals=portal_data, portal_stats=portal_stats)
 
@@ -985,6 +1129,208 @@ def portals_data():
     return jsonify(getPortals())
 
 
+@app.route("/api/portal/macs/refresh", methods=["POST"])
+@authorise
+def refresh_portal_macs():
+    """Refresh MAC data (watchdog, playback_limit, expiry) for all MACs in a portal."""
+    try:
+        data = request.get_json()
+        portal_id = data.get("portal_id")
+
+        if not portal_id:
+            return jsonify({"success": False, "message": "Portal ID required"})
+
+        portals = getPortals()
+        if portal_id not in portals:
+            return jsonify({"success": False, "message": "Portal not found"})
+
+        portal = portals[portal_id]
+        url = portal["url"]
+        proxy = portal.get("proxy", "")
+
+        updated_count = 0
+        errors = []
+
+        for mac in list(portal["macs"].keys()):
+            try:
+                token = stb.getToken(url, mac, proxy)
+                if token:
+                    # Get profile data (watchdog_timeout, playback_limit)
+                    profile = stb.getProfile(url, mac, token, proxy)
+                    # Get expiry from separate API call (different endpoint)
+                    expiry = stb.getExpires(url, mac, token, proxy)
+
+                    if profile or expiry:
+                        # Keep existing expiry if new one is empty
+                        old_data = normalize_mac_data(portal["macs"].get(mac, {}))
+                        if not expiry:
+                            expiry = old_data.get("expiry", "Unknown")
+
+                        watchdog_timeout = int(profile.get("watchdog_timeout", 0)) if profile else 0
+                        playback_limit = int(profile.get("playback_limit", 0)) if profile else 0
+
+                        # Update MAC data
+                        portal["macs"][mac] = {
+                            "expiry": expiry if expiry else "Unknown",
+                            "watchdog_timeout": watchdog_timeout,
+                            "playback_limit": playback_limit
+                        }
+                        updated_count += 1
+                        logger.info(f"Refreshed MAC {mac}: expiry={expiry}, watchdog={watchdog_timeout}, streams={playback_limit}")
+                    else:
+                        errors.append(f"{mac}: Could not get profile or expiry")
+                else:
+                    errors.append(f"{mac}: Could not get token")
+            except Exception as e:
+                errors.append(f"{mac}: {str(e)}")
+                logger.error(f"Error refreshing MAC {mac}: {e}")
+
+        # Save updated portal data
+        portals[portal_id] = portal
+        savePortals(portals)
+
+        message = f"Updated {updated_count} of {len(portal['macs'])} MACs"
+        if errors:
+            message += f". Errors: {len(errors)}"
+
+        logger.info(f"MAC refresh for portal {portal.get('name', portal_id)}: {message}")
+        return jsonify({
+            "success": True,
+            "message": message,
+            "updated": updated_count,
+            "errors": errors,
+            "macs": portal["macs"]  # Return updated MAC data
+        })
+
+    except Exception as e:
+        logger.error(f"Error refreshing MACs: {e}")
+        return jsonify({"success": False, "message": str(e)})
+
+
+@app.route("/api/portal/genres", methods=["POST"])
+@authorise
+def get_portal_genres():
+    """Fetch available genres from a portal for selection during add/edit."""
+    try:
+        data = request.get_json()
+        url = data.get("url")
+        mac = data.get("mac")
+        proxy = data.get("proxy", "")
+
+        if not url or not mac:
+            return jsonify({"success": False, "message": "URL and MAC are required"})
+
+        # URL auflösen falls nötig
+        if not url.endswith(".php"):
+            resolved_url = stb.getUrl(url, proxy)
+            if not resolved_url:
+                return jsonify({"success": False, "message": "Could not resolve portal URL"})
+            url = resolved_url
+
+        # Token holen
+        token = stb.getToken(url, mac, proxy)
+        if not token:
+            return jsonify({"success": False, "message": "Could not authenticate with portal"})
+
+        # Profil abrufen (für Authentifizierung)
+        stb.getProfile(url, mac, token, proxy)
+
+        # Genres abrufen
+        genres = stb.getGenres(url, mac, token, proxy)
+
+        if not genres:
+            return jsonify({"success": False, "message": "No genres found"})
+
+        # Channels abrufen um pro Genre zu zählen
+        channels = stb.getAllChannels(url, mac, token, proxy)
+        channel_counts = {}
+        if channels:
+            for channel in channels:
+                genre_id = str(channel.get("tv_genre_id", ""))
+                channel_counts[genre_id] = channel_counts.get(genre_id, 0) + 1
+
+        # Liste von {id, title, channel_count} Objekten zurückgeben
+        genre_list = [
+            {
+                "id": str(g["id"]),
+                "title": g["title"],
+                "channel_count": channel_counts.get(str(g["id"]), 0)
+            }
+            for g in genres
+        ]
+        # Alphabetisch sortieren
+        genre_list.sort(key=lambda x: x["title"].lower())
+
+        logger.info(f"Fetched {len(genre_list)} genres with channel counts from portal")
+        return jsonify({"success": True, "genres": genre_list})
+
+    except Exception as e:
+        logger.error(f"Error fetching genres: {e}")
+        return jsonify({"success": False, "message": str(e)})
+
+
+@app.route("/api/portal/genres/update", methods=["POST"])
+@authorise
+def update_portal_genres():
+    """Update selected genres for a portal and refresh channels."""
+    global cached_xmltv
+    try:
+        data = request.get_json()
+        portal_id = data.get("portal_id")
+        selected_genres = data.get("selected_genres", [])
+        total_groups = data.get("total_groups", 0)
+        genres_mac = data.get("genres_mac", "")  # MAC used for genre selection
+
+        if not portal_id:
+            return jsonify({"success": False, "message": "Portal ID required"})
+
+        portals = getPortals()
+        if portal_id not in portals:
+            return jsonify({"success": False, "message": "Portal not found"})
+
+        portal = portals[portal_id]
+
+        # Update selected genres and total groups count
+        logger.info(f"Updating genres for portal {portal.get('name', portal_id)}")
+        logger.info(f"Received selected_genres: {selected_genres} (type: {type(selected_genres)})")
+        logger.info(f"Received total_groups: {total_groups}")
+        logger.info(f"Received genres_mac: {genres_mac}")
+
+        portal["selected_genres"] = selected_genres
+        portal["total_groups"] = total_groups
+        if genres_mac:
+            portal["genres_mac"] = genres_mac  # Store which MAC was used for genre selection
+        portals[portal_id] = portal
+        savePortals(portals)
+
+        logger.info(f"Saved genres for portal {portal.get('name', portal_id)}: {len(selected_genres)} selected: {selected_genres}")
+
+        # Delete all channels for this portal - they will be re-imported with the filter
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+
+            # Delete all channels for this portal
+            cursor.execute("DELETE FROM channels WHERE portal = ?", [portal_id])
+            deleted = cursor.rowcount
+            conn.commit()
+            conn.close()
+
+            logger.info(f"Deleted {deleted} channels for portal {portal.get('name', portal_id)} - will re-import with genre filter")
+        except Exception as e:
+            logger.error(f"Error deleting channels: {e}")
+
+        # Refresh channels cache to add new channels from newly selected genres
+        cached_xmltv = None  # Clear EPG cache
+        refresh_channels_cache()  # Refreshes all enabled portals
+
+        return jsonify({"success": True, "message": "Genres updated successfully"})
+
+    except Exception as e:
+        logger.error(f"Error updating genres: {e}")
+        return jsonify({"success": False, "message": str(e)})
+
+
 @app.route("/portal/add", methods=["POST"])
 @authorise
 def portalsAdd():
@@ -999,6 +1345,7 @@ def portalsAdd():
     epgOffset = request.form["epg offset"]
     proxy = request.form["proxy"]
     fetchEpg = "true" if request.form.get("fetch epg") else "false"
+    selectedGenres = request.form.getlist("selected_genres")  # Liste der Genre-IDs
 
     if not url.endswith(".php"):
         url = stb.getUrl(url, proxy)
@@ -1014,10 +1361,15 @@ def portalsAdd():
         token = stb.getToken(url, mac, proxy)
         if token:
             logger.debug(f"Got token for MAC({mac}), getting profile and expiry...")
-            stb.getProfile(url, mac, token, proxy)
+            profile = stb.getProfile(url, mac, token, proxy)
             expiry = stb.getExpires(url, mac, token, proxy)
             if expiry:
-                macsd[mac] = expiry
+                # Neues Format: Dict mit expiry, watchdog_timeout, playback_limit
+                macsd[mac] = {
+                    "expiry": expiry,
+                    "watchdog_timeout": profile.get("watchdog_timeout", 0) if profile else 0,
+                    "playback_limit": profile.get("playback_limit", 0) if profile else 0
+                }
                 logger.info(
                     "Successfully tested MAC({}) for Portal({})".format(mac, name)
                 )
@@ -1044,6 +1396,7 @@ def portalsAdd():
             "epg offset": epgOffset,
             "proxy": proxy,
             "fetch epg": fetchEpg,
+            "selected_genres": selectedGenres,  # Liste der Genre-IDs zum Importieren
         }
 
         for setting, default in defaultPortal.items():
@@ -1093,6 +1446,7 @@ def portalUpdate():
     proxy = request.form["proxy"]
     fetchEpg = "true" if request.form.get("fetch epg") else "false"
     retest = request.form.get("retest", None)
+    selectedGenres = request.form.getlist("selected_genres")  # Liste der Genre-IDs
 
     if not url.endswith(".php"):
         url = stb.getUrl(url, proxy)
@@ -1112,10 +1466,15 @@ def portalUpdate():
             token = stb.getToken(url, mac, proxy)
             if token:
                 logger.debug(f"Got token for MAC({mac}), getting profile and expiry...")
-                stb.getProfile(url, mac, token, proxy)
+                profile = stb.getProfile(url, mac, token, proxy)
                 expiry = stb.getExpires(url, mac, token, proxy)
                 if expiry:
-                    macsout[mac] = expiry
+                    # Neues Format: Dict mit expiry, watchdog_timeout, playback_limit
+                    macsout[mac] = {
+                        "expiry": expiry,
+                        "watchdog_timeout": profile.get("watchdog_timeout", 0) if profile else 0,
+                        "playback_limit": profile.get("playback_limit", 0) if profile else 0
+                    }
                     logger.info(
                         "Successfully tested MAC({}) for Portal({})".format(mac, name)
                     )
@@ -1132,6 +1491,7 @@ def portalUpdate():
                 deadmacs.append(mac)
 
         if mac in oldmacs.keys() and mac not in deadmacs:
+            # Altes Format beibehalten (wird bei Anzeige normalisiert)
             macsout[mac] = oldmacs[mac]
 
         if mac not in macsout.keys():
@@ -1147,6 +1507,7 @@ def portalUpdate():
         portals[id]["epg offset"] = epgOffset
         portals[id]["proxy"] = proxy
         portals[id]["fetch epg"] = fetchEpg
+        portals[id]["selected_genres"] = selectedGenres  # Genre-Filter
         savePortals(portals)
         logger.info("Portal({}) updated!".format(name))
         flash("Portal({}) updated!".format(name), "success")
@@ -1220,12 +1581,12 @@ def editor_data():
         start = request.args.get('start', type=int, default=0)
         length = request.args.get('length', type=int, default=250)
         search_value = request.args.get('search[value]', default='')
-        
+
         # Get custom filter parameters
         portal_filter = request.args.get('portal', default='')
         group_filter = request.args.get('group', default='')
         duplicate_filter = request.args.get('duplicates', default='')
-        
+
         # Map column indices to database columns
         column_map = {
             0: 'enabled',
@@ -1237,14 +1598,41 @@ def editor_data():
             6: 'fallback_channel',
             7: 'portal_name'
         }
-        
+
         # Build the SQL query
         conn = get_db_connection()
         cursor = conn.cursor()
-        
+
+        # Get portals with selected_genres for filtering
+        portals = getPortals()
+        portal_genre_filters = {}
+        for portal_id, portal_data in portals.items():
+            selected_genres = portal_data.get("selected_genres", [])
+            if selected_genres:
+                portal_genre_filters[portal_id] = selected_genres
+
         # Base query
         base_query = "FROM channels WHERE 1=1"
         params = []
+
+        # Add genre filter based on portal's selected_genres
+        if portal_genre_filters:
+            # Build a condition that filters channels by their portal's selected genres
+            genre_conditions = []
+            for portal_id, genres in portal_genre_filters.items():
+                placeholders = ','.join(['?'] * len(genres))
+                genre_conditions.append(f"(portal = ? AND genre_id IN ({placeholders}))")
+                params.append(portal_id)
+                params.extend(genres)
+
+            # Also include channels from portals without genre filter
+            portals_with_filter = list(portal_genre_filters.keys())
+            if portals_with_filter:
+                placeholders = ','.join(['?'] * len(portals_with_filter))
+                genre_conditions.append(f"portal NOT IN ({placeholders})")
+                params.extend(portals_with_filter)
+
+            base_query += f" AND ({' OR '.join(genre_conditions)})"
         
         # Add portal filter (supports multiple values)
         if portal_filter:
@@ -2436,12 +2824,48 @@ def channel(portalId, channelId):
     portal = getPortals().get(portalId)
     portalName = portal.get("name")
     url = portal.get("url")
-    macs = list(portal["macs"].keys())
     streamsPerMac = int(portal.get("streams per mac"))
     proxy = portal.get("proxy")
     web = request.args.get("web")
     ip = request.remote_addr
     channelName = portal.get("custom channel names", {}).get(channelId)
+
+    # Get available_macs from database (MACs that can access this channel)
+    available_macs = []
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT available_macs FROM channels WHERE portal = ? AND channel_id = ?", [portalId, channelId])
+        row = cursor.fetchone()
+        if row and row[0]:
+            available_macs = [m.strip() for m in row[0].split(",") if m.strip()]
+        conn.close()
+    except Exception as e:
+        logger.debug(f"Could not get available_macs for channel {channelId}: {e}")
+
+    # MACs nach Score sortieren (idle MACs bevorzugen)
+    macs_dict = portal["macs"]
+    occupied_list = occupied.get(portalId, [])
+    mac_scores = []
+    for mac, mac_data in macs_dict.items():
+        score = score_mac_for_selection(mac, mac_data, occupied_list, streamsPerMac)
+        mac_scores.append((mac, score))
+
+    # Nach Score sortieren (höchster Score zuerst), MACs mit Score -1 ans Ende
+    mac_scores.sort(key=lambda x: (x[1] >= 0, x[1]), reverse=True)
+    macs = [m[0] for m in mac_scores if m[1] >= 0] or list(macs_dict.keys())
+
+    # Prioritize MACs that are known to have this channel (from available_macs)
+    # Keep score-sorted order within available_macs, but put them first
+    if available_macs:
+        # Filter to MACs that are both available for this channel AND in our portal
+        valid_available = [m for m in macs if m in available_macs]
+        other_macs = [m for m in macs if m not in available_macs]
+        if valid_available:
+            macs = valid_available + other_macs
+            logger.debug(f"Prioritizing {len(valid_available)} available MACs for channel {channelId}")
+
+    logger.debug(f"MAC scores for Portal({portalName}): {mac_scores[:5]}")  # Log top 5
 
     logger.info(
         "IP({}) requested Portal({}):Channel({})".format(ip, portalId, channelId)
