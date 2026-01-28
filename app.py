@@ -846,7 +846,20 @@ def init_db():
         cursor.execute("ALTER TABLE channels ADD COLUMN available_macs TEXT")
     except:
         pass  # Column already exists
-    
+
+    # Add alternate_ids column to store alternative channel IDs (comma-separated)
+    # Used for merged channels - if primary ID fails, try alternates
+    try:
+        cursor.execute("ALTER TABLE channels ADD COLUMN alternate_ids TEXT")
+    except:
+        pass  # Column already exists
+
+    # Add cmd column to cache the stream command URL (avoids fetching all channels on every stream)
+    try:
+        cursor.execute("ALTER TABLE channels ADD COLUMN cmd TEXT")
+    except:
+        pass  # Column already exists
+
     # Create indexes for better query performance
     cursor.execute('''
         CREATE INDEX IF NOT EXISTS idx_channels_enabled 
@@ -859,25 +872,85 @@ def init_db():
     ''')
     
     cursor.execute('''
-        CREATE INDEX IF NOT EXISTS idx_channels_portal 
+        CREATE INDEX IF NOT EXISTS idx_channels_portal
         ON channels(portal)
     ''')
-    
+
+    # Create groups table for genre/group management
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS groups (
+            portal TEXT NOT NULL,
+            genre_id TEXT NOT NULL,
+            name TEXT,
+            channel_count INTEGER DEFAULT 0,
+            active INTEGER DEFAULT 1,
+            PRIMARY KEY (portal, genre_id)
+        )
+    ''')
+
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_groups_active
+        ON groups(portal, active)
+    ''')
+
     conn.commit()
+
+    # Migration: populate groups table from existing channels data
+    cursor.execute("SELECT COUNT(*) FROM groups")
+    if cursor.fetchone()[0] == 0:
+        logger.info("Migrating: populating groups table from existing channels...")
+        cursor.execute('''
+            INSERT OR IGNORE INTO groups (portal, genre_id, name, channel_count, active)
+            SELECT portal, genre_id, genre, COUNT(*) as cnt, 1
+            FROM channels
+            WHERE genre_id IS NOT NULL AND genre_id != ''
+            GROUP BY portal, genre_id
+        ''')
+        # Set active flag based on selected_genres from JSON config
+        try:
+            portals = getPortals()
+            for portal_id, portal in portals.items():
+                selected_genres = portal.get("selected_genres", [])
+                if selected_genres:
+                    selected_genres = [str(g) for g in selected_genres]
+                    # Deactivate all groups for this portal first
+                    cursor.execute("UPDATE groups SET active = 0 WHERE portal = ?", [portal_id])
+                    # Activate only selected groups
+                    for genre_id in selected_genres:
+                        cursor.execute("UPDATE groups SET active = 1 WHERE portal = ? AND genre_id = ?",
+                                     [portal_id, genre_id])
+                    logger.info(f"Migrated genre selection for portal {portal.get('name', portal_id)}: {len(selected_genres)} active groups")
+        except Exception as e:
+            logger.error(f"Error migrating genre selections: {e}")
+
+        conn.commit()
+        logger.info("Groups migration complete")
+
     conn.close()
     logger.info("Database initialized successfully")
 
 
-def refresh_channels_cache():
-    """Refresh the channels cache from STB portals."""
-    logger.info("Starting channel cache refresh...")
+def refresh_channels_cache(target_portal_id=None):
+    """Refresh the channels cache from STB portals.
+
+    Args:
+        target_portal_id: Optional portal ID to refresh only that portal.
+                         If None, refreshes all enabled portals.
+    """
+    if target_portal_id:
+        logger.info(f"Starting channel cache refresh for portal: {target_portal_id}")
+    else:
+        logger.info("Starting channel cache refresh for all portals...")
     portals = getPortals()
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     total_channels = 0
-    
+
     for portal_id in portals:
+        # Skip if we're targeting a specific portal and this isn't it
+        if target_portal_id and portal_id != target_portal_id:
+            continue
         portal = portals[portal_id]
         if portal["enabled"] == "true":
             portal_name = portal["name"]
@@ -887,26 +960,10 @@ def refresh_channels_cache():
 
             logger.info(f"Fetching channels for portal: {portal_name}")
 
-            # Get selected genres and genres_mac
-            selected_genres = portal.get("selected_genres", [])
-            genres_mac = portal.get("genres_mac", "")
-
-            # If we have selected_genres and a genres_mac, try that MAC first
-            # This ensures we use the same MAC that was used to select genres
-            if selected_genres and genres_mac and genres_mac in macs:
-                # Put genres_mac at the front
-                macs = [genres_mac] + [m for m in macs if m != genres_mac]
-                logger.info(f"Using genres_mac first: {genres_mac} (for genre filtering)")
-
             # Query ALL MACs and collect which channels are available on which MACs
             # Structure: {channel_id: {data: {...}, available_macs: [mac1, mac2, ...]}}
             channels_by_id = {}
-            all_genres = {}  # Merged genres from all MACs
-
-            # Ensure all genre IDs are strings for comparison
-            selected_genres = [str(g) for g in selected_genres] if selected_genres else []
-            if selected_genres:
-                logger.info(f"Filtering by genres: {selected_genres}")
+            all_genres = {}  # Merged genres from all MACs {genre_id: genre_name}
 
             for mac in macs:
                 logger.info(f"Querying MAC: {mac}")
@@ -940,10 +997,6 @@ def refresh_channels_cache():
                         channel_id = str(channel["id"])
                         genre_id = str(channel.get("tv_genre_id", ""))
 
-                        # Genre-Filter anwenden
-                        if selected_genres and genre_id not in selected_genres:
-                            continue
-
                         if channel_id not in channels_by_id:
                             # First time seeing this channel
                             channels_by_id[channel_id] = {
@@ -962,24 +1015,74 @@ def refresh_channels_cache():
             if channels_by_id:
                 logger.info(f"Processing {len(channels_by_id)} unique channels for {portal_name}")
 
-                channels_imported = 0
+                # Auto-merge channels with the same name (deduplication)
+                # Group channels by normalized name
+                channels_by_name = {}
                 for channel_id, channel_info in channels_by_id.items():
+                    channel_name = str(channel_info["data"]["name"]).strip()
+                    if channel_name not in channels_by_name:
+                        channels_by_name[channel_name] = []
+                    channels_by_name[channel_name].append((channel_id, channel_info))
+
+                # Process duplicates - merge into primary channel
+                channels_to_import = {}  # channel_id -> {data, available_macs, alternate_ids}
+                merged_count = 0
+
+                for channel_name, channel_list in channels_by_name.items():
+                    if len(channel_list) == 1:
+                        # No duplicates - just add normally
+                        ch_id, ch_info = channel_list[0]
+                        channels_to_import[ch_id] = {
+                            "data": ch_info["data"],
+                            "available_macs": ch_info["available_macs"],
+                            "alternate_ids": []
+                        }
+                    else:
+                        # Multiple channels with same name - merge them
+                        # Sort by channel_id (use lowest ID as primary)
+                        channel_list.sort(key=lambda x: int(x[0]) if x[0].isdigit() else float('inf'))
+                        primary_id, primary_info = channel_list[0]
+
+                        # Combine all MACs and alternate IDs
+                        combined_macs = set(primary_info["available_macs"])
+                        alternate_ids = []
+
+                        for alt_id, alt_info in channel_list[1:]:
+                            alternate_ids.append(alt_id)
+                            combined_macs.update(alt_info["available_macs"])
+
+                        channels_to_import[primary_id] = {
+                            "data": primary_info["data"],
+                            "available_macs": list(combined_macs),
+                            "alternate_ids": alternate_ids
+                        }
+
+                        merged_count += len(channel_list) - 1
+                        logger.debug(f"Auto-merged '{channel_name}': {primary_id} + alternates {alternate_ids}")
+
+                if merged_count > 0:
+                    logger.info(f"Auto-merged {merged_count} duplicate channels by name for {portal_name}")
+
+                channels_imported = 0
+                for channel_id, channel_info in channels_to_import.items():
                     channel = channel_info["data"]
                     available_macs = ",".join(channel_info["available_macs"])
+                    alternate_ids = ",".join(channel_info["alternate_ids"])
 
                     channel_name = str(channel["name"])
                     channel_number = str(channel["number"])
                     genre_id = str(channel.get("tv_genre_id", ""))
                     genre = str(all_genres.get(genre_id, ""))
                     logo = str(channel.get("logo", ""))
+                    cmd = str(channel.get("cmd", ""))  # Cache stream command for fast streaming
 
                     # Upsert into database
                     cursor.execute('''
                         INSERT INTO channels (
                             portal, channel_id, portal_name, name, number, genre, genre_id, logo,
                             enabled, custom_name, custom_number, custom_genre,
-                            custom_epg_id, fallback_channel, available_macs
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            custom_epg_id, fallback_channel, available_macs, alternate_ids, cmd
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                         ON CONFLICT(portal, channel_id) DO UPDATE SET
                             portal_name = excluded.portal_name,
                             name = excluded.name,
@@ -987,20 +1090,43 @@ def refresh_channels_cache():
                             genre = excluded.genre,
                             genre_id = excluded.genre_id,
                             logo = excluded.logo,
-                            available_macs = excluded.available_macs
+                            available_macs = excluded.available_macs,
+                            alternate_ids = CASE
+                                WHEN excluded.alternate_ids != '' THEN excluded.alternate_ids
+                                ELSE channels.alternate_ids
+                            END,
+                            cmd = excluded.cmd
                     ''', (
                         portal_id, channel_id, portal_name, channel_name, channel_number,
-                        genre, genre_id, logo, 0, "", "", "", "", "", available_macs
+                        genre, genre_id, logo, 0, "", "", "", "", "", available_macs, alternate_ids, cmd
                     ))
 
                     channels_imported += 1
                     total_channels += 1
 
+                # Populate groups table from all_genres
+                # Count channels per genre (use deduplicated channels)
+                genre_channel_counts = {}
+                for ch_info in channels_to_import.values():
+                    g_id = str(ch_info["data"].get("tv_genre_id", ""))
+                    genre_channel_counts[g_id] = genre_channel_counts.get(g_id, 0) + 1
+
+                # Upsert groups - preserve active flag for existing groups
+                for genre_id, genre_name in all_genres.items():
+                    channel_count = genre_channel_counts.get(str(genre_id), 0)
+                    cursor.execute('''
+                        INSERT INTO groups (portal, genre_id, name, channel_count, active)
+                        VALUES (?, ?, ?, ?, 1)
+                        ON CONFLICT(portal, genre_id) DO UPDATE SET
+                            name = excluded.name,
+                            channel_count = excluded.channel_count
+                    ''', (portal_id, str(genre_id), genre_name, channel_count))
+
                 conn.commit()
 
                 # Log summary
                 mac_coverage = {}
-                for ch_info in channels_by_id.values():
+                for ch_info in channels_to_import.values():
                     num_macs = len(ch_info["available_macs"])
                     mac_coverage[num_macs] = mac_coverage.get(num_macs, 0) + 1
 
@@ -1061,39 +1187,56 @@ def portals():
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        # Get channel count per portal
+        # Get total and active channel counts per portal
         cursor.execute("""
-            SELECT portal, COUNT(*) as channel_count
-            FROM channels
-            GROUP BY portal
+            SELECT
+                c.portal,
+                COUNT(*) as total_channels,
+                SUM(CASE WHEN g.active = 1 OR g.active IS NULL THEN 1 ELSE 0 END) as active_channels
+            FROM channels c
+            LEFT JOIN groups g ON c.portal = g.portal AND c.genre_id = g.genre_id
+            GROUP BY c.portal
         """)
         for row in cursor.fetchall():
-            portal_stats[row['portal']] = {'channels': row['channel_count'], 'groups': 0}
+            portal_stats[row['portal']] = {
+                'channels': row['active_channels'] or 0,
+                'total_channels': row['total_channels'] or 0
+            }
 
-        # Get distinct genre count per portal (active groups = groups in database)
+        # Get total and active group counts per portal from groups table
         cursor.execute("""
-            SELECT portal, COUNT(DISTINCT COALESCE(NULLIF(custom_genre, ''), genre)) as group_count
-            FROM channels
+            SELECT
+                portal,
+                COUNT(*) as total_groups,
+                SUM(CASE WHEN active = 1 THEN 1 ELSE 0 END) as active_groups
+            FROM groups
             GROUP BY portal
         """)
         for row in cursor.fetchall():
             if row['portal'] in portal_stats:
-                portal_stats[row['portal']]['groups'] = row['group_count']
+                portal_stats[row['portal']]['groups'] = row['active_groups'] or 0
+                portal_stats[row['portal']]['total_groups'] = row['total_groups'] or 0
             else:
-                portal_stats[row['portal']] = {'channels': 0, 'groups': row['group_count']}
+                portal_stats[row['portal']] = {
+                    'channels': 0,
+                    'total_channels': 0,
+                    'groups': row['active_groups'] or 0,
+                    'total_groups': row['total_groups'] or 0
+                }
 
         conn.close()
     except Exception as e:
         logger.error(f"Error getting portal stats: {e}")
 
-    # Add total_groups and total_channels from portal config (if available)
+    # Initialize stats for portals not yet in database
     for portal_id, portal in portal_data.items():
         if portal_id not in portal_stats:
-            portal_stats[portal_id] = {'channels': 0, 'groups': 0}
-        # Use stored total_groups or fall back to groups count
-        portal_stats[portal_id]['total_groups'] = portal.get('total_groups', portal_stats[portal_id]['groups'])
-        # Use stored total_channels or fall back to channels count
-        portal_stats[portal_id]['total_channels'] = portal.get('total_channels', portal_stats[portal_id]['channels'])
+            portal_stats[portal_id] = {
+                'channels': 0,
+                'total_channels': 0,
+                'groups': 0,
+                'total_groups': 0
+            }
 
     return render_template("portals.html", portals=portal_data, portal_stats=portal_stats)
 
@@ -1279,18 +1422,58 @@ def get_portal_genres():
         return jsonify({"success": False, "message": str(e)})
 
 
+@app.route("/api/portal/groups", methods=["POST"])
+@authorise
+def get_portal_groups():
+    """Get groups from database for a portal (fast, no API call needed)."""
+    try:
+        data = request.get_json()
+        portal_id = data.get("portal_id")
+
+        if not portal_id:
+            return jsonify({"success": False, "message": "Portal ID required"})
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT genre_id, name, channel_count, active
+            FROM groups
+            WHERE portal = ?
+            ORDER BY name
+        """, [portal_id])
+
+        groups = []
+        for row in cursor.fetchall():
+            groups.append({
+                "id": row['genre_id'],
+                "title": row['name'] or f"Group {row['genre_id']}",
+                "channel_count": row['channel_count'] or 0,
+                "active": row['active'] == 1
+            })
+
+        conn.close()
+
+        if not groups:
+            return jsonify({"success": False, "message": "No groups found in database. Please refresh channels first."})
+
+        logger.info(f"Loaded {len(groups)} groups from database for portal {portal_id}")
+        return jsonify({"success": True, "groups": groups})
+
+    except Exception as e:
+        logger.error(f"Error getting groups from database: {e}")
+        return jsonify({"success": False, "message": str(e)})
+
+
 @app.route("/api/portal/genres/update", methods=["POST"])
 @authorise
 def update_portal_genres():
-    """Update selected genres for a portal and refresh channels."""
+    """Update selected genres for a portal by toggling groups.active flag."""
     global cached_xmltv
     try:
         data = request.get_json()
         portal_id = data.get("portal_id")
         selected_genres = data.get("selected_genres", [])
-        total_groups = data.get("total_groups", 0)
-        total_channels = data.get("total_channels", 0)
-        genres_mac = data.get("genres_mac", "")  # MAC used for genre selection
 
         if not portal_id:
             return jsonify({"success": False, "message": "Portal ID required"})
@@ -1300,43 +1483,63 @@ def update_portal_genres():
             return jsonify({"success": False, "message": "Portal not found"})
 
         portal = portals[portal_id]
-
-        # Update selected genres and total groups count
         logger.info(f"Updating genres for portal {portal.get('name', portal_id)}")
-        logger.info(f"Received selected_genres: {selected_genres} (type: {type(selected_genres)})")
-        logger.info(f"Received total_groups: {total_groups}, total_channels: {total_channels}")
-        logger.info(f"Received genres_mac: {genres_mac}")
+        logger.info(f"Selected genres: {selected_genres}")
 
+        # Update groups.active flag in database
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Set all groups for this portal to inactive
+        cursor.execute("UPDATE groups SET active = 0 WHERE portal = ?", [portal_id])
+
+        # Activate selected groups
+        if selected_genres:
+            placeholders = ",".join(["?" for _ in selected_genres])
+            cursor.execute(
+                f"UPDATE groups SET active = 1 WHERE portal = ? AND genre_id IN ({placeholders})",
+                [portal_id] + [str(g) for g in selected_genres]
+            )
+
+        conn.commit()
+
+        # Get updated counts for response
+        cursor.execute("""
+            SELECT
+                COUNT(*) as total_groups,
+                SUM(CASE WHEN active = 1 THEN 1 ELSE 0 END) as active_groups,
+                SUM(channel_count) as total_channels,
+                SUM(CASE WHEN active = 1 THEN channel_count ELSE 0 END) as active_channels
+            FROM groups WHERE portal = ?
+        """, [portal_id])
+        row = cursor.fetchone()
+        conn.close()
+
+        total_groups = row[0] or 0
+        active_groups = row[1] or 0
+        total_channels = row[2] or 0
+        active_channels = row[3] or 0
+
+        # Update JSON config for backwards compatibility
         portal["selected_genres"] = selected_genres
         portal["total_groups"] = total_groups
         portal["total_channels"] = total_channels
-        if genres_mac:
-            portal["genres_mac"] = genres_mac  # Store which MAC was used for genre selection
         portals[portal_id] = portal
         savePortals(portals)
 
-        logger.info(f"Saved genres for portal {portal.get('name', portal_id)}: {len(selected_genres)} selected: {selected_genres}")
+        logger.info(f"Updated genres for {portal.get('name', portal_id)}: {active_groups}/{total_groups} groups active, {active_channels}/{total_channels} channels")
 
-        # Delete all channels for this portal - they will be re-imported with the filter
-        try:
-            conn = get_db_connection()
-            cursor = conn.cursor()
+        # Clear EPG cache so it regenerates with new active groups
+        cached_xmltv = None
 
-            # Delete all channels for this portal
-            cursor.execute("DELETE FROM channels WHERE portal = ?", [portal_id])
-            deleted = cursor.rowcount
-            conn.commit()
-            conn.close()
-
-            logger.info(f"Deleted {deleted} channels for portal {portal.get('name', portal_id)} - will re-import with genre filter")
-        except Exception as e:
-            logger.error(f"Error deleting channels: {e}")
-
-        # Refresh channels cache to add new channels from newly selected genres
-        cached_xmltv = None  # Clear EPG cache
-        refresh_channels_cache()  # Refreshes all enabled portals
-
-        return jsonify({"success": True, "message": "Genres updated successfully"})
+        return jsonify({
+            "success": True,
+            "message": "Genres updated successfully",
+            "total_groups": total_groups,
+            "active_groups": active_groups,
+            "total_channels": total_channels,
+            "active_channels": active_channels
+        })
 
     except Exception as e:
         logger.error(f"Error updating genres: {e}")
@@ -1615,43 +1818,18 @@ def editor_data():
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        # Get portals with selected_genres for filtering
-        portals = getPortals()
-        portal_genre_filters = {}
-        for portal_id, portal_data in portals.items():
-            selected_genres = portal_data.get("selected_genres", [])
-            if selected_genres:
-                portal_genre_filters[portal_id] = selected_genres
-
-        # Base query
-        base_query = "FROM channels WHERE 1=1"
+        # Base query - JOIN with groups table to filter by active groups
+        base_query = """FROM channels c
+            LEFT JOIN groups g ON c.portal = g.portal AND c.genre_id = g.genre_id
+            WHERE (g.active = 1 OR g.active IS NULL)"""
         params = []
-
-        # Add genre filter based on portal's selected_genres
-        if portal_genre_filters:
-            # Build a condition that filters channels by their portal's selected genres
-            genre_conditions = []
-            for portal_id, genres in portal_genre_filters.items():
-                placeholders = ','.join(['?'] * len(genres))
-                genre_conditions.append(f"(portal = ? AND genre_id IN ({placeholders}))")
-                params.append(portal_id)
-                params.extend(genres)
-
-            # Also include channels from portals without genre filter
-            portals_with_filter = list(portal_genre_filters.keys())
-            if portals_with_filter:
-                placeholders = ','.join(['?'] * len(portals_with_filter))
-                genre_conditions.append(f"portal NOT IN ({placeholders})")
-                params.extend(portals_with_filter)
-
-            base_query += f" AND ({' OR '.join(genre_conditions)})"
         
         # Add portal filter (supports multiple values)
         if portal_filter:
             portal_values = [p.strip() for p in portal_filter.split(',') if p.strip()]
             if portal_values:
                 placeholders = ','.join(['?'] * len(portal_values))
-                base_query += f" AND portal_name IN ({placeholders})"
+                base_query += f" AND c.portal_name IN ({placeholders})"
                 params.extend(portal_values)
 
         # Add group filter (check both custom_genre and genre, supports multiple values)
@@ -1659,13 +1837,13 @@ def editor_data():
             genre_values = [g.strip() for g in group_filter.split(',') if g.strip()]
             if genre_values:
                 placeholders = ','.join(['?'] * len(genre_values))
-                base_query += f" AND (COALESCE(NULLIF(custom_genre, ''), genre) IN ({placeholders}))"
+                base_query += f" AND (COALESCE(NULLIF(c.custom_genre, ''), c.genre) IN ({placeholders}))"
                 params.extend(genre_values)
-        
+
         # Add duplicate filter (only for enabled channels)
         if duplicate_filter == 'enabled_only':
             # Show only channels where the name appears multiple times among enabled channels
-            base_query += """ AND enabled = 1 AND COALESCE(NULLIF(custom_name, ''), name) IN (
+            base_query += """ AND c.enabled = 1 AND COALESCE(NULLIF(c.custom_name, ''), c.name) IN (
                 SELECT COALESCE(NULLIF(custom_name, ''), name)
                 FROM channels
                 WHERE enabled = 1
@@ -1674,24 +1852,24 @@ def editor_data():
             )"""
         elif duplicate_filter == 'unique_only':
             # Show only channels where the name appears once among enabled channels
-            base_query += """ AND COALESCE(NULLIF(custom_name, ''), name) IN (
+            base_query += """ AND COALESCE(NULLIF(c.custom_name, ''), c.name) IN (
                 SELECT COALESCE(NULLIF(custom_name, ''), name)
                 FROM channels
                 WHERE enabled = 1
                 GROUP BY COALESCE(NULLIF(custom_name, ''), name)
                 HAVING COUNT(*) = 1
             )"""
-        
+
         # Add search filter if provided
         if search_value:
             base_query += """ AND (
-                name LIKE ? OR 
-                custom_name LIKE ? OR 
-                genre LIKE ? OR 
-                custom_genre LIKE ? OR
-                number LIKE ? OR
-                custom_number LIKE ? OR
-                portal_name LIKE ?
+                c.name LIKE ? OR
+                c.custom_name LIKE ? OR
+                c.genre LIKE ? OR
+                c.custom_genre LIKE ? OR
+                c.number LIKE ? OR
+                c.custom_number LIKE ? OR
+                c.portal_name LIKE ?
             )"""
             search_param = f"%{search_value}%"
             params.extend([search_param] * 7)
@@ -1720,27 +1898,27 @@ def editor_data():
             col_name = column_map.get(col_idx, 'name')
             
             if col_name == 'name':
-                order_clauses.append(f"COALESCE(NULLIF(custom_name, ''), name) {direction}")
+                order_clauses.append(f"COALESCE(NULLIF(c.custom_name, ''), c.name) {direction}")
             elif col_name == 'genre':
-                order_clauses.append(f"COALESCE(NULLIF(custom_genre, ''), genre) {direction}")
+                order_clauses.append(f"COALESCE(NULLIF(c.custom_genre, ''), c.genre) {direction}")
             elif col_name == 'number':
-                order_clauses.append(f"CAST(COALESCE(NULLIF(custom_number, ''), number) AS INTEGER) {direction}")
+                order_clauses.append(f"CAST(COALESCE(NULLIF(c.custom_number, ''), c.number) AS INTEGER) {direction}")
             elif col_name == 'epg_id':
-                order_clauses.append(f"COALESCE(NULLIF(custom_epg_id, ''), portal || channel_id) {direction}")
+                order_clauses.append(f"COALESCE(NULLIF(c.custom_epg_id, ''), c.portal || c.channel_id) {direction}")
             else:
-                order_clauses.append(f"{col_name} {direction}")
+                order_clauses.append(f"c.{col_name} {direction}")
             i += 1
-            
+
         if not order_clauses:
-            order_clauses.append("COALESCE(NULLIF(custom_name, ''), name) ASC")
+            order_clauses.append("COALESCE(NULLIF(c.custom_name, ''), c.name) ASC")
             
         order_clause = "ORDER BY " + ", ".join(order_clauses)
         
         data_query = f"""
-            SELECT 
-                portal, channel_id, portal_name, name, number, genre, logo,
-                enabled, custom_name, custom_number, custom_genre, 
-                custom_epg_id, fallback_channel
+            SELECT
+                c.portal, c.channel_id, c.portal_name, c.name, c.number, c.genre, c.genre_id, c.logo,
+                c.enabled, c.custom_name, c.custom_number, c.custom_genre,
+                c.custom_epg_id, c.fallback_channel, c.available_macs, c.alternate_ids
             {base_query}
             {order_clause}
             LIMIT ? OFFSET ?
@@ -1797,11 +1975,15 @@ def editor_data():
                 "channelName": row['name'] or '',
                 "customChannelName": row['custom_name'] or '',
                 "genre": row['genre'] or '',
+                "genreId": row['genre_id'] or '',
                 "customGenre": row['custom_genre'] or '',
                 "channelId": channel_id,
                 "customEpgId": row['custom_epg_id'] or '',
                 "fallbackChannel": row['fallback_channel'] or '',
                 "link": f"http://{host}/play/{portal}/{channel_id}?web=true",
+                "logo": row['logo'] or '',
+                "availableMacs": row['available_macs'] or '',
+                "alternateIds": row['alternate_ids'] or '',
                 "duplicateCount": duplicate_count if row['enabled'] else 0,
                 "hasEpg": has_epg
             })
@@ -2143,6 +2325,141 @@ def editorSave():
     return jsonify({"success": True, "message": "Playlist config saved!"})
 
 
+@app.route("/api/editor/merge", methods=["POST"])
+@authorise
+def editor_merge_channels():
+    """Merge two channels - add secondary's ID to primary's alternate_ids, then delete secondary."""
+    try:
+        data = request.get_json()
+        primary_portal = data.get("primaryPortal")
+        primary_channel_id = data.get("primaryChannelId")
+        secondary_portal = data.get("secondaryPortal")
+        secondary_channel_id = data.get("secondaryChannelId")
+
+        if not all([primary_portal, primary_channel_id, secondary_portal, secondary_channel_id]):
+            return jsonify({"success": False, "error": "Missing required fields"}), 400
+
+        if primary_portal != secondary_portal:
+            return jsonify({"success": False, "error": "Channels must be from the same portal"}), 400
+
+        if primary_channel_id == secondary_channel_id:
+            return jsonify({"success": False, "error": "Cannot merge a channel with itself"}), 400
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Get current alternate_ids and available_macs from primary channel
+        cursor.execute(
+            "SELECT alternate_ids, available_macs FROM channels WHERE portal = ? AND channel_id = ?",
+            [primary_portal, primary_channel_id]
+        )
+        primary_row = cursor.fetchone()
+        if not primary_row:
+            conn.close()
+            return jsonify({"success": False, "error": "Primary channel not found"}), 404
+
+        # Get available_macs from secondary channel
+        cursor.execute(
+            "SELECT available_macs FROM channels WHERE portal = ? AND channel_id = ?",
+            [secondary_portal, secondary_channel_id]
+        )
+        secondary_row = cursor.fetchone()
+        if not secondary_row:
+            conn.close()
+            return jsonify({"success": False, "error": "Secondary channel not found"}), 404
+
+        # Build new alternate_ids list
+        current_alternates = []
+        if primary_row[0]:
+            current_alternates = [aid.strip() for aid in primary_row[0].split(",") if aid.strip()]
+
+        if secondary_channel_id not in current_alternates:
+            current_alternates.append(secondary_channel_id)
+
+        new_alternate_ids = ",".join(current_alternates)
+
+        # Merge available_macs (combine both, deduplicate)
+        primary_macs = set()
+        if primary_row[1]:
+            primary_macs = set(m.strip() for m in primary_row[1].split(",") if m.strip())
+        if secondary_row[0]:
+            secondary_macs = set(m.strip() for m in secondary_row[0].split(",") if m.strip())
+            primary_macs.update(secondary_macs)
+
+        new_available_macs = ",".join(sorted(primary_macs))
+
+        # Update primary channel with new alternate_ids and merged available_macs
+        cursor.execute(
+            "UPDATE channels SET alternate_ids = ?, available_macs = ? WHERE portal = ? AND channel_id = ?",
+            [new_alternate_ids, new_available_macs, primary_portal, primary_channel_id]
+        )
+
+        # Delete the secondary channel
+        cursor.execute(
+            "DELETE FROM channels WHERE portal = ? AND channel_id = ?",
+            [secondary_portal, secondary_channel_id]
+        )
+
+        conn.commit()
+        conn.close()
+
+        logger.info(f"Merged channel {secondary_channel_id} into {primary_channel_id} for portal {primary_portal}")
+
+        return jsonify({
+            "success": True,
+            "message": f"Channel merged successfully. {secondary_channel_id} is now an alternate for {primary_channel_id}",
+            "alternateIds": new_alternate_ids
+        })
+
+    except Exception as e:
+        logger.error(f"Error merging channels: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/editor/search-for-merge", methods=["POST"])
+@authorise
+def editor_search_for_merge():
+    """Search for channels to merge with (same portal, different ID)."""
+    try:
+        data = request.get_json()
+        portal = data.get("portal")
+        exclude_channel_id = data.get("excludeChannelId")
+        query = data.get("query", "").strip()
+
+        if not portal or not query or len(query) < 2:
+            return jsonify({"success": True, "channels": []})
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Search by name or channel_id
+        search_pattern = f"%{query}%"
+        cursor.execute("""
+            SELECT channel_id, name, custom_name, genre
+            FROM channels
+            WHERE portal = ?
+              AND channel_id != ?
+              AND (name LIKE ? OR custom_name LIKE ? OR channel_id LIKE ?)
+            LIMIT 10
+        """, [portal, exclude_channel_id, search_pattern, search_pattern, search_pattern])
+
+        channels = []
+        for row in cursor.fetchall():
+            channels.append({
+                "channelId": row["channel_id"],
+                "name": row["name"],
+                "customName": row["custom_name"] or "",
+                "genre": row["genre"] or ""
+            })
+
+        conn.close()
+        return jsonify({"success": True, "channels": channels})
+
+    except Exception as e:
+        logger.error(f"Error searching channels for merge: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 @app.route("/api/editor/reset", methods=["POST"])
 @app.route("/editor/reset", methods=["POST"])  # Keep old route for backward compatibility
 @authorise
@@ -2187,6 +2504,70 @@ def editorRefresh():
         return flask.jsonify({"status": "success", "total": total})
     except Exception as e:
         logger.error(f"Error refreshing channel cache: {e}")
+        return flask.jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route("/api/portal/refresh", methods=["POST"])
+@authorise
+def refreshPortalChannels():
+    """Refresh channels for a specific portal."""
+    try:
+        data = request.get_json()
+        portal_id = data.get("portal_id")
+
+        if not portal_id:
+            return flask.jsonify({"status": "error", "message": "Portal ID required"}), 400
+
+        portals = getPortals()
+        if portal_id not in portals:
+            return flask.jsonify({"status": "error", "message": "Portal not found"}), 404
+
+        portal_name = portals[portal_id].get("name", portal_id)
+        logger.info(f"Refreshing channels for portal: {portal_name}")
+
+        total = refresh_channels_cache(target_portal_id=portal_id)
+        logger.info(f"Portal {portal_name} channel refresh completed: {total} channels")
+
+        # Get updated stats for this portal
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Get channel counts
+        cursor.execute("""
+            SELECT
+                COUNT(*) as total_channels,
+                SUM(CASE WHEN g.active = 1 OR g.active IS NULL THEN 1 ELSE 0 END) as active_channels
+            FROM channels c
+            LEFT JOIN groups g ON c.portal = g.portal AND c.genre_id = g.genre_id
+            WHERE c.portal = ?
+        """, [portal_id])
+        ch_row = cursor.fetchone()
+
+        # Get group counts
+        cursor.execute("""
+            SELECT
+                COUNT(*) as total_groups,
+                SUM(CASE WHEN active = 1 THEN 1 ELSE 0 END) as active_groups
+            FROM groups WHERE portal = ?
+        """, [portal_id])
+        gr_row = cursor.fetchone()
+        conn.close()
+
+        stats = {
+            "total_channels": ch_row[0] or 0,
+            "channels": ch_row[1] or 0,
+            "total_groups": gr_row[0] or 0,
+            "groups": gr_row[1] or 0
+        }
+
+        return flask.jsonify({
+            "status": "success",
+            "total": total,
+            "portal": portal_name,
+            "stats": stats
+        })
+    except Exception as e:
+        logger.error(f"Error refreshing portal channels: {e}")
         return flask.jsonify({"status": "error", "message": str(e)}), 500
 
 
@@ -2263,20 +2644,21 @@ def generate_playlist():
     # Build order clause based on settings
     order_clause = ""
     if getSettings().get("sort playlist by channel name", "true") == "true":
-        order_clause = "ORDER BY COALESCE(NULLIF(custom_name, ''), name)"
+        order_clause = "ORDER BY COALESCE(NULLIF(c.custom_name, ''), c.name)"
     elif getSettings().get("use channel numbers", "true") == "true":
         if getSettings().get("sort playlist by channel number", "false") == "true":
-            order_clause = "ORDER BY CAST(COALESCE(NULLIF(custom_number, ''), number) AS INTEGER)"
+            order_clause = "ORDER BY CAST(COALESCE(NULLIF(c.custom_number, ''), c.number) AS INTEGER)"
     elif getSettings().get("use channel genres", "true") == "true":
         if getSettings().get("sort playlist by channel genre", "false") == "true":
-            order_clause = "ORDER BY COALESCE(NULLIF(custom_genre, ''), genre)"
+            order_clause = "ORDER BY COALESCE(NULLIF(c.custom_genre, ''), c.genre)"
     
     cursor.execute(f'''
-        SELECT 
-            portal, channel_id, name, number, genre,
-            custom_name, custom_number, custom_genre, custom_epg_id
-        FROM channels
-        WHERE enabled = 1
+        SELECT
+            c.portal, c.channel_id, c.name, c.number, c.genre,
+            c.custom_name, c.custom_number, c.custom_genre, c.custom_epg_id
+        FROM channels c
+        LEFT JOIN groups g ON c.portal = g.portal AND c.genre_id = g.genre_id
+        WHERE c.enabled = 1 AND (g.active = 1 OR g.active IS NULL)
         {order_clause}
     ''')
     
@@ -2370,10 +2752,11 @@ def refresh_xmltv():
     cursor = conn.cursor()
     cursor.execute('''
         SELECT
-            portal, channel_id, name, number, logo,
-            custom_name, custom_number, custom_epg_id
-        FROM channels
-        WHERE enabled = 1
+            c.portal, c.channel_id, c.name, c.number, c.logo,
+            c.custom_name, c.custom_number, c.custom_epg_id
+        FROM channels c
+        LEFT JOIN groups g ON c.portal = g.portal AND c.genre_id = g.genre_id
+        WHERE c.enabled = 1 AND (g.active = 1 OR g.active IS NULL)
     ''')
 
     # Group enabled channels by portal
@@ -2842,18 +3225,33 @@ def channel(portalId, channelId):
     ip = request.remote_addr
     channelName = portal.get("custom channel names", {}).get(channelId)
 
-    # Get available_macs from database (MACs that can access this channel)
+    # Get available_macs, alternate_ids, cmd, and name from database
     available_macs = []
+    alternate_ids = []
+    cached_cmd = None
+    cached_channel_name = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT available_macs FROM channels WHERE portal = ? AND channel_id = ?", [portalId, channelId])
+        cursor.execute("SELECT available_macs, alternate_ids, cmd, name FROM channels WHERE portal = ? AND channel_id = ?", [portalId, channelId])
         row = cursor.fetchone()
-        if row and row[0]:
-            available_macs = [m.strip() for m in row[0].split(",") if m.strip()]
+        if row:
+            if row[0]:
+                available_macs = [m.strip() for m in row[0].split(",") if m.strip()]
+            if row[1]:
+                alternate_ids = [aid.strip() for aid in row[1].split(",") if aid.strip()]
+            if row[2]:
+                cached_cmd = row[2]
+            if row[3]:
+                cached_channel_name = row[3]
         conn.close()
     except Exception as e:
-        logger.debug(f"Could not get available_macs for channel {channelId}: {e}")
+        logger.debug(f"Could not get channel data for channel {channelId}: {e}")
+
+    # Build list of channel IDs to try (primary first, then alternates)
+    channel_ids_to_try = [channelId] + alternate_ids
+    if alternate_ids:
+        logger.debug(f"Channel {channelId} has alternate IDs: {alternate_ids}")
 
     # MACs nach Score sortieren (idle MACs bevorzugen)
     macs_dict = portal["macs"]
@@ -2899,19 +3297,37 @@ def channel(portalId, channelId):
                 return None
 
             stb.getProfile(url, mac_to_test, token, proxy)
-            channels = stb.getAllChannels(url, mac_to_test, token, proxy)
-
-            if not channels:
-                return None
 
             cmd = None
-            found_channel_name = portal.get("custom channel names", {}).get(channelId)
-            for c in channels:
-                if str(c["id"]) == channelId:
-                    if found_channel_name is None:
-                        found_channel_name = c["name"]
-                    cmd = c["cmd"]
-                    break
+            found_channel_name = portal.get("custom channel names", {}).get(channelId) or cached_channel_name
+
+            # OPTIMIZATION: Use cached cmd from database if available (skips getAllChannels!)
+            if cached_cmd:
+                cmd = cached_cmd
+                logger.debug(f"Using cached cmd for channel {channelId}")
+            else:
+                # Fallback: fetch all channels (slow, only for channels without cached cmd)
+                logger.debug(f"No cached cmd, fetching all channels for MAC {mac_to_test}")
+                channels = stb.getAllChannels(url, mac_to_test, token, proxy)
+
+                if not channels:
+                    return None
+
+                used_channel_id = channelId
+
+                # Try primary channel ID first, then alternates
+                for try_channel_id in channel_ids_to_try:
+                    for c in channels:
+                        if str(c["id"]) == try_channel_id:
+                            if found_channel_name is None:
+                                found_channel_name = c["name"]
+                            cmd = c["cmd"]
+                            used_channel_id = try_channel_id
+                            if try_channel_id != channelId:
+                                logger.info(f"Using alternate channel ID {try_channel_id} instead of {channelId}")
+                            break
+                    if cmd:
+                        break
 
             if not cmd:
                 return None
@@ -3468,14 +3884,15 @@ def refresh_lineup():
     # Read enabled channels from database
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     cursor.execute('''
-        SELECT 
-            portal, channel_id, name, number,
-            custom_name, custom_number
-        FROM channels
-        WHERE enabled = 1
-        ORDER BY CAST(COALESCE(NULLIF(custom_number, ''), number) AS INTEGER)
+        SELECT
+            c.portal, c.channel_id, c.name, c.number,
+            c.custom_name, c.custom_number
+        FROM channels c
+        LEFT JOIN groups g ON c.portal = g.portal AND c.genre_id = g.genre_id
+        WHERE c.enabled = 1 AND (g.active = 1 OR g.active IS NULL)
+        ORDER BY CAST(COALESCE(NULLIF(c.custom_number, ''), c.number) AS INTEGER)
     ''')
     
     for row in cursor.fetchall():

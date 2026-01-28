@@ -46,6 +46,13 @@ Eine Sammlung von Verbesserungsvorschlägen und Feature-Ideen für zukünftige E
   - Bestehende Genre-Auswahl wird beibehalten
   - ✅ Implementiert: Genre-Filter kann jederzeit geändert werden
 
+- ✅ **Groups-Tabelle für schnelles Umschalten**
+  - Neue `groups` DB-Tabelle mit `active` Flag
+  - ALLE Channels werden in DB gespeichert (kein Genre-Filter beim Import)
+  - Genre de/aktivieren ändert nur `groups.active` - kein Re-Import nötig
+  - Groups werden aus DB geladen (schnell) statt Portal-API
+  - Stats zeigen `active / total` für Channels und Groups
+
 ### Portal-Import aus Textdateien
 - ⬜ Import von Portalen aus formatierten Scan-Ergebnis-Dateien
 - ⬜ Automatische Erkennung von Portal-URL und MAC-Adresse

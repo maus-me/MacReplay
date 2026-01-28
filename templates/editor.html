@@ -133,6 +133,113 @@
         </div>
     </div>
 
+    <!-- Channel Info Modal -->
+    <div class="modal fade" id="channelInfoModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-info-circle text-info me-2"></i>
+                        <span id="channelInfoTitle">Channel Details</span>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <!-- Logo -->
+                        <div class="col-12 mb-3 text-center" id="channelInfoLogoContainer" style="display: none;">
+                            <img id="channelInfoLogo" src="" alt="Channel Logo" style="max-height: 80px; max-width: 200px;">
+                        </div>
+
+                        <!-- Basic Info -->
+                        <div class="col-md-6">
+                            <h6 class="border-bottom pb-2 mb-3"><i class="fas fa-tv me-2"></i>Channel Info</h6>
+                            <table class="table table-sm">
+                                <tr><th style="width: 40%">Channel ID</th><td><code id="infoChannelId"></code></td></tr>
+                                <tr><th>Name</th><td id="infoName"></td></tr>
+                                <tr><th>Custom Name</th><td id="infoCustomName"></td></tr>
+                                <tr><th>Number</th><td id="infoNumber"></td></tr>
+                                <tr><th>Custom Number</th><td id="infoCustomNumber"></td></tr>
+                                <tr><th>Enabled</th><td id="infoEnabled"></td></tr>
+                            </table>
+                        </div>
+
+                        <!-- Group/Genre Info -->
+                        <div class="col-md-6">
+                            <h6 class="border-bottom pb-2 mb-3"><i class="fas fa-folder me-2"></i>Group Info</h6>
+                            <table class="table table-sm">
+                                <tr><th style="width: 40%">Genre</th><td id="infoGenre"></td></tr>
+                                <tr><th>Genre ID</th><td><code id="infoGenreId"></code></td></tr>
+                                <tr><th>Custom Genre</th><td id="infoCustomGenre"></td></tr>
+                                <tr><th>Portal</th><td id="infoPortalName"></td></tr>
+                                <tr><th>Portal ID</th><td><code id="infoPortalId" style="font-size: 0.75em;"></code></td></tr>
+                            </table>
+                        </div>
+
+                        <!-- EPG & Fallback -->
+                        <div class="col-md-6">
+                            <h6 class="border-bottom pb-2 mb-3"><i class="fas fa-calendar me-2"></i>EPG & Fallback</h6>
+                            <table class="table table-sm">
+                                <tr><th style="width: 40%">Has EPG</th><td id="infoHasEpg"></td></tr>
+                                <tr><th>Custom EPG ID</th><td id="infoCustomEpgId"></td></tr>
+                                <tr><th>Fallback For</th><td id="infoFallback"></td></tr>
+                                <tr><th>Duplicates</th><td id="infoDuplicates"></td></tr>
+                            </table>
+                        </div>
+
+                        <!-- Stream URL -->
+                        <div class="col-md-6">
+                            <h6 class="border-bottom pb-2 mb-3"><i class="fas fa-link me-2"></i>Stream</h6>
+                            <table class="table table-sm">
+                                <tr><th style="width: 40%">Play URL</th><td><code id="infoLink" style="font-size: 0.7em; word-break: break-all;"></code></td></tr>
+                            </table>
+                        </div>
+
+                        <!-- Alternate IDs -->
+                        <div class="col-md-6 mt-3">
+                            <h6 class="border-bottom pb-2 mb-3"><i class="fas fa-code-branch me-2"></i>Alternate IDs</h6>
+                            <div id="infoAlternateIds">
+                                <p class="text-muted">No alternate IDs</p>
+                            </div>
+                        </div>
+
+                        <!-- Available MACs -->
+                        <div class="col-md-6 mt-3">
+                            <h6 class="border-bottom pb-2 mb-3"><i class="fas fa-network-wired me-2"></i>Available MACs</h6>
+                            <div id="infoMacsContainer">
+                                <p class="text-muted">No MACs available</p>
+                            </div>
+                        </div>
+
+                        <!-- Merge Section -->
+                        <div class="col-12 mt-3">
+                            <h6 class="border-bottom pb-2 mb-3"><i class="fas fa-object-group me-2"></i>Merge Duplicate</h6>
+                            <p class="small text-muted mb-2">
+                                Merge another channel into this one. The other channel's ID becomes an alternate ID,
+                                and the system will try it as fallback if the primary ID fails.
+                            </p>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="mergeChannelSearch"
+                                       placeholder="Search for channel to merge..." autocomplete="off">
+                                <button class="btn btn-warning" type="button" id="mergeChannelBtn" disabled>
+                                    <i class="fas fa-object-group"></i> Merge
+                                </button>
+                            </div>
+                            <div id="mergeSearchResults" class="list-group mt-1" style="max-height: 150px; overflow-y: auto; display: none;"></div>
+                            <input type="hidden" id="mergeTargetPortal" value="">
+                            <input type="hidden" id="mergeTargetChannelId" value="">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>
 
 {% endblock %}
@@ -726,7 +833,17 @@
                                 value="' + row.fallbackChannel + '">'
                     }
                 },
-                { data: "portalName" },
+                {
+                    data: "portalName",
+                    render: function (data, type, row, meta) {
+                        // Store the full row data in a data attribute for the modal
+                        const rowDataJson = JSON.stringify(row).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                        return '<span class="portal-link" style="cursor: pointer; color: var(--bs-primary); text-decoration: underline;" ' +
+                               'onclick="showChannelInfo(this)" ' +
+                               'data-row="' + rowDataJson + '">' +
+                               (data || 'Unknown') + '</span>';
+                    }
+                },
             ],
         });
 
@@ -799,6 +916,247 @@
             btn.html(originalText).prop('disabled', false);
         });
     }
+
+    // Show Channel Info Modal
+    function showChannelInfo(element) {
+        try {
+            const rowDataStr = element.getAttribute('data-row').replace(/&quot;/g, '"');
+            const row = JSON.parse(rowDataStr);
+
+            // Set title
+            document.getElementById('channelInfoTitle').textContent = row.customChannelName || row.channelName || 'Channel Details';
+
+            // Logo
+            const logoContainer = document.getElementById('channelInfoLogoContainer');
+            const logoImg = document.getElementById('channelInfoLogo');
+            if (row.logo) {
+                logoImg.src = row.logo;
+                logoContainer.style.display = 'block';
+            } else {
+                logoContainer.style.display = 'none';
+            }
+
+            // Basic Info
+            document.getElementById('infoChannelId').textContent = row.channelId || '-';
+            document.getElementById('infoName').textContent = row.channelName || '-';
+            document.getElementById('infoCustomName').textContent = row.customChannelName || '-';
+            document.getElementById('infoNumber').textContent = row.channelNumber || '-';
+            document.getElementById('infoCustomNumber').textContent = row.customChannelNumber || '-';
+            document.getElementById('infoEnabled').innerHTML = row.enabled
+                ? '<span class="badge bg-success">Yes</span>'
+                : '<span class="badge bg-secondary">No</span>';
+
+            // Group Info
+            document.getElementById('infoGenre').textContent = row.genre || '-';
+            document.getElementById('infoGenreId').textContent = row.genreId || '-';
+            document.getElementById('infoCustomGenre').textContent = row.customGenre || '-';
+            document.getElementById('infoPortalName').textContent = row.portalName || '-';
+            document.getElementById('infoPortalId').textContent = row.portal || '-';
+
+            // EPG & Fallback
+            document.getElementById('infoHasEpg').innerHTML = row.hasEpg
+                ? '<span class="badge bg-success">Yes</span>'
+                : '<span class="badge bg-secondary">No</span>';
+            document.getElementById('infoCustomEpgId').textContent = row.customEpgId || '-';
+            document.getElementById('infoFallback').textContent = row.fallbackChannel || '-';
+            document.getElementById('infoDuplicates').innerHTML = row.duplicateCount > 1
+                ? '<span class="badge bg-warning text-dark">' + row.duplicateCount + 'x enabled</span>'
+                : '<span class="badge bg-secondary">None</span>';
+
+            // Stream URL
+            document.getElementById('infoLink').textContent = row.link || '-';
+
+            // Available MACs - Parse and number them
+            const macsContainer = document.getElementById('infoMacsContainer');
+            if (row.availableMacs && row.availableMacs.trim()) {
+                const macs = row.availableMacs.split(',').map(m => m.trim()).filter(m => m);
+                if (macs.length > 0) {
+                    let macsHtml = '<div class="table-responsive"><table class="table table-sm table-bordered">';
+                    macsHtml += '<thead><tr><th style="width: 60px;">#</th><th>MAC Address</th></tr></thead><tbody>';
+                    macs.forEach((mac, index) => {
+                        macsHtml += '<tr><td><span class="badge bg-primary">' + (index + 1) + '</span></td>';
+                        macsHtml += '<td><code>' + mac + '</code></td></tr>';
+                    });
+                    macsHtml += '</tbody></table></div>';
+                    macsContainer.innerHTML = macsHtml;
+                } else {
+                    macsContainer.innerHTML = '<p class="text-muted mb-0">No MACs available</p>';
+                }
+            } else {
+                macsContainer.innerHTML = '<p class="text-muted mb-0">No MACs available</p>';
+            }
+
+            // Alternate IDs
+            const alternateIdsContainer = document.getElementById('infoAlternateIds');
+            if (row.alternateIds && row.alternateIds.trim()) {
+                const altIds = row.alternateIds.split(',').map(id => id.trim()).filter(id => id);
+                if (altIds.length > 0) {
+                    let altHtml = '<div class="d-flex flex-wrap gap-1">';
+                    altIds.forEach(id => {
+                        altHtml += '<code class="badge bg-info text-dark">' + id + '</code>';
+                    });
+                    altHtml += '</div>';
+                    alternateIdsContainer.innerHTML = altHtml;
+                } else {
+                    alternateIdsContainer.innerHTML = '<p class="text-muted mb-0">No alternate IDs</p>';
+                }
+            } else {
+                alternateIdsContainer.innerHTML = '<p class="text-muted mb-0">No alternate IDs</p>';
+            }
+
+            // Store current channel info for merge
+            window.currentChannelInfo = {
+                portal: row.portal,
+                channelId: row.channelId,
+                channelName: row.customChannelName || row.channelName
+            };
+
+            // Reset merge search
+            document.getElementById('mergeChannelSearch').value = '';
+            document.getElementById('mergeTargetPortal').value = '';
+            document.getElementById('mergeTargetChannelId').value = '';
+            document.getElementById('mergeChannelBtn').disabled = true;
+            document.getElementById('mergeSearchResults').style.display = 'none';
+
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('channelInfoModal'));
+            modal.show();
+        } catch (error) {
+            console.error('Error showing channel info:', error);
+            showNotification('Error loading channel details', 'error');
+        }
+    }
+
+    // Merge channel search functionality
+    let mergeSearchTimeout = null;
+    document.getElementById('mergeChannelSearch').addEventListener('input', function(e) {
+        const query = e.target.value.trim();
+        const resultsContainer = document.getElementById('mergeSearchResults');
+
+        if (query.length < 2) {
+            resultsContainer.style.display = 'none';
+            return;
+        }
+
+        clearTimeout(mergeSearchTimeout);
+        mergeSearchTimeout = setTimeout(async () => {
+            // Search via API (since DataTable uses server-side pagination)
+            resultsContainer.innerHTML = '<div class="list-group-item text-muted"><i class="fas fa-spinner fa-spin"></i> Searching...</div>';
+            resultsContainer.style.display = 'block';
+
+            try {
+                const response = await fetch('/api/editor/search-for-merge', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        portal: window.currentChannelInfo.portal,
+                        excludeChannelId: window.currentChannelInfo.channelId,
+                        query: query
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.channels.length > 0) {
+                    let html = '';
+                    data.channels.forEach(ch => {
+                        const displayName = ch.customName || ch.name;
+                        html += '<a href="#" class="list-group-item list-group-item-action merge-result-item" ' +
+                                'data-portal="' + window.currentChannelInfo.portal + '" data-channel-id="' + ch.channelId + '">' +
+                                '<small class="text-muted">ID: ' + ch.channelId + '</small> - ' + displayName +
+                                (ch.genre ? ' <span class="badge bg-secondary">' + ch.genre + '</span>' : '') +
+                                '</a>';
+                    });
+                    resultsContainer.innerHTML = html;
+                } else {
+                    resultsContainer.innerHTML = '<div class="list-group-item text-muted">No matching channels found</div>';
+                }
+            } catch (error) {
+                console.error('Error searching channels:', error);
+                resultsContainer.innerHTML = '<div class="list-group-item text-danger">Error searching channels</div>';
+            }
+        }, 300);
+    });
+
+    // Handle merge result selection
+    document.getElementById('mergeSearchResults').addEventListener('click', function(e) {
+        e.preventDefault();
+        const item = e.target.closest('.merge-result-item');
+        if (item) {
+            const portal = item.dataset.portal;
+            const channelId = item.dataset.channelId;
+            const displayText = item.textContent;
+
+            document.getElementById('mergeChannelSearch').value = displayText;
+            document.getElementById('mergeTargetPortal').value = portal;
+            document.getElementById('mergeTargetChannelId').value = channelId;
+            document.getElementById('mergeChannelBtn').disabled = false;
+            document.getElementById('mergeSearchResults').style.display = 'none';
+        }
+    });
+
+    // Merge button click handler
+    document.getElementById('mergeChannelBtn').addEventListener('click', function() {
+        const secondaryPortal = document.getElementById('mergeTargetPortal').value;
+        const secondaryChannelId = document.getElementById('mergeTargetChannelId').value;
+
+        if (!secondaryPortal || !secondaryChannelId) {
+            showNotification('Please select a channel to merge', 'warning');
+            return;
+        }
+
+        if (!window.currentChannelInfo) {
+            showNotification('Error: Current channel info not found', 'error');
+            return;
+        }
+
+        const primaryPortal = window.currentChannelInfo.portal;
+        const primaryChannelId = window.currentChannelInfo.channelId;
+
+        if (primaryChannelId === secondaryChannelId) {
+            showNotification('Cannot merge a channel with itself', 'warning');
+            return;
+        }
+
+        // Confirm merge
+        if (!confirm('Merge channel ID ' + secondaryChannelId + ' into ' + primaryChannelId + '?\n\n' +
+                     'The secondary channel will be deleted and its ID will become an alternate for the primary channel.')) {
+            return;
+        }
+
+        const btn = this;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Merging...';
+
+        fetch('/api/editor/merge', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                primaryPortal: primaryPortal,
+                primaryChannelId: primaryChannelId,
+                secondaryPortal: secondaryPortal,
+                secondaryChannelId: secondaryChannelId
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification(data.message, 'success', 5000);
+                // Close modal and refresh table
+                bootstrap.Modal.getInstance(document.getElementById('channelInfoModal')).hide();
+                $('#channelsTable').DataTable().ajax.reload(null, false);
+            } else {
+                showNotification('Merge failed: ' + data.error, 'error', 5000);
+            }
+        })
+        .catch(error => {
+            showNotification('Error merging channels: ' + error, 'error', 5000);
+        })
+        .finally(() => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-object-group"></i> Merge';
+        });
+    });
 
 </script>
 {% endblock %} 
