@@ -32,12 +32,13 @@ pytest -k test_name  # Run specific test
 
 ### Core Files
 
-- **app.py** - Main Flask application (~3200 lines)
-  - All HTTP routes and API endpoints
-  - Portal/MAC management
+- **app.py** - Main Flask application (~3700 lines)
+  - All HTTP routes and API endpoints (50+)
+  - Portal/MAC management with genre selection
   - Channel database operations (SQLite)
   - M3U playlist and XMLTV EPG generation
-  - Stream proxying with FFmpeg
+  - HLS stream proxying via FFmpeg
+  - Background schedulers for EPG and channel refresh
 
 - **stb.py** - Stalker Portal API client
   - `getToken()` - Authenticate with portal
@@ -66,21 +67,53 @@ pytest -k test_name  # Run specific test
 
 **MAC**: Authentication credential for portal access. Each MAC has:
 - Expiration date
-- Watchdog timeout (activity indicator)
+- Watchdog timeout (seconds since last activity - indicates if MAC is in use)
 - Playback limit (max concurrent streams)
 
 **Genre/Group**: Channel category from portal. Users can filter which genres to import.
 
-**available_macs**: When channels are refreshed, ALL MACs are queried and the system records which MACs can access each channel. During streaming, MACs from this list are prioritized.
+**available_macs**: When channels are refreshed, ALL MACs are queried and the system records which MACs can access each channel. During streaming, only MACs from this list are used.
+
+### MAC Scoring Algorithm
+
+When selecting a MAC for streaming (`score_mac_for_selection()`):
+1. Skip expired MACs
+2. Score based on watchdog_timeout (prefer idle MACs > 300s)
+3. Consider playback_limit (available concurrent slots)
+4. Select highest scoring MAC
+
+Watchdog interpretation:
+- < 60s: Very active (currently streaming)
+- 60-300s: Recently used
+- > 300s: Idle (preferred for new streams)
 
 ### Request Flow (Streaming)
 
 1. Client requests `/play/{portalId}/{channelId}`
 2. System looks up `available_macs` for that channel
 3. MACs are scored (prefer idle, available slots)
-4. Best MAC gets token from portal
+4. Best MAC gets token from portal via `stb.getToken()`
 5. Stream URL fetched via `stb.getLink()`
-6. FFmpeg proxies the stream to client
+6. FFmpeg proxies HLS stream to client
+
+### Background Schedulers
+
+- **EPG Scheduler**: Refreshes EPG data (default: every 6 hours)
+- **Channel Scheduler**: Syncs channels from all portals (default: every 24 hours)
+- Both run as daemon threads, configured via environment variables
+
+### Key API Endpoints
+
+| Endpoint | Purpose |
+|----------|---------|
+| `/api/portals` | List all portals with MACs |
+| `/portal/add`, `/portal/update`, `/portal/remove` | Portal CRUD |
+| `/api/editor/channels` | Get channels for editor |
+| `/api/editor/save` | Save channel configuration |
+| `/play/{portalId}/{channelId}` | Stream a channel |
+| `/playlist.m3u` | Generate M3U playlist |
+| `/xmltv` | Generate XMLTV EPG |
+| `/api/dashboard` | System statistics |
 
 ### Templates
 
@@ -89,14 +122,22 @@ Jinja2 templates in `templates/`:
 - `editor.html` - Channel playlist editor with filtering
 - `epg.html` - EPG viewer
 - `settings.html` - Application settings
+- `dashboard.html` - System overview
 
 ## Environment Variables
 
 ```
-HOST=0.0.0.0:8001
-CONFIG=/app/data/MacReplay.json
-DB_PATH=/app/data/channels.db
-TZ=Europe/Berlin
-EPG_REFRESH_INTERVAL=6  # hours
-CHANNEL_REFRESH_INTERVAL=24  # hours, 0 to disable
+HOST=0.0.0.0:8001               # Legacy bind address
+BIND_HOST=0.0.0.0               # Flask bind host
+PORT=8001                       # Flask bind port
+PUBLIC_HOST=<hostname>          # External hostname for generated URLs
+CONFIG=/app/data/MacReplay.json # Config file path
+DB_PATH=/app/data/channels.db   # Database path
+DATA_DIR=/app/data              # Data directory
+LOG_DIR=/app/logs               # Log directory
+TZ=Europe/Berlin                # Timezone for API requests
+FFMPEG=ffmpeg                   # FFmpeg binary
+FFPROBE=ffprobe                 # FFprobe binary
+EPG_REFRESH_INTERVAL=6          # Hours between EPG refresh
+CHANNEL_REFRESH_INTERVAL=24     # Hours between channel sync (0=disabled)
 ```
