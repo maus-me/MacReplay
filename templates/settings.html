@@ -224,6 +224,42 @@
                     </div>
                 </div>
             </div>
+
+            <div class="card mt-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-tags"></i> Tag Extraction</h5>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="resetTagDefaults">
+                        <i class="fas fa-undo"></i> Reset to Defaults
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="tag_country_codes" class="form-label">Country Codes (CSV)</label>
+                        <textarea class="form-control" id="tag_country_codes" name="tag country codes" rows="2">{{ settings['tag country codes'] }}</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="tag_resolution_patterns" class="form-label">Resolution Patterns (LABEL=REGEX)</label>
+                        <textarea class="form-control" id="tag_resolution_patterns" name="tag resolution patterns" rows="5">{{ settings['tag resolution patterns'] }}</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="tag_video_codec_patterns" class="form-label">Video Codec Patterns (LABEL=REGEX)</label>
+                        <textarea class="form-control" id="tag_video_codec_patterns" name="tag video codec patterns" rows="5">{{ settings['tag video codec patterns'] }}</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="tag_audio_patterns" class="form-label">Audio Patterns (LABEL=REGEX)</label>
+                        <textarea class="form-control" id="tag_audio_patterns" name="tag audio patterns" rows="6">{{ settings['tag audio patterns'] }}</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="tag_event_patterns" class="form-label">Event Patterns (one per line)</label>
+                        <textarea class="form-control" id="tag_event_patterns" name="tag event patterns" rows="4">{{ settings['tag event patterns'] }}</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="tag_header_patterns" class="form-label">Header Patterns (one per line)</label>
+                        <textarea class="form-control" id="tag_header_patterns" name="tag header patterns" rows="3">{{ settings['tag header patterns'] }}</textarea>
+                        <div class="form-text">Applied before the decoration heuristic.</div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -302,4 +338,30 @@
         </div>
     </div>
 </form>
+<script>
+    (function() {
+        const defaults = {
+            countryCodes: {{ defaultSettings['tag country codes'] | tojson }},
+            resolutionPatterns: {{ defaultSettings['tag resolution patterns'] | tojson }},
+            videoPatterns: {{ defaultSettings['tag video codec patterns'] | tojson }},
+            audioPatterns: {{ defaultSettings['tag audio patterns'] | tojson }},
+            eventPatterns: {{ defaultSettings['tag event patterns'] | tojson }},
+            headerPatterns: {{ defaultSettings['tag header patterns'] | tojson }},
+        };
+
+        const resetBtn = document.getElementById('resetTagDefaults');
+        if (!resetBtn) return;
+
+        resetBtn.addEventListener('click', function() {
+            const confirmed = confirm('Reset Tag Extraction patterns to defaults?');
+            if (!confirmed) return;
+            document.getElementById('tag_country_codes').value = defaults.countryCodes || '';
+            document.getElementById('tag_resolution_patterns').value = defaults.resolutionPatterns || '';
+            document.getElementById('tag_video_codec_patterns').value = defaults.videoPatterns || '';
+            document.getElementById('tag_audio_patterns').value = defaults.audioPatterns || '';
+            document.getElementById('tag_event_patterns').value = defaults.eventPatterns || '';
+            document.getElementById('tag_header_patterns').value = defaults.headerPatterns || '';
+        });
+    })();
+</script>
 {% endblock %} 

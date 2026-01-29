@@ -10,13 +10,6 @@
 
 {% block content %}
 
-<!-- Toast Notification -->
-<div class="toast-overlay" id="toastOverlay" onclick="hideNotification()"></div>
-<div class="toast-notification" id="toastNotification">
-    <div class="toast-icon"><i class="fas fa-check-circle"></i></div>
-    <div class="toast-message" id="toastMessage">Message</div>
-</div>
-
 <div class="container-fluid p-lg-5">
     <!-- Filter Controls -->
     <div class="card mb-3 filter-card">
@@ -45,10 +38,44 @@
                     <input type="text" id="searchFilter" class="form-control" placeholder="Filter channels...">
                 </div>
             </div>
+            <div class="row g-3 align-items-end mt-1">
+                <div class="col-md-3">
+                    <label for="resolutionFilter" class="form-label small mb-1">Resolution</label>
+                    <select id="resolutionFilter" multiple placeholder="All Resolutions..."></select>
+                </div>
+                <div class="col-md-3">
+                    <label for="videoFilter" class="form-label small mb-1">Video Codec</label>
+                    <select id="videoFilter" multiple placeholder="All Video Codecs..."></select>
+                </div>
+                <div class="col-md-3">
+                    <label for="countryFilter" class="form-label small mb-1">Country</label>
+                    <select id="countryFilter" multiple placeholder="All Countries..."></select>
+                </div>
+                <div class="col-md-3">
+                    <label for="audioFilter" class="form-label small mb-1">Audio</label>
+                    <select id="audioFilter" multiple placeholder="All Audio Tags..."></select>
+                </div>
+            </div>
+            <div class="row g-3 align-items-end mt-1">
+                <div class="col-md-3">
+                    <label for="eventTagFilter" class="form-label small mb-1">Event Tags</label>
+                    <select id="eventTagFilter" multiple placeholder="All Event Tags..."></select>
+                </div>
+            </div>
+            <div class="row g-3 align-items-end mt-1">
+                <div class="col-md-12">
+                    <div class="d-flex flex-wrap gap-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm tri-toggle" data-key="raw" data-state="off">RAW</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm tri-toggle" data-key="event" data-state="off">EVENT</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm tri-toggle" data-key="header" data-state="off">HEADER</button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <table id="table" class="table table-striped nowrap" width="100%">
+    <div class="editor-table-wrap">
+        <table id="table" class="table table-striped nowrap" width="100%">
         <thead>
             <tr>
                 <th>
@@ -56,18 +83,18 @@
                         <input type="checkbox" class="checkbox form-check-input" onchange="editAll(this)">
                     </div>
                 </th>
-                <th>Play</th>
+                <th>Preview</th>
                 <th>Name</th>
                 <th>Group</th>
                 <th>Number</th>
                 <th>EPG ID</th>
-                <th>Fallback For</th>
                 <th>Portal</th>
             </tr>
         </thead>
         <tbody>
         </tbody>
-    </table>
+        </table>
+    </div>
 
     <form action="/editor/save" method="post" id="save-edits" hidden>
         <input type="text" id="enabledEdits" name="enabledEdits" value="">
@@ -75,16 +102,10 @@
         <input type="text" id="nameEdits" name="nameEdits" value="">
         <input type="text" id="groupEdits" name="groupEdits" value="">
         <input type="text" id="epgEdits" name="epgEdits" value="">
-        <input type="text" id="fallbackEdits" name="fallbackEdits" value="">
     </form>
 
     <form action="/editor/reset" method="post" id="reset" hidden>
     </form>
-
-    <!-- Channel Names Datalist for Fallback Suggestions -->
-    <datalist id="channelNamesList">
-        <!-- Options will be populated dynamically -->
-    </datalist>
 
     <!-- Video Modal -->
     <div class="modal fade" id="videoModal" tabindex="-1" aria-labelledby="channelLabel" aria-hidden="true">
@@ -98,6 +119,7 @@
                         <source src="" type="video/mp4">
                         Your browser does not support HTML video.
                     </video>
+                    <div class="video-meta" id="videoMeta">Resolution: - | FPS: - | Codec: -</div>
                 </div>
             </div>
         </div>
@@ -157,6 +179,7 @@
                             <table class="table table-sm">
                                 <tr><th style="width: 40%">Channel ID</th><td><code id="infoChannelId"></code></td></tr>
                                 <tr><th>Name</th><td id="infoName"></td></tr>
+                                <tr><th>Auto Name</th><td id="infoAutoName"></td></tr>
                                 <tr><th>Custom Name</th><td id="infoCustomName"></td></tr>
                                 <tr><th>Number</th><td id="infoNumber"></td></tr>
                                 <tr><th>Custom Number</th><td id="infoCustomNumber"></td></tr>
@@ -182,8 +205,22 @@
                             <table class="table table-sm">
                                 <tr><th style="width: 40%">Has EPG</th><td id="infoHasEpg"></td></tr>
                                 <tr><th>Custom EPG ID</th><td id="infoCustomEpgId"></td></tr>
-                                <tr><th>Fallback For</th><td id="infoFallback"></td></tr>
                                 <tr><th>Duplicates</th><td id="infoDuplicates"></td></tr>
+                            </table>
+                        </div>
+
+                        <!-- Tag Info -->
+                        <div class="col-md-6">
+                            <h6 class="border-bottom pb-2 mb-3"><i class="fas fa-tags me-2"></i>Tags</h6>
+                            <table class="table table-sm">
+                                <tr><th style="width: 40%">Resolution</th><td id="infoResolution"></td></tr>
+                                <tr><th>Video Codec</th><td id="infoVideoCodec"></td></tr>
+                                <tr><th>Audio Tags</th><td id="infoAudioTags"></td></tr>
+                                <tr><th>Event Tags</th><td id="infoEventTags"></td></tr>
+                                <tr><th>Country</th><td id="infoCountry"></td></tr>
+                                <tr><th>RAW</th><td id="infoIsRaw"></td></tr>
+                                <tr><th>Event</th><td id="infoIsEvent"></td></tr>
+                                <tr><th>Header</th><td id="infoIsHeader"></td></tr>
                             </table>
                         </div>
 
@@ -257,39 +294,10 @@
 <script>
     // Toast Notification Functions
     function showNotification(message, type = 'success', duration = 3000) {
-        const toast = document.getElementById('toastNotification');
-        const overlay = document.getElementById('toastOverlay');
-        const messageEl = document.getElementById('toastMessage');
-        const iconEl = toast.querySelector('.toast-icon i');
-
-        // Set message
-        messageEl.textContent = message;
-
-        // Set type (success, error, info)
-        toast.className = 'toast-notification ' + type;
-
-        // Set icon
-        if (type === 'success') {
-            iconEl.className = 'fas fa-check-circle';
-        } else if (type === 'error') {
-            iconEl.className = 'fas fa-times-circle';
-        } else {
-            iconEl.className = 'fas fa-info-circle';
+        const toastType = type === 'danger' ? 'error' : type;
+        if (typeof showToast === 'function') {
+            showToast(message, toastType, duration);
         }
-
-        // Show
-        toast.classList.add('show');
-        overlay.classList.add('show');
-
-        // Auto-hide after duration
-        setTimeout(hideNotification, duration);
-    }
-
-    function hideNotification() {
-        const toast = document.getElementById('toastNotification');
-        const overlay = document.getElementById('toastOverlay');
-        toast.classList.remove('show');
-        overlay.classList.remove('show');
     }
 
     // Confirmation Dialog Function
@@ -350,7 +358,6 @@
     var nameEdits = [];
     var groupEdits = [];
     var epgEdits = [];
-    var fallbackEdits = [];
     var dataTable;
     var allChannelNamesCount = {}; // Track all channel name frequencies for autocomplete
     var enabledChannelNamesCount = {}; // Track enabled channel name frequencies for duplicate detection
@@ -406,13 +413,6 @@
         epgEdits.push(j);
     }
 
-    function editFallback(ele) {
-        var p = ele.getAttribute('data-portal');
-        var i = ele.getAttribute('data-channelId');
-        var c = ele.value;
-        var j = { "portal": p, "channel id": i, "channel name": c };
-        fallbackEdits.push(j);
-    }
 
     function save() {
         const formData = new FormData();
@@ -421,7 +421,6 @@
         formData.append('nameEdits', JSON.stringify(nameEdits));
         formData.append('groupEdits', JSON.stringify(groupEdits));
         formData.append('epgEdits', JSON.stringify(epgEdits));
-        formData.append('fallbackEdits', JSON.stringify(fallbackEdits));
 
         // Show loading indicator
         var saveBtn = $('.dt-button:contains("Save")').first();
@@ -435,22 +434,33 @@
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                showNotification(data.message || 'Playlist config saved!', 'success');
+                if (typeof showToast === 'function') {
+                    showToast(data.message || 'Playlist config saved!', 'success');
+                } else {
+                    showNotification(data.message || 'Playlist config saved!', 'success');
+                }
                 // Clear edit arrays
                 enabledEdits = [];
                 numberEdits = [];
                 nameEdits = [];
                 groupEdits = [];
                 epgEdits = [];
-                fallbackEdits = [];
                 // Reload table data without losing filters
                 dataTable.ajax.reload(null, false);
             } else {
-                showNotification('Error: ' + (data.error || 'Unknown error'), 'error', 5000);
+                if (typeof showToast === 'function') {
+                    showToast('Error: ' + (data.error || 'Unknown error'), 'error');
+                } else {
+                    showNotification('Error: ' + (data.error || 'Unknown error'), 'error', 5000);
+                }
             }
         })
         .catch(error => {
-            showNotification('Error saving changes: ' + error, 'error', 5000);
+            if (typeof showToast === 'function') {
+                showToast('Error saving changes: ' + error, 'error');
+            } else {
+                showNotification('Error saving changes: ' + error, 'error', 5000);
+            }
         })
         .finally(() => {
             saveBtn.html(originalText).prop('disabled', false);
@@ -459,20 +469,112 @@
 
     var player = document.getElementById("player")
     var title = document.getElementById("channelLabel")
+    var videoMeta = document.getElementById("videoMeta")
+    var currentCodec = ''
+    var hasStreamInfo = false
+    var fpsFrames = 0
+    var fpsStart = 0
+    var frameCallbackId = null
     player.volume = 0.25
     function selectChannel(ele) {
         link = ele.getAttribute('data-link');
         player.src = link;
+        currentCodec = ele.getAttribute('data-videoCodec') || '';
+        hasStreamInfo = false;
         channel = ele.getAttribute('data-customChannelName');
         if (channel == "") {
-            channel = ele.getAttribute('data-channelName');
+            channel = ele.getAttribute('data-autoChannelName') || ele.getAttribute('data-channelName');
         }
         title.innerHTML = channel
+        updateVideoMeta('...', '...', currentCodec || '-')
+        fetchStreamInfo(ele.getAttribute('data-portal'), ele.getAttribute('data-channelId'));
     }
 
     $('#videoModal').on('hidden.bs.modal', function () {
         player.src = "";
+        hasStreamInfo = false;
+        stopFpsTracking();
     })
+
+    player.addEventListener('loadedmetadata', function() {
+        if (hasStreamInfo) return;
+        const resolution = (player.videoWidth && player.videoHeight)
+            ? `${player.videoWidth}x${player.videoHeight}`
+            : '-';
+        updateVideoMeta(resolution, '...', currentCodec || '-');
+        startFpsTracking();
+    });
+
+    player.addEventListener('emptied', function() {
+        updateVideoMeta('-', '-', '-');
+        hasStreamInfo = false;
+        stopFpsTracking();
+    });
+
+    function updateVideoMeta(resolution, fps, codec) {
+        if (!videoMeta) return;
+        videoMeta.textContent = `Resolution: ${resolution} | FPS: ${fps} | Codec: ${codec || '-'}`;
+    }
+
+    function fetchStreamInfo(portal, channelId) {
+        if (!portal || !channelId) return;
+        fetch('/api/stream/info', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ portal: portal, channelId: channelId })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (!data || !data.success) {
+                    startFpsTracking();
+                    return;
+                }
+                hasStreamInfo = true;
+                const resolution = (data.width && data.height) ? `${data.width}x${data.height}` : '-';
+                const fpsValue = data.fps ? Number(data.fps).toFixed(2) : '-';
+                currentCodec = data.codec || currentCodec || '-';
+                updateVideoMeta(resolution, fpsValue, currentCodec || '-');
+            })
+            .catch(() => {
+                startFpsTracking();
+            });
+    }
+
+    function startFpsTracking() {
+        stopFpsTracking();
+        if (!player.requestVideoFrameCallback) {
+            updateVideoMeta(
+                (player.videoWidth && player.videoHeight) ? `${player.videoWidth}x${player.videoHeight}` : '-',
+                '-',
+                currentCodec || '-'
+            );
+            return;
+        }
+        fpsFrames = 0;
+        fpsStart = performance.now();
+        const onFrame = (now) => {
+            fpsFrames += 1;
+            const delta = now - fpsStart;
+            if (delta >= 1000) {
+                const fpsValue = Math.round((fpsFrames * 1000) / delta);
+                const resolution = (player.videoWidth && player.videoHeight)
+                    ? `${player.videoWidth}x${player.videoHeight}`
+                    : '-';
+                updateVideoMeta(resolution, fpsValue, currentCodec || '-');
+                fpsFrames = 0;
+                fpsStart = now;
+            }
+            frameCallbackId = player.requestVideoFrameCallback(onFrame);
+        };
+        frameCallbackId = player.requestVideoFrameCallback(onFrame);
+    }
+
+    function stopFpsTracking() {
+        if (frameCallbackId && player.cancelVideoFrameCallback) {
+            player.cancelVideoFrameCallback(frameCallbackId);
+        }
+        frameCallbackId = null;
+    }
 
     /* Create an array with the values of all the checkboxes in a column */
     $.fn.dataTable.ext.order['dom-checkbox'] = function (settings, col) {
@@ -498,9 +600,38 @@
     };
 
     // Tom Select instances
-    let portalSelect, groupSelect, duplicateSelect;
+    let portalSelect, groupSelect, duplicateSelect, resolutionSelect, videoSelect, countrySelect, audioSelect, eventTagSelect;
     // Store all groups data for dynamic filtering
     let allGroupsData = [];
+    const FILTER_STORAGE_KEY = 'editorFilters';
+
+    function loadStoredFilters() {
+        try {
+            const raw = localStorage.getItem(FILTER_STORAGE_KEY);
+            return raw ? JSON.parse(raw) : {};
+        } catch (e) {
+            return {};
+        }
+    }
+
+    function saveStoredFilters(data) {
+        localStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify(data));
+    }
+
+    function applyToggleState(button, state) {
+        button.dataset.state = state;
+        button.classList.remove('btn-outline-secondary', 'btn-success', 'btn-danger');
+        if (state === 'include') {
+            button.classList.add('btn-success');
+            button.title = 'Include only';
+        } else if (state === 'exclude') {
+            button.classList.add('btn-danger');
+            button.title = 'Exclude';
+        } else {
+            button.classList.add('btn-outline-secondary');
+            button.title = 'Off';
+        }
+    }
 
     // Initialize Tom Select dropdowns
     function initializeFilters() {
@@ -514,6 +645,7 @@
             maxOptions: null,
             onChange: function() {
                 updateGroupFilter();
+                persistFilters();
                 if (dataTable) dataTable.ajax.reload();
             }
         });
@@ -536,6 +668,7 @@
                 }
             },
             onChange: function() {
+                persistFilters();
                 if (dataTable) dataTable.ajax.reload();
             }
         });
@@ -546,8 +679,86 @@
             allowEmptyOption: true,
             maxOptions: null,
             onChange: function() {
+                persistFilters();
                 if (dataTable) dataTable.ajax.reload();
             }
+        });
+
+        resolutionSelect = new TomSelect('#resolutionFilter', {
+            plugins: ['remove_button', 'clear_button'],
+            placeholder: 'All Resolutions...',
+            allowEmptyOption: true,
+            closeAfterSelect: false,
+            hidePlaceholder: true,
+            maxOptions: null,
+            onChange: function() {
+                persistFilters();
+                if (dataTable) dataTable.ajax.reload();
+            }
+        });
+
+        videoSelect = new TomSelect('#videoFilter', {
+            plugins: ['remove_button', 'clear_button'],
+            placeholder: 'All Video Codecs...',
+            allowEmptyOption: true,
+            closeAfterSelect: false,
+            hidePlaceholder: true,
+            maxOptions: null,
+            onChange: function() {
+                persistFilters();
+                if (dataTable) dataTable.ajax.reload();
+            }
+        });
+
+        countrySelect = new TomSelect('#countryFilter', {
+            plugins: ['remove_button', 'clear_button'],
+            placeholder: 'All Countries...',
+            allowEmptyOption: true,
+            closeAfterSelect: false,
+            hidePlaceholder: true,
+            maxOptions: null,
+            onChange: function() {
+                persistFilters();
+                if (dataTable) dataTable.ajax.reload();
+            }
+        });
+
+        audioSelect = new TomSelect('#audioFilter', {
+            plugins: ['remove_button', 'clear_button'],
+            placeholder: 'All Audio Tags...',
+            allowEmptyOption: true,
+            closeAfterSelect: false,
+            hidePlaceholder: true,
+            maxOptions: null,
+            onChange: function() {
+                persistFilters();
+                if (dataTable) dataTable.ajax.reload();
+            }
+        });
+
+        eventTagSelect = new TomSelect('#eventTagFilter', {
+            plugins: ['remove_button', 'clear_button'],
+            placeholder: 'All Event Tags...',
+            allowEmptyOption: true,
+            closeAfterSelect: false,
+            hidePlaceholder: true,
+            maxOptions: null,
+            onChange: function() {
+                persistFilters();
+                if (dataTable) dataTable.ajax.reload();
+            }
+        });
+
+        loadTagFilterValues();
+
+        document.querySelectorAll('.tri-toggle').forEach(button => {
+            button.addEventListener('click', () => {
+                const state = button.dataset.state || 'off';
+                const next = state === 'off' ? 'include' : state === 'include' ? 'exclude' : 'off';
+                applyToggleState(button, next);
+                persistFilters();
+                if (dataTable) dataTable.ajax.reload();
+            });
         });
 
         // Custom search input - connect to DataTable
@@ -556,6 +767,7 @@
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(function() {
                 if (dataTable) dataTable.search(e.target.value).draw();
+                persistFilters();
             }, 300);
         });
 
@@ -595,6 +807,7 @@
                 data.portals.forEach(portal => {
                     portalSelect.addOption({ value: portal, text: portal });
                 });
+                applyStoredSelects();
             })
             .catch(err => console.error('Error loading portals:', err));
 
@@ -612,8 +825,74 @@
                         groupSelect.addOption({ value: genre, text: genre, portal: group.portal });
                     });
                 });
+                applyStoredSelects();
             })
             .catch(err => console.error('Error loading groups:', err));
+    }
+
+    function loadTagFilterValues() {
+        fetch('/api/editor/tag-values')
+            .then(res => res.json())
+            .then(data => {
+                (data.resolutions || []).forEach(value => {
+                    resolutionSelect.addOption({ value: value, text: value });
+                });
+                (data.video_codecs || []).forEach(value => {
+                    videoSelect.addOption({ value: value, text: value });
+                });
+                (data.countries || []).forEach(value => {
+                    countrySelect.addOption({ value: value, text: value });
+                });
+                (data.audio_tags || []).forEach(value => {
+                    audioSelect.addOption({ value: value, text: value });
+                });
+                (data.event_tags || []).forEach(value => {
+                    eventTagSelect.addOption({ value: value, text: value });
+                });
+                applyStoredSelects();
+            })
+            .catch(err => console.error('Error loading tag values:', err));
+    }
+
+    function applyStoredSelects() {
+        const stored = loadStoredFilters();
+        if (stored.portal && portalSelect) portalSelect.setValue(stored.portal);
+        if (stored.group && groupSelect) groupSelect.setValue(stored.group);
+        if (stored.duplicate && duplicateSelect) duplicateSelect.setValue(stored.duplicate);
+        if (stored.resolution && resolutionSelect) resolutionSelect.setValue(stored.resolution);
+        if (stored.video && videoSelect) videoSelect.setValue(stored.video);
+        if (stored.country && countrySelect) countrySelect.setValue(stored.country);
+        if (stored.audio && audioSelect) audioSelect.setValue(stored.audio);
+        if (stored.eventTags && eventTagSelect) eventTagSelect.setValue(stored.eventTags);
+        if (stored.toggles) {
+            document.querySelectorAll('.tri-toggle').forEach(button => {
+                const key = button.dataset.key;
+                applyToggleState(button, stored.toggles[key] || 'off');
+            });
+        }
+        if (stored.search !== undefined) {
+            const input = document.getElementById('searchFilter');
+            if (input) input.value = stored.search;
+        }
+    }
+
+    function persistFilters() {
+        const toggles = {};
+        document.querySelectorAll('.tri-toggle').forEach(button => {
+            toggles[button.dataset.key] = button.dataset.state || 'off';
+        });
+        saveStoredFilters({
+            portal: portalSelect ? portalSelect.getValue() : [],
+            group: groupSelect ? groupSelect.getValue() : [],
+            duplicate: duplicateSelect ? duplicateSelect.getValue() : '',
+            resolution: resolutionSelect ? resolutionSelect.getValue() : [],
+            video: videoSelect ? videoSelect.getValue() : [],
+            country: countrySelect ? countrySelect.getValue() : [],
+            audio: audioSelect ? audioSelect.getValue() : [],
+            eventTags: eventTagSelect ? eventTagSelect.getValue() : [],
+            search: document.getElementById('searchFilter')?.value || '',
+            toggles: toggles,
+        });
     }
 
     // Helper to get selected values as comma-separated string
@@ -630,7 +909,7 @@
         initializeFilters();
 
         dataTable = $('#table').DataTable({
-            dom: "<'row m-1'<'col-auto'B><'col-auto ms-auto'l>>" +
+            dom: "<'row m-1 align-items-center'<'col-auto'B><'col-auto ms-auto'l><'col-auto ms-2'p>>" +
                 "<'row'<'col-12'tr>>" +
                 "<'row mb-1 mb-lg-0'<'col-auto text-light'i><'col-auto ms-auto'p>>",
             serverSide: true,
@@ -640,14 +919,13 @@
             lengthMenu: [[25, 50, 100, 250, 500, 1000], [25, 50, 100, 250, 500, 1000]],
             columnDefs: [
                 { targets: [0, 1], width: "0%" },
-                { targets: 0, className: "align-middle", orderable: false, searchable: false },
+                { targets: 0, className: "align-middle", orderable: true, searchable: false, orderDataType: 'dom-checkbox' },
                 { targets: 1, className: "align-middle", orderable: false, searchable: false },
-                { targets: 2, className: "align-middle", type: 'string' },
+                { targets: 2, className: "align-middle", type: 'string', width: "45%" },
                 { targets: 3, className: "align-middle", type: 'string' },
-                { targets: 4, className: "align-middle" },
+                { targets: 4, className: "align-middle", width: "70px" },
                 { targets: 5, className: "align-middle", type: 'string' },
-                { targets: 6, className: "align-middle", type: 'string' },
-                { targets: 7, className: "align-middle" }
+                { targets: 6, className: "align-middle", width: "140px" }
             ],
             language: {
                 search: "",
@@ -708,6 +986,18 @@
                     d.portal = getFilterValues(portalSelect);
                     d.group = getFilterValues(groupSelect);
                     d.duplicates = duplicateSelect ? duplicateSelect.getValue() : '';
+                    d.resolution = getFilterValues(resolutionSelect);
+                    d.video = getFilterValues(videoSelect);
+                    d.country = getFilterValues(countrySelect);
+                    d.audio = getFilterValues(audioSelect);
+                    d.event_tags = getFilterValues(eventTagSelect);
+                    const toggles = {};
+                    document.querySelectorAll('.tri-toggle').forEach(button => {
+                        toggles[button.dataset.key] = button.dataset.state || 'off';
+                    });
+                    d.raw = toggles.raw === 'off' ? '' : toggles.raw;
+                    d.event = toggles.event === 'off' ? '' : toggles.event;
+                    d.header = toggles.header === 'off' ? '' : toggles.header;
                 }
             },
             columns: [
@@ -715,7 +1005,7 @@
                     data: "enabled",
                     render: function (data, type, row, meta) {
                         let r = '<div \
-                                class="form-check form-switch">\
+                                class="form-check form-switch editor-switch">\
                                 <input \
                                 type="checkbox" \
                                 class="checkbox form-check-input" \
@@ -733,14 +1023,18 @@
                     data: "link",
                     render: function (data, type, row, meta) {
                         return '<button \
-                            class="btn btn-success btn-block" \
+                            class="btn btn-success btn-block editor-play-btn" \
                             title="Play" \
                             data-bs-toggle="modal" \
                             data-bs-target="#videoModal" \
                             onclick="selectChannel(this)" \
                             data-channelName="' + row.channelName + '" \
                             data-customChannelName="' + row.customChannelName + '" \
-                            data-link="' + row.link + '">\
+                            data-autoChannelName="' + row.autoChannelName + '" \
+                            data-link="' + row.link + '" \
+                            data-portal="' + row.portal + '" \
+                            data-channelId="' + row.channelId + '" \
+                            data-videoCodec="' + (row.videoCodec || '') + '">\
                             <i class="fas fa-play"></i>\
                         </button>'
                     }
@@ -748,27 +1042,43 @@
                 {
                     data: "channelName",
                     render: function (data, type, row, meta) {
-                        var badges = '';
+                        var displayName = row.autoChannelName || row.channelName;
+                        var tags = '';
+                        var country = row.country || '--';
                         if (row.duplicateCount && row.duplicateCount > 1) {
-                            badges += '<span class="duplicate-badge">' + row.duplicateCount + 'x</span>';
+                            tags += '<span class="name-tag name-tag-dup">' + row.duplicateCount + 'x</span>';
                         }
-                        if (row.hasEpg) {
-                            badges += '<span class="epg-badge" title="Has EPG data">EPG</span>';
-                        } else {
-                            badges += '<span class="no-epg-badge" title="No EPG data">EPG</span>';
+                        if (row.resolution) {
+                            tags += '<span class="name-tag">' + row.resolution + '</span>';
                         }
-                        return '<div style="display: flex; align-items: center; gap: 5px;">' +
+                        // HEVC gets a dedicated red/green indicator below.
+                        if (row.isRaw) {
+                            tags += '<span class="name-tag name-tag-raw">RAW</span>';
+                        }
+                        const eventTags = (row.eventTags || '').split(',').map(tag => tag.trim()).filter(Boolean);
+                        const hasNoEvent = eventTags.some(tag => {
+                            const upperTag = tag.toUpperCase();
+                            return upperTag === 'NO EVENT' || upperTag === 'NO EVENT STREAMING';
+                        });
+                        if (row.isEvent) {
+                            const eventClass = hasNoEvent ? 'name-tag-event-warning' : 'name-tag-event';
+                            tags += '<span class="name-tag ' + eventClass + '">EVENT</span>';
+                        }
+                        tags += '<span class="name-tag ' + (row.videoCodec === "HEVC" ? 'name-tag-ok' : 'name-tag-bad') + '">HEVC</span>';
+                        tags += '<span class="name-tag ' + (row.isHeader ? 'name-tag-ok' : 'name-tag-bad') + '">HEADER</span>';
+                        tags += '<span class="name-tag ' + (row.hasEpg ? 'name-tag-ok' : 'name-tag-bad') + '">EPG</span>';
+                        return '<div class="name-field">' +
+                               '<div class="name-country" title="Country">' + country + '</div>' +
                                '<input \
                                 type="text" \
-                                class="form-control" \
-                                style="width: 100%;" \
+                                class="form-control table-input name-input" \
                                 onchange="editCustomName(this)" \
                                 data-portal="' + row.portal + '" \
                                 data-channelId="' + row.channelId + '" \
-                                placeholder="' + row.channelName + '" \
-                                title="' + row.channelName + '" \
+                                placeholder="' + displayName + '" \
+                                title="' + displayName + '" \
                                 value="' + row.customChannelName + '">' +
-                               badges +
+                               '<div class="name-tags">' + tags + '</div>' +
                                '</div>';
                     },
                 },
@@ -777,8 +1087,7 @@
                     render: function (data, type, row, meta) {
                         return '<input \
                                 type="text" \
-                                class="form-control" \
-                                style="width: 100%;" \
+                                class="form-control table-input" \
                                 onchange="editCustomGroup(this)" \
                                 data-portal="' + row.portal + '" \
                                 data-channelId="' + row.channelId + '" \
@@ -792,8 +1101,7 @@
                     render: function (data, type, row, meta) {
                         return '<input \
                                 type="text" \
-                                class="form-control" \
-                                style="width: 100%;" \
+                                class="form-control table-input" \
                                 onchange="editCustomNumber(this)" \
                                 data-portal="' + row.portal + '" \
                                 data-channelId="' + row.channelId + '" \
@@ -807,8 +1115,7 @@
                     render: function (data, type, row, meta) {
                         return '<input \
                                 type="text" \
-                                class="form-control" \
-                                style="width: 100%;" \
+                                class="form-control table-input" \
                                 onchange="editCustomEpgId(this)" \
                                 data-portal="' + row.portal + '" \
                                 data-channelId="' + row.channelId + '" \
@@ -818,27 +1125,11 @@
                     },
                 },
                 {
-                    data: "fallbackChannel",
-                    render: function (data, type, row, meta) {
-                        return '<input \
-                                type="text" \
-                                class="form-control" \
-                                style="width: 100%;" \
-                                list="channelNamesList" \
-                                placeholder="Enter channel name..." \
-                                title="Type to search or click to see all channel names" \
-                                onchange="editFallback(this)" \
-                                data-portal="' + row.portal + '" \
-                                data-channelId="' + row.channelId + '" \
-                                value="' + row.fallbackChannel + '">'
-                    }
-                },
-                {
                     data: "portalName",
                     render: function (data, type, row, meta) {
                         // Store the full row data in a data attribute for the modal
                         const rowDataJson = JSON.stringify(row).replace(/'/g, "\\'").replace(/"/g, '&quot;');
-                        return '<span class="portal-link" style="cursor: pointer; color: var(--bs-primary); text-decoration: underline;" ' +
+                        return '<span class="portal-pill" role="button" ' +
                                'onclick="showChannelInfo(this)" ' +
                                'data-row="' + rowDataJson + '">' +
                                (data || 'Unknown') + '</span>';
@@ -847,6 +1138,11 @@
             ],
         });
 
+        const stored = loadStoredFilters();
+        if (stored.search) {
+            dataTable.search(stored.search).draw();
+        }
+        applyStoredSelects();
     });
     
     // Function to deactivate duplicate enabled channels
@@ -868,14 +1164,26 @@
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                showNotification('Successfully deactivated ' + data.deactivated + ' duplicate channels!', 'success');
+                if (typeof showToast === 'function') {
+                    showToast('Successfully deactivated ' + data.deactivated + ' duplicate channels!', 'success');
+                } else {
+                    showNotification('Successfully deactivated ' + data.deactivated + ' duplicate channels!', 'success');
+                }
                 dataTable.ajax.reload();
             } else {
-                showNotification('Error: ' + (data.error || 'Unknown error'), 'error', 5000);
+                if (typeof showToast === 'function') {
+                    showToast('Error: ' + (data.error || 'Unknown error'), 'error');
+                } else {
+                    showNotification('Error: ' + (data.error || 'Unknown error'), 'error', 5000);
+                }
             }
         })
         .catch(error => {
-            showNotification('Error deactivating duplicates: ' + error, 'error', 5000);
+            if (typeof showToast === 'function') {
+                showToast('Error deactivating duplicates: ' + error, 'error');
+            } else {
+                showNotification('Error deactivating duplicates: ' + error, 'error', 5000);
+            }
         });
     }
 
@@ -903,14 +1211,26 @@
         .then(response => response.json())
         .then(data => {
             if (data.status === 'success') {
-                showNotification('Successfully refreshed ' + data.total + ' channels!', 'success');
+                if (typeof showToast === 'function') {
+                    showToast('Successfully refreshed ' + data.total + ' channels!', 'success');
+                } else {
+                    showNotification('Successfully refreshed ' + data.total + ' channels!', 'success');
+                }
                 dataTable.ajax.reload();
             } else {
-                showNotification('Error refreshing channels: ' + (data.message || 'Unknown error'), 'error', 5000);
+                if (typeof showToast === 'function') {
+                    showToast('Error refreshing channels: ' + (data.message || 'Unknown error'), 'error');
+                } else {
+                    showNotification('Error refreshing channels: ' + (data.message || 'Unknown error'), 'error', 5000);
+                }
             }
         })
         .catch(error => {
-            showNotification('Error refreshing channels: ' + error, 'error', 5000);
+            if (typeof showToast === 'function') {
+                showToast('Error refreshing channels: ' + error, 'error');
+            } else {
+                showNotification('Error refreshing channels: ' + error, 'error', 5000);
+            }
         })
         .finally(() => {
             btn.html(originalText).prop('disabled', false);
@@ -924,7 +1244,7 @@
             const row = JSON.parse(rowDataStr);
 
             // Set title
-            document.getElementById('channelInfoTitle').textContent = row.customChannelName || row.channelName || 'Channel Details';
+            document.getElementById('channelInfoTitle').textContent = row.customChannelName || row.autoChannelName || row.channelName || 'Channel Details';
 
             // Logo
             const logoContainer = document.getElementById('channelInfoLogoContainer');
@@ -939,6 +1259,7 @@
             // Basic Info
             document.getElementById('infoChannelId').textContent = row.channelId || '-';
             document.getElementById('infoName').textContent = row.channelName || '-';
+            document.getElementById('infoAutoName').textContent = row.autoChannelName || '-';
             document.getElementById('infoCustomName').textContent = row.customChannelName || '-';
             document.getElementById('infoNumber').textContent = row.channelNumber || '-';
             document.getElementById('infoCustomNumber').textContent = row.customChannelNumber || '-';
@@ -958,10 +1279,25 @@
                 ? '<span class="badge bg-success">Yes</span>'
                 : '<span class="badge bg-secondary">No</span>';
             document.getElementById('infoCustomEpgId').textContent = row.customEpgId || '-';
-            document.getElementById('infoFallback').textContent = row.fallbackChannel || '-';
             document.getElementById('infoDuplicates').innerHTML = row.duplicateCount > 1
                 ? '<span class="badge bg-warning text-dark">' + row.duplicateCount + 'x enabled</span>'
                 : '<span class="badge bg-secondary">None</span>';
+
+            // Tags
+            document.getElementById('infoResolution').textContent = row.resolution || '-';
+            document.getElementById('infoVideoCodec').textContent = row.videoCodec || '-';
+            document.getElementById('infoAudioTags').textContent = row.audioTags || '-';
+            document.getElementById('infoEventTags').textContent = row.eventTags || '-';
+            document.getElementById('infoCountry').textContent = row.country || '-';
+            document.getElementById('infoIsRaw').innerHTML = row.isRaw
+                ? '<span class="badge bg-warning text-dark">Yes</span>'
+                : '<span class="badge bg-secondary">No</span>';
+            document.getElementById('infoIsEvent').innerHTML = row.isEvent
+                ? '<span class="badge bg-primary">Yes</span>'
+                : '<span class="badge bg-secondary">No</span>';
+            document.getElementById('infoIsHeader').innerHTML = row.isHeader
+                ? '<span class="badge bg-light text-dark">Yes</span>'
+                : '<span class="badge bg-secondary">No</span>';
 
             // Stream URL
             document.getElementById('infoLink').textContent = row.link || '-';
@@ -1008,7 +1344,7 @@
             window.currentChannelInfo = {
                 portal: row.portal,
                 channelId: row.channelId,
-                channelName: row.customChannelName || row.channelName
+                channelName: row.customChannelName || row.autoChannelName || row.channelName
             };
 
             // Reset merge search

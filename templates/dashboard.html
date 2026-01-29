@@ -3,13 +3,6 @@
 {% block title %}Dashboard - MacReplay{% endblock %}
 
 {% block content %}
-<!-- Toast Notification -->
-<div class="toast-overlay" id="toastOverlay" onclick="hideNotification()"></div>
-<div class="toast-notification" id="toastNotification">
-    <div class="toast-icon"><i class="fas fa-check-circle"></i></div>
-    <div class="toast-message" id="toastMessage">Message</div>
-</div>
-
 <div class="row">
     <div class="col-12">
         <h2><i class="fas fa-chart-line"></i> Dashboard</h2>
@@ -126,32 +119,10 @@ let streamsRefreshInterval;
 
 // Toast Notification Functions
 function showNotification(message, type = 'success', duration = 3000) {
-    const toast = document.getElementById('toastNotification');
-    const overlay = document.getElementById('toastOverlay');
-    const messageEl = document.getElementById('toastMessage');
-    const iconEl = toast.querySelector('.toast-icon i');
-
-    messageEl.textContent = message;
-    toast.className = 'toast-notification ' + type;
-
-    if (type === 'success') {
-        iconEl.className = 'fas fa-check-circle';
-    } else if (type === 'error') {
-        iconEl.className = 'fas fa-times-circle';
-    } else {
-        iconEl.className = 'fas fa-info-circle';
+    const toastType = type === 'danger' ? 'error' : type;
+    if (typeof showToast === 'function') {
+        showToast(message, toastType, duration);
     }
-
-    toast.classList.add('show');
-    overlay.classList.add('show');
-    setTimeout(hideNotification, duration);
-}
-
-function hideNotification() {
-    const toast = document.getElementById('toastNotification');
-    const overlay = document.getElementById('toastOverlay');
-    toast.classList.remove('show');
-    overlay.classList.remove('show');
 }
 
 function refreshStreams() {

@@ -78,12 +78,19 @@
     <div class="container mt-4">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ 'danger' if category == 'danger' else 'success' }} alert-dismissible fade show" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                {% endfor %}
+                <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    const flashMessages = {{ messages|tojson }};
+                    flashMessages.forEach(function(item) {
+                        const category = item[0];
+                        const message = item[1];
+                        const type = category === 'danger' ? 'error' : category;
+                        if (typeof showToast === 'function') {
+                            showToast(message, type);
+                        }
+                    });
+                });
+                </script>
             {% endif %}
         {% endwith %}
 
@@ -135,11 +142,20 @@
         container.insertAdjacentHTML('beforeend', toastHtml);
 
         const toastEl = document.getElementById(toastId);
-        const toast = new bootstrap.Toast(toastEl, { delay: duration });
+        const autohide = duration !== 0 && duration !== null;
+        const delay = autohide ? duration : 0;
+        const toast = new bootstrap.Toast(toastEl, { delay: delay, autohide: autohide });
         toast.show();
 
         // Remove from DOM after hidden
         toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
+        return toastEl;
+    }
+
+    function hideToast(toastEl) {
+        if (!toastEl) return;
+        const toast = bootstrap.Toast.getInstance(toastEl) || new bootstrap.Toast(toastEl);
+        toast.hide();
     }
     </script>
     <script>

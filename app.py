@@ -4,6 +4,9 @@ import os
 import shutil
 import time
 import subprocess
+import re
+import unicodedata
+import json
 from datetime import datetime, timedelta
 import xml.etree.ElementTree as ET
 import xml.dom.minidom as minidom
@@ -262,6 +265,12 @@ defaultSettings = {
     "hdhr name": "MacReplay",
     "hdhr id": str(uuid.uuid4().hex),
     "hdhr tuners": "10",
+    "tag country codes": "AF,AL,ALB,AR,AT,AU,BE,BG,BR,CA,CH,CN,CZ,DE,DK,EE,ES,FI,FR,GR,HK,HR,HU,IE,IL,IN,IR,IS,IT,JO,JP,KR,KW,LAT,LB,LT,LU,LV,MA,MK,MO,MX,MXC,NL,NO,NZ,PL,PT,RO,RS,RU,SA,SE,SG,SI,SK,TR,UA,UK,US,USA",
+    "tag resolution patterns": "8K=\\b(8K|4320P)\\b\nUHD=\\b(UHD|4K\\+?|2160P)\\b\nFHD=\\b(FHD|1080P)\\b\nHD=\\b(HD|720P)\\b\nSD=\\b(SD|576P|480P)\\b",
+    "tag video codec patterns": "AV1=\\bAV1\\b\nVP9=\\bVP9\\b\nHEVC=\\b(HEVC|H\\.?265|H265)\\b\nH264=\\b(H\\.?264|H264|AVC)\\b\nMPEG2=\\bMPEG[- ]?2\\b",
+    "tag audio patterns": "AAC=\\bAAC\\b\nAC3=\\bAC3\\b\nEAC3=\\bEAC3\\b\nDDP=\\b(DD\\+|DDP)\\b\nDD=\\bDD\\b\nDTS=\\bDTS\\b\nMP3=\\bMP3\\b\nFLAC=\\bFLAC\\b\nDOLBY=\\bDOLBY\\b\nATMOS=\\bATMOS\\b\n7.1=\\b7\\.1\\b\n5.1=\\b5\\.1\\b\n2.0=\\b2\\.0\\b",
+    "tag event patterns": "\\bPPV\\b\n\\bEVENT\\b\n\\bLIVE EVENT\\b\n\\bLIVE-EVENT\\b\n\\bNO EVENT\\b\n\\bNO EVENT STREAMING\\b\n\\bMATCH TIME\\b",
+    "tag header patterns": "^\\s*([#*✦┃★]{2,})\\s*(.+?)\\s*\\1\\s*$",
 }
 
 defaultPortal = {
@@ -274,6 +283,7 @@ defaultPortal = {
     "proxy": "",
     "fetch epg": "true",
     "selected_genres": [],  # Liste der Genre-IDs zum Importieren (leer = alle)
+    "auto normalize names": "false",
 }
 
 
@@ -298,6 +308,317 @@ def normalize_mac_data(mac_value):
             "playback_limit": mac_value.get("playback_limit", 0)
         }
     return {"expiry": "Unknown", "watchdog_timeout": 0, "playback_limit": 0}
+
+
+DEFAULT_COUNTRY_CODES = {
+    "AF", "AL", "ALB", "AR", "AT", "AU", "BE", "BG", "BR", "CA", "CH", "CN", "CZ",
+    "DE", "DK", "EE", "ES", "FI", "FR", "GR", "HK", "HR", "HU", "IE", "IL",
+    "IN", "IR", "IS", "IT", "JO", "JP", "KR", "KW", "LAT", "LB", "LT", "LU",
+    "LV", "MA", "MK", "MO", "MX", "MXC", "NL", "NO", "NZ", "PL", "PT", "RO",
+    "RS", "RU", "SA", "SE", "SG", "SI", "SK", "TR", "UA", "UK", "US", "USA",
+}
+
+DEFAULT_RESOLUTION_PATTERNS = [
+    ("8K", r"\b(8K|4320P)\b"),
+    ("UHD", r"\b(UHD|4K\+?|2160P)\b"),
+    ("FHD", r"\b(FHD|1080P)\b"),
+    ("HD", r"\b(HD|720P)\b"),
+    ("SD", r"\b(SD|576P|480P)\b"),
+]
+
+DEFAULT_VIDEO_CODEC_PATTERNS = [
+    ("AV1", r"\bAV1\b"),
+    ("VP9", r"\bVP9\b"),
+    ("HEVC", r"\b(HEVC|H\.?265|H265)\b"),
+    ("H264", r"\b(H\.?264|H264|AVC)\b"),
+    ("MPEG2", r"\bMPEG[- ]?2\b"),
+]
+
+DEFAULT_AUDIO_TAG_PATTERNS = [
+    ("AAC", r"\bAAC\b"),
+    ("AC3", r"\bAC3\b"),
+    ("EAC3", r"\bEAC3\b"),
+    ("DDP", r"\b(DD\+|DDP)\b"),
+    ("DD", r"\bDD\b"),
+    ("DTS", r"\bDTS\b"),
+    ("MP3", r"\bMP3\b"),
+    ("FLAC", r"\bFLAC\b"),
+    ("DOLBY", r"\bDOLBY\b"),
+    ("ATMOS", r"\bATMOS\b"),
+    ("7.1", r"\b7\.1\b"),
+    ("5.1", r"\b5\.1\b"),
+    ("2.0", r"\b2\.0\b"),
+]
+
+DEFAULT_EVENT_PATTERNS = [
+    ("PPV", r"\bPPV\b"),
+    ("EVENT", r"\bEVENT\b"),
+    ("LIVE EVENT", r"\bLIVE EVENT\b"),
+    ("LIVE-EVENT", r"\bLIVE-EVENT\b"),
+    ("NO EVENT", r"\bNO EVENT\b"),
+    ("NO EVENT STREAMING", r"\bNO EVENT STREAMING\b"),
+    ("MATCH TIME", r"\bMATCH TIME\b"),
+]
+
+DEFAULT_HEADER_PATTERNS = [
+    r"^\s*([#*✦┃★]{2,})\s*(.+?)\s*\1\s*$",
+]
+
+
+def parse_labeled_patterns(value, defaults):
+    if not value:
+        return defaults
+    patterns = []
+    for line in str(value).splitlines():
+        line = line.strip()
+        if not line or "=" not in line:
+            continue
+        label, pattern = line.split("=", 1)
+        label = label.strip()
+        pattern = pattern.strip()
+        if label and pattern:
+            patterns.append((label, pattern))
+    return patterns if patterns else defaults
+
+
+def parse_list_patterns(value, defaults):
+    if not value:
+        return defaults
+    patterns = []
+    for line in str(value).splitlines():
+        line = line.strip()
+        if line:
+            patterns.append(line)
+    return patterns if patterns else defaults
+
+
+def normalize_event_label(pattern):
+    label = re.sub(r"\\b", "", pattern)
+    label = re.sub(r"[\\^$()?:]", "", label)
+    label = re.sub(r"\s+", " ", label).strip()
+    return label
+
+
+def parse_event_patterns(value, defaults):
+    if not value:
+        return defaults
+    patterns = []
+    for line in str(value).splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        if "=" in line:
+            label, pattern = line.split("=", 1)
+            label = label.strip()
+            pattern = pattern.strip()
+        else:
+            label = normalize_event_label(line)
+            pattern = line
+        if label and pattern:
+            patterns.append((label, pattern))
+    return patterns if patterns else defaults
+
+
+def parse_country_codes(value, defaults):
+    if not value:
+        return defaults
+    tokens = re.split(r"[\s,]+", str(value).upper())
+    codes = {token for token in tokens if token}
+    return codes if codes else defaults
+
+
+def build_tag_config(settings):
+    return {
+        "countries": parse_country_codes(settings.get("tag country codes"), DEFAULT_COUNTRY_CODES),
+        "resolution": parse_labeled_patterns(settings.get("tag resolution patterns"), DEFAULT_RESOLUTION_PATTERNS),
+        "video": parse_labeled_patterns(settings.get("tag video codec patterns"), DEFAULT_VIDEO_CODEC_PATTERNS),
+        "audio": parse_labeled_patterns(settings.get("tag audio patterns"), DEFAULT_AUDIO_TAG_PATTERNS),
+        "event": parse_event_patterns(settings.get("tag event patterns"), DEFAULT_EVENT_PATTERNS),
+        "header": parse_list_patterns(settings.get("tag header patterns"), DEFAULT_HEADER_PATTERNS),
+    }
+
+
+def ascii_fold(value):
+    """Best-effort ASCII fold to detect tags (handles small-cap unicode letters)."""
+    if value is None:
+        return ""
+    result = []
+    for ch in str(value):
+        if "A" <= ch <= "Z" or "a" <= ch <= "z" or "0" <= ch <= "9":
+            result.append(ch)
+            continue
+        if ch.isalnum():
+            try:
+                name = unicodedata.name(ch)
+            except ValueError:
+                result.append(" ")
+                continue
+            if "LATIN LETTER SMALL CAPITAL" in name or "LATIN CAPITAL LETTER" in name or "LATIN SMALL LETTER" in name:
+                result.append(name.split()[-1])
+            else:
+                result.append(" ")
+            continue
+        result.append(" ")
+    return "".join(result)
+
+
+def extract_channel_tags(raw_name, tag_config):
+    """Extract tags and return cleaned name + metadata."""
+    if not raw_name:
+        return {
+            "clean_name": "",
+            "resolution": "",
+            "video_codec": "",
+            "country": "",
+            "audio_tags": "",
+            "event_tags": "",
+            "is_header": 0,
+            "is_event": 0,
+            "is_raw": 0,
+        }
+
+    name = str(raw_name)
+    folded = ascii_fold(name).upper()
+    name_upper = re.sub(r"[^A-Z0-9\.\+]+", " ", folded)
+
+    is_header = 0
+    for pattern in tag_config["header"]:
+        if re.match(pattern, name):
+            is_header = 1
+            break
+    if not is_header:
+        non_word = re.sub(r"[\w\s]", "", name, flags=re.UNICODE)
+        if non_word and len(non_word) >= 4 and len(non_word) >= len(name.strip()) * 0.3:
+            is_header = 1
+
+    resolution = ""
+    resolution_pattern = ""
+    segment_candidates = name.split("|") if "|" in name else [name]
+    for segment in segment_candidates:
+        segment_fold = ascii_fold(segment).upper()
+        segment_upper = re.sub(r"[^A-Z0-9\.\+]+", " ", segment_fold)
+        for label, pattern in tag_config["resolution"]:
+            for match in re.finditer(pattern, segment_upper):
+                tail = segment_upper[match.end():]
+                if re.search(r"[A-Z0-9]", tail):
+                    continue
+                resolution = label
+                resolution_pattern = pattern
+                break
+            if resolution:
+                break
+        if resolution:
+            break
+
+    video_codec = ""
+    for label, pattern in tag_config["video"]:
+        if re.search(pattern, name_upper):
+            video_codec = label
+            break
+
+    audio_tags = []
+    for label, pattern in tag_config["audio"]:
+        if re.search(pattern, name_upper):
+            audio_tags.append(label)
+
+    is_raw = 1 if re.search(r"\bRAW\b", name_upper) else 0
+
+    is_event = 0
+    event_tags = []
+    for label, pattern in tag_config["event"]:
+        if re.search(pattern, name_upper):
+            is_event = 1
+            event_tags.append(label)
+    if event_tags:
+        event_tags = list(dict.fromkeys(event_tags))
+
+    country = ""
+    tokens = re.findall(r"[A-Z0-9]+", name_upper)
+    for token in tokens:
+        if token in tag_config["countries"]:
+            country = token
+            break
+
+    cleaned = name
+    dropped_tag_segments = False
+    segment_split = re.split(r"\s*\|\s*", name) if "|" in name else [name]
+
+    if len(segment_split) > 1:
+        kept_segments = []
+        removal_for_segments = []
+        for _label, pattern in tag_config["resolution"]:
+            removal_for_segments.append(pattern)
+        for _label, pattern in tag_config["video"]:
+            removal_for_segments.append(pattern)
+        for _label, pattern in tag_config["audio"]:
+            removal_for_segments.append(pattern)
+        removal_for_segments.append(r"\bRAW\b")
+        removal_for_segments.extend([pattern for _, pattern in tag_config["event"]])
+
+        for segment in segment_split:
+            segment_upper = re.sub(r"[^A-Z0-9\.\+]+", " ", ascii_fold(segment).upper())
+            residual = segment_upper
+            for pattern in removal_for_segments:
+                residual = re.sub(pattern, " ", residual, flags=re.IGNORECASE)
+            if tag_config["countries"]:
+                tokens = re.findall(r"[A-Z0-9]+", residual)
+                tokens = [token for token in tokens if token not in tag_config["countries"]]
+                residual = " ".join(tokens)
+            residual = re.sub(r"\s+", " ", residual).strip()
+            if residual:
+                kept_segments.append(segment)
+            else:
+                dropped_tag_segments = True
+
+        if kept_segments:
+            cleaned = " ".join(kept_segments)
+
+    removal_patterns = []
+    if resolution_pattern:
+        removal_patterns.append(resolution_pattern)
+    for _label, pattern in tag_config["video"]:
+        removal_patterns.append(pattern)
+    for _label, pattern in tag_config["audio"]:
+        removal_patterns.append(pattern)
+    removal_patterns.append(r"\bRAW\b")
+    if not dropped_tag_segments:
+        removal_patterns.extend([pattern for _, pattern in tag_config["event"]])
+
+    for pattern in removal_patterns:
+        cleaned = re.sub(pattern, " ", cleaned, flags=re.IGNORECASE)
+
+    if country:
+        cleaned = re.sub(rf"(?i)(^|[^A-Za-z0-9]){re.escape(country)}(?=$|[^A-Za-z0-9])", " ", cleaned)
+
+    cleaned = re.sub(r"[^\w\s]", " ", cleaned, flags=re.UNICODE)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+
+    if is_header:
+        cleaned = name
+        resolution = ""
+        video_codec = ""
+        country = ""
+        audio_tags = []
+        event_tags = []
+        is_event = 0
+        is_raw = 0
+
+    return {
+        "clean_name": cleaned,
+        "resolution": resolution,
+        "video_codec": video_codec,
+        "country": country,
+        "audio_tags": ",".join(audio_tags),
+        "event_tags": ",".join(event_tags),
+        "is_header": 1 if is_header else 0,
+        "is_event": 1 if is_event else 0,
+        "is_raw": 1 if is_raw else 0,
+    }
+
+
+def effective_channel_name(custom_name, auto_name, name):
+    """Return preferred display name: custom > auto > original."""
+    return custom_name or auto_name or name
 
 
 def score_mac_for_selection(mac, mac_data, occupied_list, streams_per_mac):
@@ -827,10 +1148,19 @@ def init_db():
             logo TEXT,
             enabled INTEGER DEFAULT 0,
             custom_name TEXT,
+            auto_name TEXT,
             custom_number TEXT,
             custom_genre TEXT,
             custom_epg_id TEXT,
             fallback_channel TEXT,
+            resolution TEXT,
+            video_codec TEXT,
+            country TEXT,
+            audio_tags TEXT,
+            event_tags TEXT,
+            is_header INTEGER DEFAULT 0,
+            is_event INTEGER DEFAULT 0,
+            is_raw INTEGER DEFAULT 0,
             PRIMARY KEY (portal, channel_id)
         )
     ''')
@@ -860,6 +1190,46 @@ def init_db():
     except:
         pass  # Column already exists
 
+    # Add auto_name column for auto-normalized channel names
+    try:
+        cursor.execute("ALTER TABLE channels ADD COLUMN auto_name TEXT")
+    except:
+        pass  # Column already exists
+
+    # Add tag columns for extraction
+    try:
+        cursor.execute("ALTER TABLE channels ADD COLUMN resolution TEXT")
+    except:
+        pass  # Column already exists
+    try:
+        cursor.execute("ALTER TABLE channels ADD COLUMN video_codec TEXT")
+    except:
+        pass  # Column already exists
+    try:
+        cursor.execute("ALTER TABLE channels ADD COLUMN country TEXT")
+    except:
+        pass  # Column already exists
+    try:
+        cursor.execute("ALTER TABLE channels ADD COLUMN audio_tags TEXT")
+    except:
+        pass  # Column already exists
+    try:
+        cursor.execute("ALTER TABLE channels ADD COLUMN event_tags TEXT")
+    except:
+        pass  # Column already exists
+    try:
+        cursor.execute("ALTER TABLE channels ADD COLUMN is_header INTEGER DEFAULT 0")
+    except:
+        pass  # Column already exists
+    try:
+        cursor.execute("ALTER TABLE channels ADD COLUMN is_event INTEGER DEFAULT 0")
+    except:
+        pass  # Column already exists
+    try:
+        cursor.execute("ALTER TABLE channels ADD COLUMN is_raw INTEGER DEFAULT 0")
+    except:
+        pass  # Column already exists
+
     # Create indexes for better query performance
     cursor.execute('''
         CREATE INDEX IF NOT EXISTS idx_channels_enabled 
@@ -874,6 +1244,36 @@ def init_db():
     cursor.execute('''
         CREATE INDEX IF NOT EXISTS idx_channels_portal
         ON channels(portal)
+    ''')
+
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_channels_resolution
+        ON channels(resolution)
+    ''')
+
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_channels_video_codec
+        ON channels(video_codec)
+    ''')
+
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_channels_country
+        ON channels(country)
+    ''')
+
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_channels_is_event
+        ON channels(is_event)
+    ''')
+
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_channels_is_raw
+        ON channels(is_raw)
+    ''')
+
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_channels_is_header
+        ON channels(is_header)
     ''')
 
     # Create groups table for genre/group management
@@ -930,6 +1330,74 @@ def init_db():
     logger.info("Database initialized successfully")
 
 
+def fetch_portal_channels(portal_id, portal):
+    portal_name = portal["name"]
+    url = portal["url"]
+    macs = list(portal["macs"].keys())
+    proxy = portal["proxy"]
+
+    logger.info(f"Fetching channels for portal: {portal_name}")
+
+    # Query ALL MACs and collect which channels are available on which MACs
+    # Structure: {channel_id: {data: {...}, available_macs: [mac1, mac2, ...]}}
+    channels_by_id = {}
+    all_genres = {}  # Merged genres from all MACs {genre_id: genre_name}
+
+    for mac in macs:
+        logger.info(f"Querying MAC: {mac}")
+        try:
+            token = stb.getToken(url, mac, proxy)
+            if not token:
+                logger.warning(f"Could not get token for MAC {mac}")
+                continue
+
+            stb.getProfile(url, mac, token, proxy)
+            mac_channels_raw = stb.getAllChannels(url, mac, token, proxy)
+            mac_genres = stb.getGenreNames(url, mac, token, proxy)
+
+            if not mac_channels_raw:
+                logger.warning(f"No channels returned for MAC {mac}")
+                continue
+
+            # Handle both list and dict formats (some portals return dict with channel IDs as keys)
+            mac_channels = mac_channels_raw if isinstance(mac_channels_raw, list) else list(mac_channels_raw.values())
+
+            # Merge genres
+            if mac_genres:
+                all_genres.update(mac_genres)
+
+            logger.info(f"MAC {mac} returned {len(mac_channels)} channels")
+
+            # Process channels from this MAC
+            for channel in mac_channels:
+                if not isinstance(channel, dict):
+                    continue
+                channel_id = str(channel["id"])
+                genre_id = str(channel.get("tv_genre_id", ""))
+
+                if channel_id not in channels_by_id:
+                    # First time seeing this channel
+                    channels_by_id[channel_id] = {
+                        "data": channel,
+                        "available_macs": [mac]
+                    }
+                else:
+                    # Channel already exists, add this MAC to available_macs
+                    if mac not in channels_by_id[channel_id]["available_macs"]:
+                        channels_by_id[channel_id]["available_macs"].append(mac)
+
+        except Exception as e:
+            logger.error(f"Error fetching from MAC {mac}: {e}")
+
+    return {
+        "portal_id": portal_id,
+        "portal": portal,
+        "portal_name": portal_name,
+        "channels_by_id": channels_by_id,
+        "all_genres": all_genres
+    }
+
+
 def refresh_channels_cache(target_portal_id=None):
     """Refresh the channels cache from STB portals.
 
@@ -942,202 +1410,222 @@ def refresh_channels_cache(target_portal_id=None):
     else:
         logger.info("Starting channel cache refresh for all portals...")
     portals = getPortals()
+    tag_config = build_tag_config(getSettings())
     conn = get_db_connection()
     cursor = conn.cursor()
 
     total_channels = 0
 
-    for portal_id in portals:
-        # Skip if we're targeting a specific portal and this isn't it
+    portal_ids = []
+    for portal_id, portal in portals.items():
         if target_portal_id and portal_id != target_portal_id:
             continue
-        portal = portals[portal_id]
         if portal["enabled"] == "true":
-            portal_name = portal["name"]
-            url = portal["url"]
-            macs = list(portal["macs"].keys())
-            proxy = portal["proxy"]
+            portal_ids.append(portal_id)
 
-            logger.info(f"Fetching channels for portal: {portal_name}")
-
-            # Query ALL MACs and collect which channels are available on which MACs
-            # Structure: {channel_id: {data: {...}, available_macs: [mac1, mac2, ...]}}
-            channels_by_id = {}
-            all_genres = {}  # Merged genres from all MACs {genre_id: genre_name}
-
-            for mac in macs:
-                logger.info(f"Querying MAC: {mac}")
+    results = []
+    if target_portal_id or len(portal_ids) <= 1:
+        for portal_id in portal_ids:
+            portal = portals[portal_id]
+            results.append(fetch_portal_channels(portal_id, portal))
+    else:
+        max_workers = min(4, len(portal_ids))
+        logger.info(f"Fetching portals in parallel with {max_workers} workers")
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {
+                executor.submit(fetch_portal_channels, portal_id, portals[portal_id]): portal_id
+                for portal_id in portal_ids
+            }
+            for future in as_completed(futures):
+                portal_id = futures[future]
                 try:
-                    token = stb.getToken(url, mac, proxy)
-                    if not token:
-                        logger.warning(f"Could not get token for MAC {mac}")
-                        continue
-
-                    stb.getProfile(url, mac, token, proxy)
-                    mac_channels_raw = stb.getAllChannels(url, mac, token, proxy)
-                    mac_genres = stb.getGenreNames(url, mac, token, proxy)
-
-                    if not mac_channels_raw:
-                        logger.warning(f"No channels returned for MAC {mac}")
-                        continue
-
-                    # Handle both list and dict formats (some portals return dict with channel IDs as keys)
-                    mac_channels = mac_channels_raw if isinstance(mac_channels_raw, list) else list(mac_channels_raw.values())
-
-                    # Merge genres
-                    if mac_genres:
-                        all_genres.update(mac_genres)
-
-                    logger.info(f"MAC {mac} returned {len(mac_channels)} channels")
-
-                    # Process channels from this MAC
-                    for channel in mac_channels:
-                        if not isinstance(channel, dict):
-                            continue
-                        channel_id = str(channel["id"])
-                        genre_id = str(channel.get("tv_genre_id", ""))
-
-                        if channel_id not in channels_by_id:
-                            # First time seeing this channel
-                            channels_by_id[channel_id] = {
-                                "data": channel,
-                                "available_macs": [mac]
-                            }
-                        else:
-                            # Channel already exists, add this MAC to available_macs
-                            if mac not in channels_by_id[channel_id]["available_macs"]:
-                                channels_by_id[channel_id]["available_macs"].append(mac)
-
+                    results.append(future.result())
                 except Exception as e:
-                    logger.error(f"Error fetching from MAC {mac}: {e}")
+                    logger.error(f"Error fetching portal {portal_id}: {e}")
 
-            # Now insert all collected channels into the database
-            if channels_by_id:
-                logger.info(f"Processing {len(channels_by_id)} unique channels for {portal_name}")
+    for result in results:
+        portal_id = result["portal_id"]
+        portal = result["portal"]
+        portal_name = result["portal_name"]
+        channels_by_id = result["channels_by_id"]
+        all_genres = result["all_genres"]
+        portal_auto_normalize = portal.get("auto normalize names", "false") == "true"
 
-                # Auto-merge channels with the same name (deduplication)
-                # Group channels by normalized name
-                channels_by_name = {}
-                for channel_id, channel_info in channels_by_id.items():
-                    channel_name = str(channel_info["data"]["name"]).strip()
-                    if channel_name not in channels_by_name:
-                        channels_by_name[channel_name] = []
-                    channels_by_name[channel_name].append((channel_id, channel_info))
+        # Now insert all collected channels into the database
+        if channels_by_id:
+            logger.info(f"Processing {len(channels_by_id)} unique channels for {portal_name}")
 
-                # Process duplicates - merge into primary channel
-                channels_to_import = {}  # channel_id -> {data, available_macs, alternate_ids}
-                merged_count = 0
+            # Auto-merge channels with the same name (deduplication)
+            # Group channels by normalized name
+            channels_by_name = {}
+            for channel_id, channel_info in channels_by_id.items():
+                channel_name = str(channel_info["data"]["name"]).strip()
+                if channel_name not in channels_by_name:
+                    channels_by_name[channel_name] = []
+                channels_by_name[channel_name].append((channel_id, channel_info))
 
-                for channel_name, channel_list in channels_by_name.items():
-                    if len(channel_list) == 1:
-                        # No duplicates - just add normally
-                        ch_id, ch_info = channel_list[0]
-                        channels_to_import[ch_id] = {
-                            "data": ch_info["data"],
-                            "available_macs": ch_info["available_macs"],
-                            "alternate_ids": []
-                        }
-                    else:
-                        # Multiple channels with same name - merge them
-                        # Sort by channel_id (use lowest ID as primary)
-                        channel_list.sort(key=lambda x: int(x[0]) if x[0].isdigit() else float('inf'))
-                        primary_id, primary_info = channel_list[0]
+            # Process duplicates - merge into primary channel
+            channels_to_import = {}  # channel_id -> {data, available_macs, alternate_ids}
+            merged_count = 0
 
-                        # Combine all MACs and alternate IDs
-                        combined_macs = set(primary_info["available_macs"])
-                        alternate_ids = []
+            for channel_name, channel_list in channels_by_name.items():
+                if len(channel_list) == 1:
+                    # No duplicates - just add normally
+                    ch_id, ch_info = channel_list[0]
+                    channels_to_import[ch_id] = {
+                        "data": ch_info["data"],
+                        "available_macs": ch_info["available_macs"],
+                        "alternate_ids": []
+                    }
+                else:
+                    # Multiple channels with same name - merge them
+                    # Sort by channel_id (use lowest ID as primary)
+                    channel_list.sort(key=lambda x: int(x[0]) if x[0].isdigit() else float('inf'))
+                    primary_id, primary_info = channel_list[0]
 
-                        for alt_id, alt_info in channel_list[1:]:
-                            alternate_ids.append(alt_id)
-                            combined_macs.update(alt_info["available_macs"])
+                    # Combine all MACs and alternate IDs
+                    combined_macs = set(primary_info["available_macs"])
+                    alternate_ids = []
 
-                        channels_to_import[primary_id] = {
-                            "data": primary_info["data"],
-                            "available_macs": list(combined_macs),
-                            "alternate_ids": alternate_ids
-                        }
+                    for alt_id, alt_info in channel_list[1:]:
+                        alternate_ids.append(alt_id)
+                        combined_macs.update(alt_info["available_macs"])
 
-                        merged_count += len(channel_list) - 1
-                        logger.debug(f"Auto-merged '{channel_name}': {primary_id} + alternates {alternate_ids}")
+                    channels_to_import[primary_id] = {
+                        "data": primary_info["data"],
+                        "available_macs": list(combined_macs),
+                        "alternate_ids": alternate_ids
+                    }
 
-                if merged_count > 0:
-                    logger.info(f"Auto-merged {merged_count} duplicate channels by name for {portal_name}")
+                    merged_count += len(channel_list) - 1
+                    logger.debug(f"Auto-merged '{channel_name}': {primary_id} + alternates {alternate_ids}")
 
-                channels_imported = 0
-                for channel_id, channel_info in channels_to_import.items():
-                    channel = channel_info["data"]
-                    available_macs = ",".join(channel_info["available_macs"])
-                    alternate_ids = ",".join(channel_info["alternate_ids"])
+            if merged_count > 0:
+                logger.info(f"Auto-merged {merged_count} duplicate channels by name for {portal_name}")
 
-                    channel_name = str(channel["name"])
-                    channel_number = str(channel["number"])
-                    genre_id = str(channel.get("tv_genre_id", ""))
-                    genre = str(all_genres.get(genre_id, ""))
-                    logo = str(channel.get("logo", ""))
-                    cmd = str(channel.get("cmd", ""))  # Cache stream command for fast streaming
+            channels_imported = 0
+            for channel_id, channel_info in channels_to_import.items():
+                channel = channel_info["data"]
+                available_macs = ",".join(channel_info["available_macs"])
+                alternate_ids = ",".join(channel_info["alternate_ids"])
 
-                    # Upsert into database
-                    cursor.execute('''
-                        INSERT INTO channels (
-                            portal, channel_id, portal_name, name, number, genre, genre_id, logo,
-                            enabled, custom_name, custom_number, custom_genre,
-                            custom_epg_id, fallback_channel, available_macs, alternate_ids, cmd
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        ON CONFLICT(portal, channel_id) DO UPDATE SET
-                            portal_name = excluded.portal_name,
-                            name = excluded.name,
-                            number = excluded.number,
-                            genre = excluded.genre,
-                            genre_id = excluded.genre_id,
-                            logo = excluded.logo,
-                            available_macs = excluded.available_macs,
-                            alternate_ids = CASE
-                                WHEN excluded.alternate_ids != '' THEN excluded.alternate_ids
-                                ELSE channels.alternate_ids
-                            END,
-                            cmd = excluded.cmd
-                    ''', (
-                        portal_id, channel_id, portal_name, channel_name, channel_number,
-                        genre, genre_id, logo, 0, "", "", "", "", "", available_macs, alternate_ids, cmd
-                    ))
+                channel_name = str(channel["name"])
+                channel_number = str(channel["number"])
+                genre_id = str(channel.get("tv_genre_id", ""))
+                genre = str(all_genres.get(genre_id, ""))
+                logo = str(channel.get("logo", ""))
+                cmd = str(channel.get("cmd", ""))  # Cache stream command for fast streaming
+                tag_info = extract_channel_tags(channel_name, tag_config)
+                auto_name = tag_info["clean_name"] if portal_auto_normalize and tag_info["clean_name"] else ""
+                resolution = tag_info["resolution"]
+                video_codec = tag_info["video_codec"]
+                country = tag_info["country"]
+                audio_tags = tag_info["audio_tags"]
+                event_tags = tag_info["event_tags"]
+                is_header = tag_info["is_header"]
+                is_event = tag_info["is_event"]
+                is_raw = tag_info["is_raw"]
 
-                    channels_imported += 1
-                    total_channels += 1
+                # Upsert into database
+                cursor.execute('''
+                    INSERT INTO channels (
+                        portal, channel_id, portal_name, name, number, genre, genre_id, logo,
+                        enabled, custom_name, auto_name, custom_number, custom_genre,
+                        custom_epg_id, fallback_channel, resolution, video_codec, country,
+                        audio_tags, event_tags, is_header, is_event, is_raw, available_macs, alternate_ids, cmd
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(portal, channel_id) DO UPDATE SET
+                        portal_name = excluded.portal_name,
+                        name = excluded.name,
+                        number = excluded.number,
+                        genre = excluded.genre,
+                        genre_id = excluded.genre_id,
+                        logo = excluded.logo,
+                        auto_name = CASE
+                            WHEN excluded.auto_name != '' THEN excluded.auto_name
+                            ELSE channels.auto_name
+                        END,
+                        resolution = excluded.resolution,
+                        video_codec = excluded.video_codec,
+                        country = excluded.country,
+                        audio_tags = excluded.audio_tags,
+                        event_tags = excluded.event_tags,
+                        is_header = excluded.is_header,
+                        is_event = excluded.is_event,
+                        is_raw = excluded.is_raw,
+                        available_macs = excluded.available_macs,
+                        alternate_ids = CASE
+                            WHEN excluded.alternate_ids != '' THEN excluded.alternate_ids
+                            ELSE channels.alternate_ids
+                        END,
+                        cmd = excluded.cmd
+                ''', (
+                    portal_id, channel_id, portal_name, channel_name, channel_number,
+                    genre, genre_id, logo, 0, "", auto_name, "", "", "",
+                    "", resolution, video_codec, country, audio_tags, event_tags, is_header, is_event, is_raw,
+                    available_macs, alternate_ids, cmd
+                ))
 
-                # Populate groups table from all_genres
-                # Count channels per genre (use deduplicated channels)
-                genre_channel_counts = {}
-                for ch_info in channels_to_import.values():
-                    g_id = str(ch_info["data"].get("tv_genre_id", ""))
-                    genre_channel_counts[g_id] = genre_channel_counts.get(g_id, 0) + 1
+                channels_imported += 1
+                total_channels += 1
 
-                # Upsert groups - preserve active flag for existing groups
-                for genre_id, genre_name in all_genres.items():
-                    channel_count = genre_channel_counts.get(str(genre_id), 0)
-                    cursor.execute('''
-                        INSERT INTO groups (portal, genre_id, name, channel_count, active)
-                        VALUES (?, ?, ?, ?, 1)
-                        ON CONFLICT(portal, genre_id) DO UPDATE SET
-                            name = excluded.name,
-                            channel_count = excluded.channel_count
-                    ''', (portal_id, str(genre_id), genre_name, channel_count))
+            # Populate groups table from all_genres
+            # Count channels per genre (use deduplicated channels)
+            genre_channel_counts = {}
+            for ch_info in channels_to_import.values():
+                g_id = str(ch_info["data"].get("tv_genre_id", ""))
+                genre_channel_counts[g_id] = genre_channel_counts.get(g_id, 0) + 1
 
-                conn.commit()
+            # Upsert groups - preserve active flag for existing groups
+            for genre_id, genre_name in all_genres.items():
+                channel_count = genre_channel_counts.get(str(genre_id), 0)
+                cursor.execute('''
+                    INSERT INTO groups (portal, genre_id, name, channel_count, active)
+                    VALUES (?, ?, ?, ?, 1)
+                    ON CONFLICT(portal, genre_id) DO UPDATE SET
+                        name = excluded.name,
+                        channel_count = excluded.channel_count
+                ''', (portal_id, str(genre_id), genre_name, channel_count))
 
-                # Log summary
-                mac_coverage = {}
-                for ch_info in channels_to_import.values():
-                    num_macs = len(ch_info["available_macs"])
-                    mac_coverage[num_macs] = mac_coverage.get(num_macs, 0) + 1
+            conn.commit()
 
-                logger.info(f"Successfully cached {channels_imported} channels for {portal_name}")
-                logger.info(f"MAC coverage: {mac_coverage} (key=number of MACs, value=channel count)")
-            else:
-                logger.error(f"Failed to fetch channels for portal: {portal_name}")
-    
+            # Log summary
+            mac_coverage = {}
+            for ch_info in channels_to_import.values():
+                num_macs = len(ch_info["available_macs"])
+                mac_coverage[num_macs] = mac_coverage.get(num_macs, 0) + 1
+
+            logger.info(f"Successfully cached {channels_imported} channels for {portal_name}")
+            logger.info(f"MAC coverage: {mac_coverage} (key=number of MACs, value=channel count)")
+        else:
+            logger.error(f"Failed to fetch channels for portal: {portal_name}")
+
     conn.close()
     logger.info(f"Channel cache refresh complete. Total channels: {total_channels}")
     return total_channels
+
+
+def parse_frame_rate(value):
+    if not value:
+        return None
+    if value == "0/0":
+        return None
+    if "/" in value:
+        try:
+            num, den = value.split("/", 1)
+            num_f = float(num)
+            den_f = float(den)
+            if den_f == 0:
+                return None
+            return num_f / den_f
+        except ValueError:
+            return None
+    try:
+        return float(value)
+    except ValueError:
+        return None
+
+
 
 
 def authorise(f):
@@ -1163,6 +1651,61 @@ def authorise(f):
         )
 
     return decorated
+
+
+@app.route("/api/stream/info", methods=["POST"])
+@authorise
+def stream_info():
+    data = request.get_json(silent=True) or {}
+    portal = data.get("portal")
+    channel_id = data.get("channelId")
+    if not portal or not channel_id:
+        return jsonify({"success": False, "message": "Missing portal or channelId"}), 400
+
+    stream_url = f"http://{host}/play/{portal}/{channel_id}?web=true"
+    cmd = [
+        "ffprobe",
+        "-v",
+        "error",
+        "-select_streams",
+        "v:0",
+        "-show_entries",
+        "stream=codec_name,width,height,avg_frame_rate",
+        "-of",
+        "json",
+        stream_url,
+    ]
+
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=8)
+    except FileNotFoundError:
+        return jsonify({"success": False, "message": "ffprobe not found"}), 500
+    except subprocess.TimeoutExpired:
+        return jsonify({"success": False, "message": "ffprobe timed out"}), 504
+
+    if result.returncode != 0:
+        logger.error(f"ffprobe failed: {result.stderr.strip()}")
+        return jsonify({"success": False, "message": "ffprobe error"}), 502
+
+    try:
+        payload = json.loads(result.stdout or "{}")
+    except json.JSONDecodeError:
+        return jsonify({"success": False, "message": "Invalid ffprobe output"}), 502
+
+    streams = payload.get("streams") or []
+    if not streams:
+        return jsonify({"success": False, "message": "No video stream found"}), 404
+
+    stream = streams[0]
+    fps = parse_frame_rate(stream.get("avg_frame_rate"))
+
+    return jsonify({
+        "success": True,
+        "codec": stream.get("codec_name") or "",
+        "width": stream.get("width") or 0,
+        "height": stream.get("height") or 0,
+        "fps": fps or 0,
+    })
 
 
 def moveMac(portalId, mac):
@@ -1560,6 +2103,7 @@ def portalsAdd():
     epgOffset = request.form["epg offset"]
     proxy = request.form["proxy"]
     fetchEpg = "true" if request.form.get("fetch epg") else "false"
+    autoNormalize = "true" if request.form.get("auto normalize names") else "false"
     selectedGenres = request.form.getlist("selected_genres")  # Liste der Genre-IDs
 
     if not url.endswith(".php"):
@@ -1570,8 +2114,12 @@ def portalsAdd():
             return redirect("/portals", code=302)
 
     macsd = {}
+    tested_total = 0
+    tested_success = 0
+    tested_failed = 0
 
     for mac in macs:
+        tested_total += 1
         logger.info(f"Testing MAC({mac}) for Portal({name})...")
         token = stb.getToken(url, mac, proxy)
         if token:
@@ -1588,10 +2136,7 @@ def portalsAdd():
                 logger.info(
                     "Successfully tested MAC({}) for Portal({})".format(mac, name)
                 )
-                flash(
-                    "Successfully tested MAC({}) for Portal({})".format(mac, name),
-                    "success",
-                )
+                tested_success += 1
                 continue
             else:
                 logger.error(f"Failed to get expiry for MAC({mac}) for Portal({name})")
@@ -1599,7 +2144,24 @@ def portalsAdd():
             logger.error(f"Failed to get token for MAC({mac}) for Portal({name})")
 
         logger.error("Error testing MAC({}) for Portal({})".format(mac, name))
-        flash("Error testing MAC({}) for Portal({})".format(mac, name), "danger")
+        tested_failed += 1
+
+    if tested_total > 0:
+        if tested_success > 0 and tested_failed == 0:
+            flash(
+                f"{tested_success}/{tested_total} MACs successfully added for Portal({name})",
+                "success",
+            )
+        elif tested_success > 0:
+            flash(
+                f"{tested_success}/{tested_total} MACs successfully tested for Portal({name}). {tested_failed} failed.",
+                "warning",
+            )
+        else:
+            flash(
+                f"0/{tested_total} MACs successfully tested for Portal({name}).",
+                "danger",
+            )
 
     if len(macsd) > 0:
         portal = {
@@ -1612,6 +2174,7 @@ def portalsAdd():
             "proxy": proxy,
             "fetch epg": fetchEpg,
             "selected_genres": selectedGenres,  # Liste der Genre-IDs zum Importieren
+            "auto normalize names": autoNormalize,
         }
 
         for setting, default in defaultPortal.items():
@@ -1660,6 +2223,7 @@ def portalUpdate():
     epgOffset = request.form["epg offset"]
     proxy = request.form["proxy"]
     fetchEpg = "true" if request.form.get("fetch epg") else "false"
+    autoNormalize = "true" if request.form.get("auto normalize names") else "false"
     retest = request.form.get("retest", None)
     selectedGenres = request.form.getlist("selected_genres")  # Liste der Genre-IDs
 
@@ -1674,9 +2238,13 @@ def portalUpdate():
     oldmacs = portals[id]["macs"]
     macsout = {}
     deadmacs = []
+    tested_total = 0
+    tested_success = 0
+    tested_failed = 0
 
     for mac in newmacs:
         if retest or mac not in oldmacs.keys():
+            tested_total += 1
             logger.info(f"Testing MAC({mac}) for Portal({name})...")
             token = stb.getToken(url, mac, proxy)
             if token:
@@ -1693,10 +2261,7 @@ def portalUpdate():
                     logger.info(
                         "Successfully tested MAC({}) for Portal({})".format(mac, name)
                     )
-                    flash(
-                        "Successfully tested MAC({}) for Portal({})".format(mac, name),
-                        "success",
-                    )
+                    tested_success += 1
                 else:
                     logger.error(f"Failed to get expiry for MAC({mac}) for Portal({name})")
             else:
@@ -1704,6 +2269,7 @@ def portalUpdate():
 
             if mac not in list(macsout.keys()):
                 deadmacs.append(mac)
+                tested_failed += 1
 
         if mac in oldmacs.keys() and mac not in deadmacs:
             # Altes Format beibehalten (wird bei Anzeige normalisiert)
@@ -1711,7 +2277,23 @@ def portalUpdate():
 
         if mac not in macsout.keys():
             logger.error("Error testing MAC({}) for Portal({})".format(mac, name))
-            flash("Error testing MAC({}) for Portal({})".format(mac, name), "danger")
+
+    if tested_total > 0:
+        if tested_success > 0 and tested_failed == 0:
+            flash(
+                f"{tested_success}/{tested_total} MACs successfully tested for Portal({name})",
+                "success",
+            )
+        elif tested_success > 0:
+            flash(
+                f"{tested_success}/{tested_total} MACs successfully tested for Portal({name}). {tested_failed} failed.",
+                "warning",
+            )
+        else:
+            flash(
+                f"0/{tested_total} MACs successfully tested for Portal({name}).",
+                "danger",
+            )
 
     if len(macsout) > 0:
         portals[id]["enabled"] = enabled
@@ -1723,6 +2305,7 @@ def portalUpdate():
         portals[id]["proxy"] = proxy
         portals[id]["fetch epg"] = fetchEpg
         portals[id]["selected_genres"] = selectedGenres  # Genre-Filter
+        portals[id]["auto normalize names"] = autoNormalize
         savePortals(portals)
         logger.info("Portal({}) updated!".format(name))
         flash("Portal({}) updated!".format(name), "success")
@@ -1801,6 +2384,14 @@ def editor_data():
         portal_filter = request.args.get('portal', default='')
         group_filter = request.args.get('group', default='')
         duplicate_filter = request.args.get('duplicates', default='')
+        resolution_filter = request.args.get('resolution', default='')
+        video_filter = request.args.get('video', default='')
+        country_filter = request.args.get('country', default='')
+        audio_filter = request.args.get('audio', default='')
+        event_tags_filter = request.args.get('event_tags', default='')
+        raw_filter = request.args.get('raw', default='')
+        event_filter = request.args.get('event', default='')
+        header_filter = request.args.get('header', default='')
 
         # Map column indices to database columns
         column_map = {
@@ -1810,8 +2401,7 @@ def editor_data():
             3: 'genre',
             4: 'number',
             5: 'epg_id',  # EPG ID - Special handling
-            6: 'fallback_channel',
-            7: 'portal_name'
+            6: 'portal_name'
         }
 
         # Build the SQL query
@@ -1843,36 +2433,97 @@ def editor_data():
         # Add duplicate filter (only for enabled channels)
         if duplicate_filter == 'enabled_only':
             # Show only channels where the name appears multiple times among enabled channels
-            base_query += """ AND c.enabled = 1 AND COALESCE(NULLIF(c.custom_name, ''), c.name) IN (
-                SELECT COALESCE(NULLIF(custom_name, ''), name)
+            base_query += """ AND c.enabled = 1 AND COALESCE(NULLIF(c.custom_name, ''), NULLIF(c.auto_name, ''), c.name) IN (
+                SELECT COALESCE(NULLIF(custom_name, ''), NULLIF(auto_name, ''), name)
                 FROM channels
                 WHERE enabled = 1
-                GROUP BY COALESCE(NULLIF(custom_name, ''), name)
+                GROUP BY COALESCE(NULLIF(custom_name, ''), NULLIF(auto_name, ''), name)
                 HAVING COUNT(*) > 1
             )"""
         elif duplicate_filter == 'unique_only':
             # Show only channels where the name appears once among enabled channels
-            base_query += """ AND COALESCE(NULLIF(c.custom_name, ''), c.name) IN (
-                SELECT COALESCE(NULLIF(custom_name, ''), name)
+            base_query += """ AND COALESCE(NULLIF(c.custom_name, ''), NULLIF(c.auto_name, ''), c.name) IN (
+                SELECT COALESCE(NULLIF(custom_name, ''), NULLIF(auto_name, ''), name)
                 FROM channels
                 WHERE enabled = 1
-                GROUP BY COALESCE(NULLIF(custom_name, ''), name)
+                GROUP BY COALESCE(NULLIF(custom_name, ''), NULLIF(auto_name, ''), name)
                 HAVING COUNT(*) = 1
             )"""
+
+        # Tag filters
+        if resolution_filter:
+            values = [v.strip() for v in resolution_filter.split(',') if v.strip()]
+            if values:
+                placeholders = ','.join(['?'] * len(values))
+                base_query += f" AND c.resolution IN ({placeholders})"
+                params.extend(values)
+
+        if video_filter:
+            values = [v.strip() for v in video_filter.split(',') if v.strip()]
+            if values:
+                placeholders = ','.join(['?'] * len(values))
+                base_query += f" AND c.video_codec IN ({placeholders})"
+                params.extend(values)
+
+        if country_filter:
+            values = [v.strip() for v in country_filter.split(',') if v.strip()]
+            if values:
+                placeholders = ','.join(['?'] * len(values))
+                base_query += f" AND c.country IN ({placeholders})"
+                params.extend(values)
+
+        if audio_filter:
+            values = [v.strip() for v in audio_filter.split(',') if v.strip()]
+            if values:
+                like_clauses = []
+                for value in values:
+                    like_clauses.append("(',' || c.audio_tags || ',') LIKE ?")
+                    params.append(f"%,{value},%")
+                base_query += " AND (" + " OR ".join(like_clauses) + ")"
+
+        if event_tags_filter:
+            values = [v.strip() for v in event_tags_filter.split(',') if v.strip()]
+            if values:
+                like_clauses = []
+                for value in values:
+                    like_clauses.append("(',' || c.event_tags || ',') LIKE ?")
+                    params.append(f"%,{value},%")
+                base_query += " AND (" + " OR ".join(like_clauses) + ")"
+
+        if raw_filter in ('true', 'include'):
+            base_query += " AND c.is_raw = 1"
+        elif raw_filter == 'exclude':
+            base_query += " AND (c.is_raw = 0 OR c.is_raw IS NULL)"
+
+        if event_filter in ('true', 'include'):
+            base_query += " AND c.is_event = 1"
+        elif event_filter == 'exclude':
+            base_query += " AND (c.is_event = 0 OR c.is_event IS NULL)"
+
+        if header_filter in ('true', 'include'):
+            base_query += " AND c.is_header = 1"
+        elif header_filter == 'exclude':
+            base_query += " AND (c.is_header = 0 OR c.is_header IS NULL)"
 
         # Add search filter if provided
         if search_value:
             base_query += """ AND (
                 c.name LIKE ? OR
                 c.custom_name LIKE ? OR
+                c.auto_name LIKE ? OR
                 c.genre LIKE ? OR
                 c.custom_genre LIKE ? OR
                 c.number LIKE ? OR
                 c.custom_number LIKE ? OR
-                c.portal_name LIKE ?
+                c.portal_name LIKE ? OR
+                c.resolution LIKE ? OR
+                c.video_codec LIKE ? OR
+                c.country LIKE ? OR
+                c.audio_tags LIKE ? OR
+                c.event_tags LIKE ?
             )"""
             search_param = f"%{search_value}%"
-            params.extend([search_param] * 7)
+            params.extend([search_param] * 13)
         
         # Get total count (without filters)
         cursor.execute("SELECT COUNT(*) FROM channels")
@@ -1898,7 +2549,7 @@ def editor_data():
             col_name = column_map.get(col_idx, 'name')
             
             if col_name == 'name':
-                order_clauses.append(f"COALESCE(NULLIF(c.custom_name, ''), c.name) {direction}")
+                order_clauses.append(f"COALESCE(NULLIF(c.custom_name, ''), NULLIF(c.auto_name, ''), c.name) {direction}")
             elif col_name == 'genre':
                 order_clauses.append(f"COALESCE(NULLIF(c.custom_genre, ''), c.genre) {direction}")
             elif col_name == 'number':
@@ -1910,15 +2561,17 @@ def editor_data():
             i += 1
 
         if not order_clauses:
-            order_clauses.append("COALESCE(NULLIF(c.custom_name, ''), c.name) ASC")
+            order_clauses.append("COALESCE(NULLIF(c.custom_name, ''), NULLIF(c.auto_name, ''), c.name) ASC")
             
         order_clause = "ORDER BY " + ", ".join(order_clauses)
         
         data_query = f"""
             SELECT
                 c.portal, c.channel_id, c.portal_name, c.name, c.number, c.genre, c.genre_id, c.logo,
-                c.enabled, c.custom_name, c.custom_number, c.custom_genre,
-                c.custom_epg_id, c.fallback_channel, c.available_macs, c.alternate_ids
+                c.enabled, c.custom_name, c.auto_name, c.custom_number, c.custom_genre,
+                c.custom_epg_id, c.available_macs, c.alternate_ids,
+                c.resolution, c.video_codec, c.country, c.audio_tags, c.event_tags,
+                c.is_raw, c.is_event, c.is_header
             {base_query}
             {order_clause}
             LIMIT ? OFFSET ?
@@ -1933,11 +2586,11 @@ def editor_data():
         # Get duplicate counts for enabled channels
         duplicate_counts_query = """
             SELECT
-                COALESCE(NULLIF(custom_name, ''), name) as channel_name,
+                COALESCE(NULLIF(custom_name, ''), NULLIF(auto_name, ''), name) as channel_name,
                 COUNT(*) as count
             FROM channels
             WHERE enabled = 1
-            GROUP BY COALESCE(NULLIF(custom_name, ''), name)
+            GROUP BY COALESCE(NULLIF(custom_name, ''), NULLIF(auto_name, ''), name)
             HAVING COUNT(*) > 1
         """
         cursor.execute(duplicate_counts_query)
@@ -1959,11 +2612,11 @@ def editor_data():
         for row in channel_rows:
             portal = row['portal']
             channel_id = row['channel_id']
-            channel_name = row['custom_name'] or row['name']
-            duplicate_count = duplicate_counts.get(channel_name, 0)
+            effective_name = row['custom_name'] or row['auto_name'] or row['name']
+            duplicate_count = duplicate_counts.get(effective_name, 0)
             
             # Check if this channel has EPG data (by custom EPG ID or channel name)
-            epg_id = row['custom_epg_id'] or channel_name
+            epg_id = row['custom_epg_id'] or effective_name
             has_epg = epg_id in epg_channels
 
             channels.append({
@@ -1974,16 +2627,24 @@ def editor_data():
                 "customChannelNumber": row['custom_number'] or '',
                 "channelName": row['name'] or '',
                 "customChannelName": row['custom_name'] or '',
+                "autoChannelName": row['auto_name'] or '',
                 "genre": row['genre'] or '',
                 "genreId": row['genre_id'] or '',
                 "customGenre": row['custom_genre'] or '',
                 "channelId": channel_id,
                 "customEpgId": row['custom_epg_id'] or '',
-                "fallbackChannel": row['fallback_channel'] or '',
                 "link": f"http://{host}/play/{portal}/{channel_id}?web=true",
                 "logo": row['logo'] or '',
                 "availableMacs": row['available_macs'] or '',
                 "alternateIds": row['alternate_ids'] or '',
+                "resolution": row['resolution'] or '',
+                "videoCodec": row['video_codec'] or '',
+                "country": row['country'] or '',
+                "audioTags": row['audio_tags'] or '',
+                "eventTags": row['event_tags'] or '',
+                "isRaw": bool(row['is_raw']),
+                "isEvent": bool(row['is_event']),
+                "isHeader": bool(row['is_header']),
                 "duplicateCount": duplicate_count if row['enabled'] else 0,
                 "hasEpg": has_epg
             })
@@ -2077,6 +2738,60 @@ def editor_genres():
         return flask.jsonify({"genres": [], "error": str(e)}), 500
 
 
+@app.route("/api/editor/tag-values", methods=["GET"])
+@authorise
+def editor_tag_values():
+    """Return distinct tag values for editor filters."""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("SELECT DISTINCT resolution FROM channels WHERE resolution IS NOT NULL AND resolution != ''")
+        resolutions = sorted({row['resolution'] for row in cursor.fetchall() if row['resolution']})
+
+        cursor.execute("SELECT DISTINCT video_codec FROM channels WHERE video_codec IS NOT NULL AND video_codec != ''")
+        video_codecs = sorted({row['video_codec'] for row in cursor.fetchall() if row['video_codec']})
+
+        cursor.execute("SELECT DISTINCT country FROM channels WHERE country IS NOT NULL AND country != ''")
+        countries = sorted({row['country'] for row in cursor.fetchall() if row['country']})
+
+        cursor.execute("SELECT DISTINCT audio_tags FROM channels WHERE audio_tags IS NOT NULL AND audio_tags != ''")
+        audio_values = set()
+        for row in cursor.fetchall():
+            for tag in (row['audio_tags'] or '').split(','):
+                tag = tag.strip()
+                if tag:
+                    audio_values.add(tag)
+
+        cursor.execute("SELECT DISTINCT event_tags FROM channels WHERE event_tags IS NOT NULL AND event_tags != ''")
+        event_values = set()
+        for row in cursor.fetchall():
+            for tag in (row['event_tags'] or '').split(','):
+                tag = tag.strip()
+                if tag:
+                    event_values.add(tag)
+
+        conn.close()
+
+        return flask.jsonify({
+            "resolutions": resolutions,
+            "video_codecs": video_codecs,
+            "countries": countries,
+            "audio_tags": sorted(audio_values),
+            "event_tags": sorted(event_values),
+        })
+    except Exception as e:
+        logger.error(f"Error in editor_tag_values: {e}")
+        return flask.jsonify({
+            "resolutions": [],
+            "video_codecs": [],
+            "countries": [],
+            "audio_tags": [],
+            "event_tags": [],
+            "error": str(e)
+        }), 500
+
+
 @app.route("/api/editor/genres-grouped", methods=["GET"])
 @app.route("/editor/genres-grouped", methods=["GET"])
 @authorise
@@ -2128,11 +2843,11 @@ def editor_duplicate_counts():
         
         cursor.execute("""
             SELECT 
-                COALESCE(NULLIF(custom_name, ''), name) as channel_name,
+                COALESCE(NULLIF(custom_name, ''), NULLIF(auto_name, ''), name) as channel_name,
                 COUNT(*) as count
             FROM channels
             WHERE enabled = 1
-            GROUP BY COALESCE(NULLIF(custom_name, ''), name)
+            GROUP BY COALESCE(NULLIF(custom_name, ''), NULLIF(auto_name, ''), name)
             ORDER BY count DESC, channel_name
         """)
         
@@ -2161,9 +2876,9 @@ def editor_deactivate_duplicates():
                 SELECT 
                     portal,
                     channel_id,
-                    COALESCE(NULLIF(custom_name, ''), name) as effective_name,
+                    COALESCE(NULLIF(custom_name, ''), NULLIF(auto_name, ''), name) as effective_name,
                     ROW_NUMBER() OVER (
-                        PARTITION BY COALESCE(NULLIF(custom_name, ''), name) 
+                        PARTITION BY COALESCE(NULLIF(custom_name, ''), NULLIF(auto_name, ''), name) 
                         ORDER BY portal, channel_id
                     ) as row_num
                 FROM channels
@@ -2233,7 +2948,6 @@ def editorSave():
     nameEdits = json.loads(request.form["nameEdits"])
     groupEdits = json.loads(request.form["groupEdits"])
     epgEdits = json.loads(request.form["epgEdits"])
-    fallbackEdits = json.loads(request.form["fallbackEdits"])
     
     # Update SQLite database
     conn = get_db_connection()
@@ -2299,18 +3013,6 @@ def editorSave():
                 SET custom_epg_id = ? 
                 WHERE portal = ? AND channel_id = ?
             ''', (custom_epg_id, portal, channel_id))
-        
-        # Process fallback channel edits
-        for edit in fallbackEdits:
-            portal = edit["portal"]
-            channel_id = edit["channel id"]
-            fallback_channel = edit["channel name"]
-            
-            cursor.execute('''
-                UPDATE channels 
-                SET fallback_channel = ? 
-                WHERE portal = ? AND channel_id = ?
-            ''', (fallback_channel, portal, channel_id))
         
         conn.commit()
         logger.info("Channel edits saved to database!")
@@ -2435,19 +3137,20 @@ def editor_search_for_merge():
         # Search by name or channel_id
         search_pattern = f"%{query}%"
         cursor.execute("""
-            SELECT channel_id, name, custom_name, genre
+            SELECT channel_id, name, custom_name, auto_name, genre
             FROM channels
             WHERE portal = ?
               AND channel_id != ?
-              AND (name LIKE ? OR custom_name LIKE ? OR channel_id LIKE ?)
+              AND (name LIKE ? OR custom_name LIKE ? OR auto_name LIKE ? OR channel_id LIKE ?)
             LIMIT 10
-        """, [portal, exclude_channel_id, search_pattern, search_pattern, search_pattern])
+        """, [portal, exclude_channel_id, search_pattern, search_pattern, search_pattern, search_pattern])
 
         channels = []
         for row in cursor.fetchall():
+            effective_name = row["custom_name"] or row["auto_name"] or row["name"]
             channels.append({
                 "channelId": row["channel_id"],
-                "name": row["name"],
+                "name": effective_name,
                 "customName": row["custom_name"] or "",
                 "genre": row["genre"] or ""
             })
@@ -2475,8 +3178,7 @@ def editorReset():
                 custom_name = '',
                 custom_number = '',
                 custom_genre = '',
-                custom_epg_id = '',
-                fallback_channel = ''
+                custom_epg_id = ''
         ''')
         
         conn.commit()
@@ -2644,7 +3346,7 @@ def generate_playlist():
     # Build order clause based on settings
     order_clause = ""
     if getSettings().get("sort playlist by channel name", "true") == "true":
-        order_clause = "ORDER BY COALESCE(NULLIF(c.custom_name, ''), c.name)"
+        order_clause = "ORDER BY COALESCE(NULLIF(c.custom_name, ''), NULLIF(c.auto_name, ''), c.name)"
     elif getSettings().get("use channel numbers", "true") == "true":
         if getSettings().get("sort playlist by channel number", "false") == "true":
             order_clause = "ORDER BY CAST(COALESCE(NULLIF(c.custom_number, ''), c.number) AS INTEGER)"
@@ -2655,7 +3357,7 @@ def generate_playlist():
     cursor.execute(f'''
         SELECT
             c.portal, c.channel_id, c.name, c.number, c.genre,
-            c.custom_name, c.custom_number, c.custom_genre, c.custom_epg_id
+            c.custom_name, c.auto_name, c.custom_number, c.custom_genre, c.custom_epg_id
         FROM channels c
         LEFT JOIN groups g ON c.portal = g.portal AND c.genre_id = g.genre_id
         WHERE c.enabled = 1 AND (g.active = 1 OR g.active IS NULL)
@@ -2667,7 +3369,7 @@ def generate_playlist():
         channel_id = row['channel_id']
         
         # Use custom values if available, otherwise use defaults
-        channel_name = row['custom_name'] if row['custom_name'] else row['name']
+        channel_name = effective_channel_name(row['custom_name'], row['auto_name'], row['name'])
         channel_number = row['custom_number'] if row['custom_number'] else row['number']
         genre = row['custom_genre'] if row['custom_genre'] else row['genre']
         epg_id = row['custom_epg_id'] if row['custom_epg_id'] else channel_name
@@ -2753,7 +3455,7 @@ def refresh_xmltv():
     cursor.execute('''
         SELECT
             c.portal, c.channel_id, c.name, c.number, c.logo,
-            c.custom_name, c.custom_number, c.custom_epg_id
+            c.custom_name, c.auto_name, c.custom_number, c.custom_epg_id
         FROM channels c
         LEFT JOIN groups g ON c.portal = g.portal AND c.genre_id = g.genre_id
         WHERE c.enabled = 1 AND (g.active = 1 OR g.active IS NULL)
@@ -2771,6 +3473,7 @@ def refresh_xmltv():
             'number': row['number'],
             'logo': row['logo'],
             'custom_name': row['custom_name'],
+            'auto_name': row['auto_name'],
             'custom_number': row['custom_number'],
             'custom_epg_id': row['custom_epg_id']
         })
@@ -2827,7 +3530,7 @@ def refresh_xmltv():
         for ch in enabled_by_portal[portal_id]:
             try:
                 channelId = str(ch['channel_id'])
-                channelName = ch['custom_name'] if ch['custom_name'] else ch['name']
+                channelName = effective_channel_name(ch['custom_name'], ch['auto_name'], ch['name'])
                 channelNumber = ch['custom_number'] if ch['custom_number'] else str(ch['number'])
                 epgId = ch['custom_epg_id'] if ch['custom_epg_id'] else channelName
                 channelLogo = ch['logo'] or ""
@@ -2978,13 +3681,14 @@ def api_epg():
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute('''
-            SELECT portal, name, custom_name, custom_epg_id
+            SELECT portal, name, custom_name, auto_name, custom_epg_id
             FROM channels WHERE enabled = 1
         ''')
         channel_portal_map = {}
         for row in cursor.fetchall():
             # EPG ID is custom_epg_id if set, otherwise channel name
-            epg_id = row['custom_epg_id'] if row['custom_epg_id'] else (row['custom_name'] if row['custom_name'] else row['name'])
+            channel_name = effective_channel_name(row['custom_name'], row['auto_name'], row['name'])
+            epg_id = row['custom_epg_id'] if row['custom_epg_id'] else channel_name
             portal_id = row['portal']
             portal_name = portals.get(portal_id, {}).get('name', portal_id)
             channel_portal_map[epg_id] = portal_name
@@ -3467,108 +4171,6 @@ def channel(portalId, channelId):
                 logger.info("Redirect sent")
                 return redirect(link)
 
-    if not web:
-        logger.info(
-            "Portal({}):Channel({}) is not working. Looking for fallbacks...".format(
-                portalId, channelId
-            )
-        )
-
-        portals = getPortals()
-        for portal in portals:
-            if portals[portal]["enabled"] == "true":
-                fallbackChannels = portals[portal]["fallback channels"]
-                if channelName and channelName in fallbackChannels.values():
-                    url = portals[portal].get("url")
-                    macs = list(portals[portal]["macs"].keys())
-                    proxy = portals[portal].get("proxy")
-                    for mac in macs:
-                        channels = None
-                        cmd = None
-                        link = None
-                        if streamsPerMac == 0 or isMacFree():
-                            for k, v in fallbackChannels.items():
-                                if v == channelName:
-                                    try:
-                                        token = stb.getToken(url, mac, proxy)
-                                        stb.getProfile(url, mac, token, proxy)
-                                        channels = stb.getAllChannels(
-                                            url, mac, token, proxy
-                                        )
-                                    except:
-                                        logger.info(
-                                            "Unable to connect to fallback Portal({}) using MAC({})".format(
-                                                portalId, mac
-                                            )
-                                        )
-                                    if channels:
-                                        fChannelId = k
-                                        for c in channels:
-                                            if str(c["id"]) == fChannelId:
-                                                cmd = c["cmd"]
-                                                break
-                                        if cmd:
-                                            if "http://localhost/" in cmd:
-                                                link = stb.getLink(
-                                                    url, mac, token, cmd, proxy
-                                                )
-                                            else:
-                                                link = cmd.split(" ")[1]
-                                            if link:
-                                                if testStream():
-                                                    logger.info(
-                                                        "Fallback found for Portal({}):Channel({})".format(
-                                                            portalId, channelId
-                                                        )
-                                                    )
-                                                    if (
-                                                        getSettings().get(
-                                                            "stream method", "ffmpeg"
-                                                        )
-                                                        == "ffmpeg"
-                                                    ):
-                                                        ffmpegcmd = str(
-                                                            getSettings()[
-                                                                "ffmpeg command"
-                                                            ]
-                                                        )
-                                                        ffmpegcmd = ffmpegcmd.replace(
-                                                            "<url>", link
-                                                        )
-                                                        ffmpegcmd = ffmpegcmd.replace(
-                                                            "<timeout>",
-                                                            str(
-                                                                int(
-                                                                    getSettings()[
-                                                                        "ffmpeg timeout"
-                                                                    ]
-                                                                )
-                                                                * int(1000000)
-                                                            ),
-                                                        )
-                                                        if proxy:
-                                                            ffmpegcmd = (
-                                                                ffmpegcmd.replace(
-                                                                    "<proxy>", proxy
-                                                                )
-                                                            )
-                                                        else:
-                                                            ffmpegcmd = ffmpegcmd.replace(
-                                                                "-http_proxy <proxy>",
-                                                                "",
-                                                            )
-                                                        " ".join(
-                                                            ffmpegcmd.split()
-                                                        )  # cleans up multiple whitespaces
-                                                        ffmpegcmd = ffmpegcmd.split()
-                                                        return Response(
-                                                            streamData(),
-                                                            mimetype="application/octet-stream",
-                                                        )
-                                                    else:
-                                                        logger.info("Redirect sent")
-                                                        return redirect(link)
-
     if freeMac:
         logger.info(
             "No working streams found for Portal({}):Channel({})".format(
@@ -3888,7 +4490,7 @@ def refresh_lineup():
     cursor.execute('''
         SELECT
             c.portal, c.channel_id, c.name, c.number,
-            c.custom_name, c.custom_number
+            c.custom_name, c.auto_name, c.custom_number
         FROM channels c
         LEFT JOIN groups g ON c.portal = g.portal AND c.genre_id = g.genre_id
         WHERE c.enabled = 1 AND (g.active = 1 OR g.active IS NULL)
@@ -3898,7 +4500,7 @@ def refresh_lineup():
     for row in cursor.fetchall():
         portal = row['portal']
         channel_id = row['channel_id']
-        channel_name = row['custom_name'] if row['custom_name'] else row['name']
+        channel_name = effective_channel_name(row['custom_name'], row['auto_name'], row['name'])
         channel_number = row['custom_number'] if row['custom_number'] else row['number']
         
         # Use HLS URL if output format is set to HLS, otherwise use MPEG-TS

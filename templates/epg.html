@@ -4,9 +4,6 @@
 
 
 {% block content %}
-<!-- Toast notifications container -->
-<div class="epg-toast-container" id="toastContainer"></div>
-
 <div class="row">
     <div class="col-12">
         <h2><i class="fas fa-calendar-alt"></i> EPG Viewer</h2>
@@ -322,41 +319,6 @@ document.getElementById('channelSearch').addEventListener('input', function(e) {
     renderChannelList(e.target.value);
 });
 
-// Toast notification system
-function showToast(message, type = 'info', duration = 0) {
-    const container = document.getElementById('toastContainer');
-    const toast = document.createElement('div');
-    toast.className = `epg-toast ${type}`;
-
-    let icon = '';
-    if (type === 'success') {
-        icon = '<i class="fas fa-check-circle text-success"></i>';
-    } else if (type === 'error') {
-        icon = '<i class="fas fa-exclamation-circle text-danger"></i>';
-    } else if (type === 'info') {
-        icon = '<div class="spinner-border spinner-border-sm text-info" role="status"></div>';
-    }
-
-    toast.innerHTML = `${icon}<span>${message}</span>`;
-    container.appendChild(toast);
-
-    if (duration > 0) {
-        setTimeout(() => {
-            toast.style.animation = 'slideIn 0.3s ease reverse';
-            setTimeout(() => toast.remove(), 300);
-        }, duration);
-    }
-
-    return toast;
-}
-
-function removeToast(toast) {
-    if (toast && toast.parentNode) {
-        toast.style.animation = 'epgSlideIn 0.3s ease reverse';
-        setTimeout(() => toast.remove(), 300);
-    }
-}
-
 // Poll EPG refresh status
 async function pollEpgStatus(toast) {
     const maxAttempts = 120; // Max 2 minutes (120 * 1 second)
@@ -369,7 +331,7 @@ async function pollEpgStatus(toast) {
 
             if (!data.is_refreshing) {
                 // Refresh complete
-                removeToast(toast);
+                hideToast(toast);
                 showToast('EPG refresh complete!', 'success', 3000);
 
                 // Reload EPG data
@@ -389,7 +351,7 @@ async function pollEpgStatus(toast) {
     }
 
     // Timeout
-    removeToast(toast);
+    hideToast(toast);
     showToast('EPG refresh timed out', 'error', 5000);
     const btn = document.getElementById('refreshEpgBtn');
     btn.classList.remove('refreshing');
@@ -408,7 +370,7 @@ function refreshEPG() {
         .then(data => {
             if (data.status === 'started' || data.status === 'success' || data.status === 'already_running') {
                 // Show loading toast and start polling
-                const toast = showToast('EPG wird aktualisiert...', 'info');
+                const toast = showToast('EPG wird aktualisiert...', 'info', 0);
                 pollEpgStatus(toast);
             } else {
                 showToast('Error: ' + (data.message || 'Unknown error'), 'error', 5000);

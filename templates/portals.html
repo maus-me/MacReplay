@@ -301,13 +301,12 @@
                         <input type="text" class="form-control" id="add_proxy" name="proxy" placeholder="http://proxy:port">
                         <div class="form-text">Leave empty if no proxy needed</div>
                     </div>
-                    <div class="mb-3">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="add_fetch_epg" name="fetch epg" value="true" checked>
-                            <label class="form-check-label" for="add_fetch_epg">
-                                Fetch EPG data from this portal
-                            </label>
-                        </div>
+                    <div class="mb-3 d-flex flex-wrap gap-2">
+                        <input type="checkbox" class="btn-check" id="add_fetch_epg" name="fetch epg" value="true" checked autocomplete="off">
+                        <label class="btn btn-outline-primary btn-sm" for="add_fetch_epg">Fetch EPG</label>
+
+                        <input type="checkbox" class="btn-check" id="add_auto_normalize" name="auto normalize names" value="true" autocomplete="off">
+                        <label class="btn btn-outline-primary btn-sm" for="add_auto_normalize">Auto Normalize</label>
                     </div>
                     <div class="alert alert-secondary">
                         <i class="fas fa-info-circle"></i> After adding the portal, use the <strong>Groups</strong> button to select which groups to import.
@@ -370,21 +369,15 @@
                         <label for="edit_proxy" class="form-label">Proxy (Optional)</label>
                         <input type="text" class="form-control" id="edit_proxy" name="proxy">
                     </div>
-                    <div class="mb-3">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="edit_fetch_epg" name="fetch epg" value="true">
-                            <label class="form-check-label" for="edit_fetch_epg">
-                                Fetch EPG data from this portal
-                            </label>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="retest" name="retest" value="true">
-                            <label class="form-check-label" for="retest">
-                                Retest all MAC addresses
-                            </label>
-                        </div>
+                    <div class="mb-3 d-flex flex-wrap gap-2">
+                        <input type="checkbox" class="btn-check" id="edit_fetch_epg" name="fetch epg" value="true" autocomplete="off">
+                        <label class="btn btn-outline-primary btn-sm" for="edit_fetch_epg">Fetch EPG</label>
+
+                        <input type="checkbox" class="btn-check" id="edit_auto_normalize" name="auto normalize names" value="true" autocomplete="off">
+                        <label class="btn btn-outline-primary btn-sm" for="edit_auto_normalize">Auto Normalize</label>
+
+                        <input type="checkbox" class="btn-check" id="retest" name="retest" value="true" autocomplete="off">
+                        <label class="btn btn-outline-primary btn-sm" for="retest">Retest MACs</label>
                     </div>
 
                     <div class="alert alert-secondary mt-3">
@@ -557,6 +550,7 @@ function editPortal(portalId) {
     document.getElementById('edit_epg_offset').value = portal['epg offset'];
     document.getElementById('edit_proxy').value = portal.proxy || '';
     document.getElementById('edit_fetch_epg').checked = (portal['fetch epg'] || 'true') === 'true';
+    document.getElementById('edit_auto_normalize').checked = (portal['auto normalize names'] || 'false') === 'true';
 
     new bootstrap.Modal(document.getElementById('editPortalModal')).show();
 }
