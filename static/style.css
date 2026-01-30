@@ -1,5 +1,19 @@
 /* MacReplay Custom Styles */
+/*
+Table of Contents
+1) Theme & Base
+2) Layout & Containers
+3) Forms & Inputs
+4) Tables & Data
+5) Buttons & Badges
+6) Modals & Overlays
+7) Editor Page
+8) Portals Page
+9) EPG Page
+10) Utilities
+*/
 
+/* ===== Theme & Base ===== */
 /* ===== CSS Variables for Theming ===== */
 :root,
 [data-bs-theme="light"] {
@@ -32,6 +46,7 @@
     --bs-table-striped-bg: rgba(255, 255, 255, 0.05);
 }
 
+/* ===== Theme Overrides ===== */
 /* ===== Dark Theme Styles ===== */
 [data-bs-theme="dark"] body {
     background-color: var(--bs-body-bg);
@@ -58,6 +73,7 @@
     border-color: var(--bs-border-color);
 }
 
+/* ===== Modals & Overlays ===== */
 /* ===== Confirmation Modal Styles ===== */
 #confirmModal .modal-content {
     border-radius: 12px;
@@ -89,6 +105,7 @@
     min-width: 100px;
 }
 
+/* ===== Forms & Inputs ===== */
 [data-bs-theme="dark"] .form-control,
 [data-bs-theme="dark"] .form-select {
     background-color: var(--bs-input-bg);
@@ -107,6 +124,7 @@
     color: var(--bs-secondary-color);
 }
 
+/* ===== Tables & Data ===== */
 [data-bs-theme="dark"] .table {
     --bs-table-bg: var(--bs-table-bg);
     --bs-table-striped-bg: var(--bs-table-striped-bg);
@@ -318,6 +336,7 @@
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
+/* ===== Buttons & Badges ===== */
 .badge {
     font-size: 0.75em;
 }
@@ -370,6 +389,7 @@ table.dataTable thead th {
     user-select: none;
 }
 
+/* ===== Editor Page ===== */
 /* Editor table wrapper styling */
 .editor-table-wrap {
     border: 1px solid var(--bs-border-color);
@@ -487,7 +507,7 @@ table.dataTable thead th {
 
 /* Compact table inputs */
 .table-input {
-    height: 28px;
+    height: 20px;
     padding: 0 6px;
     font-size: 0.8rem;
 }
@@ -507,6 +527,11 @@ table.dataTable thead th {
 /* Compact table rows in editor */
 table.dataTable tbody td {
     padding: 4px 6px;
+    vertical-align: middle;
+}
+
+table.dataTable tbody tr {
+    height: 36px;
 }
 
 .editor-play-btn {
@@ -514,6 +539,12 @@ table.dataTable tbody td {
     height: 28px;
     padding: 0;
     font-size: 0.75rem;
+}
+
+.editor-switch {
+    display: flex;
+    align-items: center;
+    height: 28px;
 }
 
 .editor-switch .form-check-input {
@@ -581,7 +612,26 @@ table.dataTable tbody td {
     border-left: 1px solid var(--bs-border-color);
 }
 
+.name-tag-quality {
+    min-width: 42px;
+    justify-content: center;
+    background-color: rgba(13, 110, 253, 0.12);
+    color: #0b5ed7;
+}
+
+.name-tag-empty {
+    background-color: rgba(108, 117, 125, 0.12);
+    color: #6c757d;
+}
+
+.name-tag-codec {
+    min-width: 56px;
+    justify-content: center;
+}
+
 .name-tag-raw {
+    min-width: 42px;
+    justify-content: center;
     background-color: rgba(255, 193, 7, 0.2);
     color: #a36f00;
 }
@@ -594,6 +644,13 @@ table.dataTable tbody td {
 .name-tag-event-warning {
     background-color: rgba(255, 193, 7, 0.2);
     color: #a36f00;
+}
+
+.name-tag-misc {
+    min-width: 42px;
+    justify-content: center;
+    background-color: rgba(108, 117, 125, 0.2);
+    color: #6c757d;
 }
 
 .name-tag-header {
@@ -679,6 +736,7 @@ table.dataTable tbody td {
     color: var(--bs-secondary-color);
 }
 
+/* ===== Portals Page ===== */
 /* ===== Portal Page Styles ===== */
 .portal-list-item {
     background-color: var(--bs-card-bg);
@@ -1092,6 +1150,7 @@ table.dataTable tbody td {
 .portal-card-view.active { display: block; }
 .portal-list-view.active { display: block; }
 
+/* ===== EPG Page ===== */
 /* ===== EPG Page Styles ===== */
 .epg-container {
     background-color: var(--bs-body-bg);

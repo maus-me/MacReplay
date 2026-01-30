@@ -28,13 +28,14 @@ Eine Sammlung von Verbesserungsvorschlägen und Feature-Ideen für zukünftige E
 - ⬜ Channels-Seite: Filter "Nur Channels ohne EPG"
 - ⬜ Portals-Seite: Filter "Nur ablaufende MACs"
 - ⬜ Channels-Seite: Favoriten markieren (Stern-Icon)
+- ✅ Channel-Editor: Tag-Filter (Resolution/Video/Audio/Country/Event) + Tri-State RAW/EVENT/HEADER
 
 ### Bulk-Operationen
 - ⬜ Mehrere MACs gleichzeitig auswählen und löschen
 - ⬜ Portal-Konfiguration exportieren (JSON)
 - ⬜ Portal-Konfiguration importieren
 - ⬜ Channels zwischen Gruppen verschieben (Drag & Drop)
-g
+
 ### Genre/Gruppen-Auswahl beim Portal-Hinzufügen
 - ✅ **Genre-Auswahl beim Hinzufügen eines Portals**
   - 2-Schritt Wizard: Erst Portal-Info, dann Genre-Checkboxen
@@ -81,7 +82,16 @@ patterns = {
 - ⬜ Responsive Design für Mobile verbessern
 - ⬜ Tastatur-Shortcuts (z.B. `/` für Suche)
 - ⬜ Sortierung der Portale per Drag & Drop
-- ⬜ Kompakte Ansicht für Channel-Liste
+- ✅ Kompakte Ansicht für Channel-Liste
+
+### Tagging & Name Normalisierung
+- ✅ Auto-Normalisierung pro Portal (optional)
+- ✅ Auto-Namen in eigenes Feld (`auto_name`) speichern
+- ✅ Tag-Extraktion mit Settings-Patterns (Resolution/Codec/Audio/Country/Event/Header)
+- ✅ Event-Tags (z.B. PPV/NO EVENT) separat speichern und filterbar
+- ✅ NO EVENT / NO EVENT STREAMING im Editor über gelb gefärbtes EVENT anzeigen
+- ✅ Reset-Button für Tag-Patterns in den Settings
+- ⬜ Regeln/Regex pro Portal oder Portal-Gruppe
 
 ---
 

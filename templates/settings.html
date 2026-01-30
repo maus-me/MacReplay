@@ -254,9 +254,63 @@
                         <textarea class="form-control" id="tag_event_patterns" name="tag event patterns" rows="4">{{ settings['tag event patterns'] }}</textarea>
                     </div>
                     <div class="mb-3">
+                        <label for="tag_misc_patterns" class="form-label">Misc Patterns (one per line)</label>
+                        <textarea class="form-control" id="tag_misc_patterns" name="tag misc patterns" rows="3">{{ settings['tag misc patterns'] }}</textarea>
+                    </div>
+                    <div class="mb-3">
                         <label for="tag_header_patterns" class="form-label">Header Patterns (one per line)</label>
                         <textarea class="form-control" id="tag_header_patterns" name="tag header patterns" rows="3">{{ settings['tag header patterns'] }}</textarea>
                         <div class="form-text">Applied before the decoration heuristic.</div>
+                    </div>
+
+                    <div class="border-top pt-3 mt-3">
+                        <h6 class="mb-3"><i class="fas fa-database"></i> ChannelsDVR Matching</h6>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="channelsdvr_enabled" name="channelsdvr enabled"
+                                   value="true" {{ 'checked' if settings['channelsdvr enabled'] == 'true' }}>
+                            <label class="form-check-label" for="channelsdvr_enabled">
+                                Use ChannelsDVR DB to protect channel names
+                            </label>
+                        </div>
+                        <div class="mb-3">
+                            <label for="channelsdvr_db_path" class="form-label">ChannelsDVR DB Path</label>
+                            <input type="text" class="form-control" id="channelsdvr_db_path" name="channelsdvr db path"
+                                   value="{{ settings['channelsdvr db path'] }}">
+                        </div>
+                        <div class="mb-3">
+                            <label for="channelsdvr_match_threshold" class="form-label">Match Threshold (0-1)</label>
+                            <input type="number" step="0.01" min="0.5" max="0.99" class="form-control" id="channelsdvr_match_threshold"
+                                   name="channelsdvr match threshold" value="{{ settings['channelsdvr match threshold'] }}">
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="channelsdvr_debug" name="channelsdvr debug"
+                                   value="true" {{ 'checked' if settings['channelsdvr debug'] == 'true' }}>
+                            <label class="form-check-label" for="channelsdvr_debug">
+                                Enable debug logging for ChannelsDVR matching
+                            </label>
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="channelsdvr_include_lineup_channels" name="channelsdvr include lineup channels"
+                                   value="true" {{ 'checked' if settings['channelsdvr include lineup channels'] == 'true' }}>
+                            <label class="form-check-label" for="channelsdvr_include_lineup_channels">
+                                Include lineup channel names (slower, broader matches)
+                            </label>
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="channelsdvr_cache_enabled" name="channelsdvr cache enabled"
+                                   value="true" {{ 'checked' if settings['channelsdvr cache enabled'] == 'true' }}>
+                            <label class="form-check-label" for="channelsdvr_cache_enabled">
+                                Cache ChannelsDVR names on disk
+                            </label>
+                        </div>
+                        <div class="mb-3">
+                            <label for="channelsdvr_cache_dir" class="form-label">Cache Directory</label>
+                            <input type="text" class="form-control" id="channelsdvr_cache_dir" name="channelsdvr cache dir"
+                                   value="{{ settings['channelsdvr cache dir'] }}">
+                        </div>
+                        <div class="form-text">
+                            Uses country code from channel name to narrow ChannelsDVR lookup.
+                        </div>
                     </div>
                 </div>
             </div>
@@ -346,6 +400,7 @@
             videoPatterns: {{ defaultSettings['tag video codec patterns'] | tojson }},
             audioPatterns: {{ defaultSettings['tag audio patterns'] | tojson }},
             eventPatterns: {{ defaultSettings['tag event patterns'] | tojson }},
+            miscPatterns: {{ defaultSettings['tag misc patterns'] | tojson }},
             headerPatterns: {{ defaultSettings['tag header patterns'] | tojson }},
         };
 
@@ -360,6 +415,7 @@
             document.getElementById('tag_video_codec_patterns').value = defaults.videoPatterns || '';
             document.getElementById('tag_audio_patterns').value = defaults.audioPatterns || '';
             document.getElementById('tag_event_patterns').value = defaults.eventPatterns || '';
+            document.getElementById('tag_misc_patterns').value = defaults.miscPatterns || '';
             document.getElementById('tag_header_patterns').value = defaults.headerPatterns || '';
         });
     })();

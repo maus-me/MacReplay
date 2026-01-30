@@ -39,27 +39,27 @@
                 </div>
             </div>
             <div class="row g-3 align-items-end mt-1">
-                <div class="col-md-3">
+                <div class="col-md-4">
                     <label for="resolutionFilter" class="form-label small mb-1">Resolution</label>
                     <select id="resolutionFilter" multiple placeholder="All Resolutions..."></select>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-4">
                     <label for="videoFilter" class="form-label small mb-1">Video Codec</label>
                     <select id="videoFilter" multiple placeholder="All Video Codecs..."></select>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-4">
                     <label for="countryFilter" class="form-label small mb-1">Country</label>
                     <select id="countryFilter" multiple placeholder="All Countries..."></select>
                 </div>
-                <div class="col-md-3">
-                    <label for="audioFilter" class="form-label small mb-1">Audio</label>
-                    <select id="audioFilter" multiple placeholder="All Audio Tags..."></select>
-                </div>
             </div>
             <div class="row g-3 align-items-end mt-1">
-                <div class="col-md-3">
+                <div class="col-md-6">
                     <label for="eventTagFilter" class="form-label small mb-1">Event Tags</label>
                     <select id="eventTagFilter" multiple placeholder="All Event Tags..."></select>
+                </div>
+                <div class="col-md-6">
+                    <label for="miscFilter" class="form-label small mb-1">Misc</label>
+                    <select id="miscFilter" multiple placeholder="All Misc Tags..."></select>
                 </div>
             </div>
             <div class="row g-3 align-items-end mt-1">
@@ -217,7 +217,10 @@
                                 <tr><th>Video Codec</th><td id="infoVideoCodec"></td></tr>
                                 <tr><th>Audio Tags</th><td id="infoAudioTags"></td></tr>
                                 <tr><th>Event Tags</th><td id="infoEventTags"></td></tr>
+                                <tr><th>Misc Tags</th><td id="infoMiscTags"></td></tr>
                                 <tr><th>Country</th><td id="infoCountry"></td></tr>
+                                <tr><th>Matched Name</th><td id="infoMatchedName"></td></tr>
+                                <tr><th>Matched Source</th><td id="infoMatchedSource"></td></tr>
                                 <tr><th>RAW</th><td id="infoIsRaw"></td></tr>
                                 <tr><th>Event</th><td id="infoIsEvent"></td></tr>
                                 <tr><th>Header</th><td id="infoIsHeader"></td></tr>
@@ -600,7 +603,7 @@
     };
 
     // Tom Select instances
-    let portalSelect, groupSelect, duplicateSelect, resolutionSelect, videoSelect, countrySelect, audioSelect, eventTagSelect;
+    let portalSelect, groupSelect, duplicateSelect, resolutionSelect, videoSelect, countrySelect, eventTagSelect, miscSelect;
     // Store all groups data for dynamic filtering
     let allGroupsData = [];
     const FILTER_STORAGE_KEY = 'editorFilters';
@@ -723,9 +726,9 @@
             }
         });
 
-        audioSelect = new TomSelect('#audioFilter', {
+        eventTagSelect = new TomSelect('#eventTagFilter', {
             plugins: ['remove_button', 'clear_button'],
-            placeholder: 'All Audio Tags...',
+            placeholder: 'All Event Tags...',
             allowEmptyOption: true,
             closeAfterSelect: false,
             hidePlaceholder: true,
@@ -736,9 +739,9 @@
             }
         });
 
-        eventTagSelect = new TomSelect('#eventTagFilter', {
+        miscSelect = new TomSelect('#miscFilter', {
             plugins: ['remove_button', 'clear_button'],
-            placeholder: 'All Event Tags...',
+            placeholder: 'All Misc Tags...',
             allowEmptyOption: true,
             closeAfterSelect: false,
             hidePlaceholder: true,
@@ -843,11 +846,11 @@
                 (data.countries || []).forEach(value => {
                     countrySelect.addOption({ value: value, text: value });
                 });
-                (data.audio_tags || []).forEach(value => {
-                    audioSelect.addOption({ value: value, text: value });
-                });
                 (data.event_tags || []).forEach(value => {
                     eventTagSelect.addOption({ value: value, text: value });
+                });
+                (data.misc_tags || []).forEach(value => {
+                    miscSelect.addOption({ value: value, text: value });
                 });
                 applyStoredSelects();
             })
@@ -862,8 +865,8 @@
         if (stored.resolution && resolutionSelect) resolutionSelect.setValue(stored.resolution);
         if (stored.video && videoSelect) videoSelect.setValue(stored.video);
         if (stored.country && countrySelect) countrySelect.setValue(stored.country);
-        if (stored.audio && audioSelect) audioSelect.setValue(stored.audio);
         if (stored.eventTags && eventTagSelect) eventTagSelect.setValue(stored.eventTags);
+        if (stored.misc && miscSelect) miscSelect.setValue(stored.misc);
         if (stored.toggles) {
             document.querySelectorAll('.tri-toggle').forEach(button => {
                 const key = button.dataset.key;
@@ -888,8 +891,8 @@
             resolution: resolutionSelect ? resolutionSelect.getValue() : [],
             video: videoSelect ? videoSelect.getValue() : [],
             country: countrySelect ? countrySelect.getValue() : [],
-            audio: audioSelect ? audioSelect.getValue() : [],
             eventTags: eventTagSelect ? eventTagSelect.getValue() : [],
+            misc: miscSelect ? miscSelect.getValue() : [],
             search: document.getElementById('searchFilter')?.value || '',
             toggles: toggles,
         });
@@ -989,8 +992,8 @@
                     d.resolution = getFilterValues(resolutionSelect);
                     d.video = getFilterValues(videoSelect);
                     d.country = getFilterValues(countrySelect);
-                    d.audio = getFilterValues(audioSelect);
                     d.event_tags = getFilterValues(eventTagSelect);
+                    d.misc = getFilterValues(miscSelect);
                     const toggles = {};
                     document.querySelectorAll('.tri-toggle').forEach(button => {
                         toggles[button.dataset.key] = button.dataset.state || 'off';
@@ -1048,13 +1051,6 @@
                         if (row.duplicateCount && row.duplicateCount > 1) {
                             tags += '<span class="name-tag name-tag-dup">' + row.duplicateCount + 'x</span>';
                         }
-                        if (row.resolution) {
-                            tags += '<span class="name-tag">' + row.resolution + '</span>';
-                        }
-                        // HEVC gets a dedicated red/green indicator below.
-                        if (row.isRaw) {
-                            tags += '<span class="name-tag name-tag-raw">RAW</span>';
-                        }
                         const eventTags = (row.eventTags || '').split(',').map(tag => tag.trim()).filter(Boolean);
                         const hasNoEvent = eventTags.some(tag => {
                             const upperTag = tag.toUpperCase();
@@ -1064,7 +1060,27 @@
                             const eventClass = hasNoEvent ? 'name-tag-event-warning' : 'name-tag-event';
                             tags += '<span class="name-tag ' + eventClass + '">EVENT</span>';
                         }
-                        tags += '<span class="name-tag ' + (row.videoCodec === "HEVC" ? 'name-tag-ok' : 'name-tag-bad') + '">HEVC</span>';
+                        if (row.miscTags) {
+                            row.miscTags.split(',').forEach(tag => {
+                                const trimmed = tag.trim();
+                                if (!trimmed) return;
+                                tags += '<span class="name-tag name-tag-misc">' + trimmed + '</span>';
+                            });
+                        }
+                        // Right-to-left order (right edge -> left): EPG, Header, Codec, Quality, Raw.
+                        if (row.isRaw) {
+                            tags += '<span class="name-tag name-tag-raw">RAW</span>';
+                        }
+                        if (row.resolution) {
+                            tags += '<span class="name-tag name-tag-quality">' + row.resolution + '</span>';
+                        } else {
+                            tags += '<span class="name-tag name-tag-quality name-tag-empty">QUAL</span>';
+                        }
+                        if (row.videoCodec) {
+                            tags += '<span class="name-tag name-tag-codec ' + (row.videoCodec === "HEVC" ? 'name-tag-ok' : 'name-tag-bad') + '">' + row.videoCodec + '</span>';
+                        } else {
+                            tags += '<span class="name-tag name-tag-codec name-tag-empty">CODEC</span>';
+                        }
                         tags += '<span class="name-tag ' + (row.isHeader ? 'name-tag-ok' : 'name-tag-bad') + '">HEADER</span>';
                         tags += '<span class="name-tag ' + (row.hasEpg ? 'name-tag-ok' : 'name-tag-bad') + '">EPG</span>';
                         return '<div class="name-field">' +
@@ -1288,7 +1304,10 @@
             document.getElementById('infoVideoCodec').textContent = row.videoCodec || '-';
             document.getElementById('infoAudioTags').textContent = row.audioTags || '-';
             document.getElementById('infoEventTags').textContent = row.eventTags || '-';
+            document.getElementById('infoMiscTags').textContent = row.miscTags || '-';
             document.getElementById('infoCountry').textContent = row.country || '-';
+            document.getElementById('infoMatchedName').textContent = row.matchedName || '-';
+            document.getElementById('infoMatchedSource').textContent = row.matchedSource || '-';
             document.getElementById('infoIsRaw').innerHTML = row.isRaw
                 ? '<span class="badge bg-warning text-dark">Yes</span>'
                 : '<span class="badge bg-secondary">No</span>';
