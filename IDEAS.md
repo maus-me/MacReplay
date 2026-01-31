@@ -28,7 +28,9 @@ Eine Sammlung von Verbesserungsvorschlägen und Feature-Ideen für zukünftige E
 - ⬜ Channels-Seite: Filter "Nur Channels ohne EPG"
 - ⬜ Portals-Seite: Filter "Nur ablaufende MACs"
 - ⬜ Channels-Seite: Favoriten markieren (Stern-Icon)
-- ✅ Channel-Editor: Tag-Filter (Resolution/Video/Audio/Country/Event) + Tri-State RAW/EVENT/HEADER
+- ✅ Channel-Editor: Tag-Filter (Resolution/Video/Country/Event) + Tri-State RAW/EVENT/HEADER
+- ✅ Channel-Editor: Buttons für Resolution/Misc + HEVC Toggle
+- ✅ Channel-Editor: MATCH-Filter
 
 ### Bulk-Operationen
 - ⬜ Mehrere MACs gleichzeitig auswählen und löschen
@@ -83,6 +85,10 @@ patterns = {
 - ⬜ Tastatur-Shortcuts (z.B. `/` für Suche)
 - ⬜ Sortierung der Portale per Drag & Drop
 - ✅ Kompakte Ansicht für Channel-Liste
+- ✅ Editor: Aufklappbare Subline mit Match-Details + EPG-ID Edit
+- ✅ Editor: Logo aus Match in Subline (nur wenn gematched)
+- ✅ Editor: Nummer-Spalte vor Name, EPG-ID aus Hauptzeile entfernt
+- ⬜ Editor: Subline Inhalte konfigurierbar (ein-/ausblenden)
 
 ### Tagging & Name Normalisierung
 - ✅ Auto-Normalisierung pro Portal (optional)
@@ -92,6 +98,7 @@ patterns = {
 - ✅ NO EVENT / NO EVENT STREAMING im Editor über gelb gefärbtes EVENT anzeigen
 - ✅ Reset-Button für Tag-Patterns in den Settings
 - ⬜ Regeln/Regex pro Portal oder Portal-Gruppe
+- 🔄 Matching: Name vor Match leicht bereinigen (Country + Quality+Suffix abschneiden)
 
 ---
 
@@ -188,6 +195,16 @@ Die Stalker Portal API liefert via `?type=stb&action=get_profile` zusätzliche I
 - ⬜ Channel-Logo Caching lokal
 - ⬜ Lazy-Loading für große Channel-Listen
 - ⬜ Database Connection Pooling
+- ✅ ChannelsDVR Cache persistiert auf Disk (pro Land)
+- 🔄 ChannelsDVR Cache: Migration/Kompatibilität prüfen
+
+---
+
+## Settings UX / Struktur
+
+- 🔄 Settings-Menü neu strukturieren (Abschnitte gruppieren, klarere Labels)
+- ⬜ Settings: Auto-Group-Selection visuell erklären (Beispiele/Preview)
+- ✅ Settings: Auto-Group-Selection (Patterns) + Button "Lade Standarts" in Gruppen-Modal
 
 ---
 

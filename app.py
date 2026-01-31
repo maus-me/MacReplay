@@ -288,6 +288,8 @@ defaultSettings = {
     "channelsdvr include lineup channels": "false",
     "channelsdvr cache enabled": "true",
     "channelsdvr cache dir": "/app/data/channelsdvr_cache",
+    "auto group selection enabled": "false",
+    "auto group selection patterns": "",
 }
 
 defaultPortal = {
@@ -301,6 +303,7 @@ defaultPortal = {
     "fetch epg": "true",
     "selected_genres": [],  # Liste der Genre-IDs zum Importieren (leer = alle)
     "auto normalize names": "false",
+    "auto match": "false",
 }
 
 
@@ -462,10 +465,11 @@ def normalize_match_name(value):
 def build_channelsdvr_index(normalized):
     exact = {}
     token_index = {}
-    for idx, (norm, name) in enumerate(normalized):
+    for idx, record in enumerate(normalized):
+        norm = record.get("norm")
         if not norm:
             continue
-        exact.setdefault(norm, name)
+        exact.setdefault(norm, record)
         for token in set(norm.split()):
             token_index.setdefault(token, set()).add(idx)
     return exact, token_index
@@ -490,7 +494,26 @@ def load_channelsdvr_cache(country, db_path, cache_dir):
         if payload.get("db_mtime") != db_mtime:
             return None
         normalized = payload.get("normalized") or []
-        normalized = [(row[0], row[1]) for row in normalized if len(row) == 2]
+        converted = []
+        for row in normalized:
+            if len(row) >= 5:
+                converted.append({
+                    "norm": row[0],
+                    "name": row[1],
+                    "station_id": row[2],
+                    "call_sign": row[3],
+                    "logo_uri": row[4],
+                })
+            elif len(row) >= 2:
+                # Backward compatibility with older cache format (norm, name)
+                converted.append({
+                    "norm": row[0],
+                    "name": row[1],
+                    "station_id": "",
+                    "call_sign": "",
+                    "logo_uri": "",
+                })
+        normalized = converted
         exact, token_index = build_channelsdvr_index(normalized)
         return {
             "exact": exact,
@@ -509,7 +532,16 @@ def save_channelsdvr_cache(country, db_path, cache_dir, normalized):
         payload = {
             "db_mtime": os.path.getmtime(db_path),
             "country": country,
-            "normalized": normalized,
+            "normalized": [
+                [
+                    row.get("norm"),
+                    row.get("name"),
+                    row.get("station_id"),
+                    row.get("call_sign"),
+                    row.get("logo_uri"),
+                ]
+                for row in normalized
+            ],
         }
         cache_path = os.path.join(cache_dir, f"{country}.json.gz")
         with gzip.open(cache_path, "wt", encoding="utf-8") as handle:
@@ -561,37 +593,47 @@ def normalize_market_country(country):
     return COUNTRY_ISO2_TO_ISO3.get(country, country)
 
 
-def load_channelsdvr_names_for_country(country, db_path, include_lineup_channels=False):
+def load_channelsdvr_records_for_country(country, db_path, include_lineup_channels=False):
     country = normalize_market_country(country)
     conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
     conn.execute("PRAGMA busy_timeout = 5000;")
     cursor = conn.cursor()
     if include_lineup_channels:
         query = """
-            SELECT DISTINCT s.name
+            SELECT DISTINCT s.station_id, s.name, s.call_sign, s.logo_uri
             FROM stations s
             JOIN station_lineups sl ON sl.station_id = s.station_id
             JOIN lineup_markets lm ON lm.lineup_id = sl.lineup_id
             WHERE lm.country = ?
             UNION
-            SELECT DISTINCT lc.station_name
+            SELECT DISTINCT lc.station_id, lc.station_name, lc.call_sign, s.logo_uri
             FROM lineup_channels lc
             JOIN lineup_markets lm ON lm.lineup_id = lc.lineup_id
+            LEFT JOIN stations s ON s.station_id = lc.station_id
             WHERE lm.country = ?
         """
         cursor.execute(query, (country, country))
     else:
         query = """
-            SELECT DISTINCT s.name
+            SELECT DISTINCT s.station_id, s.name, s.call_sign, s.logo_uri
             FROM stations s
             JOIN station_lineups sl ON sl.station_id = s.station_id
             JOIN lineup_markets lm ON lm.lineup_id = sl.lineup_id
             WHERE lm.country = ?
         """
         cursor.execute(query, (country,))
-    names = [row[0] for row in cursor.fetchall() if row[0]]
+    records = [
+        {
+            "station_id": row[0],
+            "name": row[1],
+            "call_sign": row[2],
+            "logo_uri": row[3],
+        }
+        for row in cursor.fetchall()
+        if row[1]
+    ]
     conn.close()
-    return names
+    return records
 
 
 def get_channelsdvr_cache_for_country(country, db_path, include_lineup_channels=False):
@@ -611,14 +653,20 @@ def get_channelsdvr_cache_for_country(country, db_path, include_lineup_channels=
                 channelsdvr_cache[cache_key] = cached
             return cached
 
-    names = load_channelsdvr_names_for_country(country, db_path, include_lineup_channels)
+    records = load_channelsdvr_records_for_country(country, db_path, include_lineup_channels)
     normalized = []
 
-    for name in names:
-        norm = normalize_match_name(name)
+    for record in records:
+        norm = normalize_match_name(record.get("name"))
         if not norm:
             continue
-        normalized.append((norm, name))
+        normalized.append({
+            "norm": norm,
+            "name": record.get("name"),
+            "station_id": record.get("station_id"),
+            "call_sign": record.get("call_sign"),
+            "logo_uri": record.get("logo_uri"),
+        })
 
     exact, token_index = build_channelsdvr_index(normalized)
     cache_entry = {
@@ -638,12 +686,12 @@ def get_channelsdvr_cache_for_country(country, db_path, include_lineup_channels=
 
 def match_channelsdvr_name(raw_name, country, settings):
     if not raw_name or not country:
-        return ""
+        return {}
     if settings.get("channelsdvr enabled", "false") != "true":
-        return ""
+        return {}
     db_path = settings.get("channelsdvr db path", "").strip()
     if not db_path or not os.path.exists(db_path):
-        return ""
+        return {}
     try:
         threshold = float(settings.get("channelsdvr match threshold", "0.72"))
     except ValueError:
@@ -652,51 +700,56 @@ def match_channelsdvr_name(raw_name, country, settings):
 
     norm = normalize_match_name(raw_name)
     if not norm:
-        return ""
+        return {}
 
     country_iso3 = normalize_market_country(country)
     norm_tokens = [t for t in norm.split() if t not in {country.upper(), country_iso3}]
     norm = " ".join(norm_tokens).strip()
     if not norm:
-        return ""
+        return {}
 
     cache_entry = get_channelsdvr_cache_for_country(country, db_path, include_lineup_channels)
     exact = cache_entry["exact"]
     if norm in exact:
         if settings.get("channelsdvr debug", "false") == "true":
-            logger.info(f"ChannelsDVR match (exact): {raw_name} -> {exact[norm]}")
-        return exact[norm]
+            logger.info(f"ChannelsDVR match (exact): {raw_name} -> {exact[norm].get('name')}")
+        record = dict(exact[norm])
+        record["score"] = 1.0
+        return record
 
     tokens = norm.split()
     if len(tokens) < 2:
-        return ""
+        return {}
 
     candidate_indices = set()
     for token in tokens:
         candidate_indices.update(cache_entry["token_index"].get(token, set()))
 
     best_score = 0.0
-    best_name = ""
+    best_record = {}
     token_set = set(tokens)
     for idx in candidate_indices:
-        cand_norm, cand_name = cache_entry["normalized"][idx]
+        record = cache_entry["normalized"][idx]
+        cand_norm = record.get("norm", "")
         cand_tokens = set(cand_norm.split())
         if not cand_tokens:
             continue
         score = len(token_set & cand_tokens) / max(len(token_set), len(cand_tokens))
         if score > best_score:
             best_score = score
-            best_name = cand_name
+            best_record = record
 
     if best_score >= threshold:
         if settings.get("channelsdvr debug", "false") == "true":
-            logger.info(f"ChannelsDVR match ({best_score:.2f}): {raw_name} -> {best_name}")
-        return best_name
+            logger.info(f"ChannelsDVR match ({best_score:.2f}): {raw_name} -> {best_record.get('name')}")
+        record = dict(best_record)
+        record["score"] = best_score
+        return record
     if settings.get("channelsdvr debug", "false") == "true":
         logger.info(
             f"ChannelsDVR no match ({best_score:.2f}): {raw_name} (country {country} -> {country_iso3})"
         )
-    return ""
+    return {}
 
 
 def parse_event_patterns(value, defaults):
@@ -725,6 +778,18 @@ def parse_country_codes(value, defaults):
     tokens = re.split(r"[\s,]+", str(value).upper())
     codes = {token for token in tokens if token}
     return codes if codes else defaults
+
+
+def parse_group_selection_patterns(value):
+    if not value:
+        return []
+    patterns = []
+    for line in str(value).splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        patterns.append(line)
+    return patterns
 
 
 def build_tag_config(settings):
@@ -847,6 +912,8 @@ def extract_channel_tags(raw_name, tag_config, settings=None, allow_match=True):
         if re.search(pattern, name_upper):
             video_codec = label
             break
+    if video_codec and video_codec != "HEVC":
+        video_codec = ""
 
     audio_tags = []
     for label, pattern in tag_config["audio"]:
@@ -879,8 +946,27 @@ def extract_channel_tags(raw_name, tag_config, settings=None, allow_match=True):
             break
 
     canonical_name = ""
+    matched_station_id = ""
+    matched_call_sign = ""
+    matched_logo = ""
+    matched_score = ""
     if settings and allow_match and country and not is_header:
-        canonical_name = match_channelsdvr_name(raw_name, country, settings)
+        match_input = raw_name
+        folded_for_match = ascii_fold(raw_name).upper()
+        for _label, pattern in tag_config["resolution"]:
+            m = re.search(pattern, folded_for_match)
+            if m:
+                folded_for_match = folded_for_match[:m.start()].strip()
+                break
+        if folded_for_match:
+            match_input = folded_for_match
+        match = match_channelsdvr_name(match_input, country, settings)
+        if match:
+            canonical_name = match.get("name", "")
+            matched_station_id = match.get("station_id", "")
+            matched_call_sign = match.get("call_sign", "")
+            matched_logo = match.get("logo_uri", "")
+            matched_score = match.get("score", "")
 
     cleaned = name
     resolution_unicode_removals = {
@@ -978,6 +1064,10 @@ def extract_channel_tags(raw_name, tag_config, settings=None, allow_match=True):
         "misc_tags": ",".join(misc_tags),
         "matched_name": matched_name,
         "matched_source": matched_source,
+        "matched_station_id": matched_station_id,
+        "matched_call_sign": matched_call_sign,
+        "matched_logo": matched_logo,
+        "matched_score": matched_score,
         "is_header": 1 if is_header else 0,
         "is_event": 1 if is_event else 0,
         "is_raw": 1 if is_raw else 0,
@@ -1447,7 +1537,7 @@ def loadConfig():
 
     for setting, default in defaultSettings.items():
         value = settings.get(setting)
-        if not value or type(default) != type(value):
+        if value is None or type(default) != type(value):
             value = default
         settingsOut[setting] = value
 
@@ -1460,7 +1550,7 @@ def loadConfig():
         portalsOut[portal] = {}
         for setting, default in defaultPortal.items():
             value = portals[portal].get(setting)
-            if not value or type(default) != type(value):
+            if value is None or type(default) != type(value):
                 value = default
             portalsOut[portal][setting] = value
 
@@ -1531,6 +1621,10 @@ def init_db():
             misc_tags TEXT,
             matched_name TEXT,
             matched_source TEXT,
+            matched_station_id TEXT,
+            matched_call_sign TEXT,
+            matched_logo TEXT,
+            matched_score REAL,
             is_header INTEGER DEFAULT 0,
             is_event INTEGER DEFAULT 0,
             is_raw INTEGER DEFAULT 0,
@@ -1600,6 +1694,22 @@ def init_db():
         pass  # Column already exists
     try:
         cursor.execute("ALTER TABLE channels ADD COLUMN matched_source TEXT")
+    except:
+        pass  # Column already exists
+    try:
+        cursor.execute("ALTER TABLE channels ADD COLUMN matched_station_id TEXT")
+    except:
+        pass  # Column already exists
+    try:
+        cursor.execute("ALTER TABLE channels ADD COLUMN matched_call_sign TEXT")
+    except:
+        pass  # Column already exists
+    try:
+        cursor.execute("ALTER TABLE channels ADD COLUMN matched_logo TEXT")
+    except:
+        pass  # Column already exists
+    try:
+        cursor.execute("ALTER TABLE channels ADD COLUMN matched_score REAL")
     except:
         pass  # Column already exists
     try:
@@ -1906,9 +2016,9 @@ def refresh_channels_cache(target_portal_id=None):
                 genre = str(all_genres.get(genre_id, ""))
                 logo = str(channel.get("logo", ""))
                 cmd = str(channel.get("cmd", ""))  # Cache stream command for fast streaming
-                allow_match = True
+                allow_match = portal.get("auto match", "false") == "true"
                 if active_genres:
-                    allow_match = str(genre_id) in active_genres
+                    allow_match = allow_match and (str(genre_id) in active_genres)
                 tag_info = extract_channel_tags(channel_name, tag_config, getSettings(), allow_match=allow_match)
                 auto_name = tag_info["clean_name"] if portal_auto_normalize and tag_info["clean_name"] else ""
                 resolution = tag_info["resolution"]
@@ -1919,6 +2029,10 @@ def refresh_channels_cache(target_portal_id=None):
                 misc_tags = tag_info["misc_tags"]
                 matched_name = tag_info["matched_name"]
                 matched_source = tag_info["matched_source"]
+                matched_station_id = tag_info.get("matched_station_id", "")
+                matched_call_sign = tag_info.get("matched_call_sign", "")
+                matched_logo = tag_info.get("matched_logo", "")
+                matched_score = tag_info.get("matched_score", "")
                 is_header = tag_info["is_header"]
                 is_event = tag_info["is_event"]
                 is_raw = tag_info["is_raw"]
@@ -1930,8 +2044,9 @@ def refresh_channels_cache(target_portal_id=None):
                         enabled, custom_name, auto_name, custom_number, custom_genre,
                         custom_epg_id, fallback_channel, resolution, video_codec, country,
                             audio_tags, event_tags, misc_tags, matched_name, matched_source,
+                            matched_station_id, matched_call_sign, matched_logo, matched_score,
                             is_header, is_event, is_raw, available_macs, alternate_ids, cmd
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                         ON CONFLICT(portal, channel_id) DO UPDATE SET
                             portal_name = excluded.portal_name,
                             name = excluded.name,
@@ -1951,6 +2066,10 @@ def refresh_channels_cache(target_portal_id=None):
                             misc_tags = excluded.misc_tags,
                             matched_name = excluded.matched_name,
                             matched_source = excluded.matched_source,
+                            matched_station_id = excluded.matched_station_id,
+                            matched_call_sign = excluded.matched_call_sign,
+                            matched_logo = excluded.matched_logo,
+                            matched_score = excluded.matched_score,
                             is_header = excluded.is_header,
                             is_event = excluded.is_event,
                             is_raw = excluded.is_raw,
@@ -1964,7 +2083,8 @@ def refresh_channels_cache(target_portal_id=None):
                         portal_id, channel_id, portal_name, channel_name, channel_number,
                         genre, genre_id, logo, 0, "", auto_name, "", "", "",
                         "", resolution, video_codec, country, audio_tags, event_tags, misc_tags,
-                        matched_name, matched_source, is_header, is_event, is_raw,
+                        matched_name, matched_source, matched_station_id, matched_call_sign, matched_logo, matched_score,
+                        is_header, is_event, is_raw,
                         available_macs, alternate_ids, cmd
                     ))
 
@@ -1989,6 +2109,34 @@ def refresh_channels_cache(target_portal_id=None):
                         channel_count = excluded.channel_count
                 ''', (portal_id, str(genre_id), genre_name, channel_count))
 
+            # Auto-select groups based on settings (only if no active groups set yet)
+            settings = getSettings()
+            auto_group_enabled = settings.get("auto group selection enabled", "false") == "true"
+            auto_group_patterns = parse_group_selection_patterns(settings.get("auto group selection patterns", ""))
+            if auto_group_enabled and auto_group_patterns and not active_genres:
+                matched_genres = []
+                for genre_id, genre_name in all_genres.items():
+                    name_upper = str(genre_name or "").upper()
+                    for pattern in auto_group_patterns:
+                        try:
+                            if re.search(pattern, name_upper, re.IGNORECASE):
+                                matched_genres.append(str(genre_id))
+                                break
+                        except re.error:
+                            if pattern.upper() in name_upper:
+                                matched_genres.append(str(genre_id))
+                                break
+                if matched_genres:
+                    cursor.execute("UPDATE groups SET active = 0 WHERE portal = ?", (portal_id,))
+                    placeholders = ",".join(["?"] * len(matched_genres))
+                    cursor.execute(
+                        f"UPDATE groups SET active = 1 WHERE portal = ? AND genre_id IN ({placeholders})",
+                        [portal_id, *matched_genres],
+                    )
+                    logger.info(
+                        f"Auto-selected {len(matched_genres)} groups for {portal_name} based on settings"
+                    )
+
             conn.commit()
 
             # Log summary
@@ -2005,28 +2153,6 @@ def refresh_channels_cache(target_portal_id=None):
     conn.close()
     logger.info(f"Channel cache refresh complete. Total channels: {total_channels}")
     return total_channels
-
-
-def parse_frame_rate(value):
-    if not value:
-        return None
-    if value == "0/0":
-        return None
-    if "/" in value:
-        try:
-            num, den = value.split("/", 1)
-            num_f = float(num)
-            den_f = float(den)
-            if den_f == 0:
-                return None
-            return num_f / den_f
-        except ValueError:
-            return None
-    try:
-        return float(value)
-    except ValueError:
-        return None
-
 
 
 
@@ -2053,88 +2179,6 @@ def authorise(f):
         )
 
     return decorated
-
-
-@app.route("/api/stream/info", methods=["POST"])
-@authorise
-def stream_info():
-    data = request.get_json(silent=True) or {}
-    portal = data.get("portal")
-    channel_id = data.get("channelId")
-    if not portal or not channel_id:
-        return jsonify({"success": False, "message": "Missing portal or channelId"}), 400
-
-    stream_url = f"http://{host}/play/{portal}/{channel_id}?web=true"
-    headers = "User-Agent: Mozilla/5.0 (MacReplay)\r\n"
-    attempts = [
-        {"timeout": 8, "probesize": "2M", "analyzeduration": "2M"},
-        {"timeout": 12, "probesize": "5M", "analyzeduration": "5M"},
-        {"timeout": 18, "probesize": "10M", "analyzeduration": "10M"},
-        {"timeout": 25, "probesize": "20M", "analyzeduration": "20M"},
-    ]
-    last_error = "ffprobe error"
-    payload = None
-
-    for attempt in attempts:
-        cmd = [
-            "ffprobe",
-            "-v",
-            "error",
-            "-probesize",
-            attempt["probesize"],
-            "-analyzeduration",
-            attempt["analyzeduration"],
-            "-headers",
-            headers,
-            "-select_streams",
-            "v:0",
-            "-show_entries",
-            "stream=codec_name,width,height,avg_frame_rate",
-            "-of",
-            "json",
-            stream_url,
-        ]
-        try:
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=attempt["timeout"])
-        except FileNotFoundError:
-            return jsonify({"success": False, "message": "ffprobe not found"}), 500
-        except subprocess.TimeoutExpired:
-            last_error = "ffprobe timed out"
-            continue
-
-        if result.returncode != 0:
-            last_error = result.stderr.strip() or "ffprobe error"
-            time.sleep(0.4)
-            continue
-
-        try:
-            payload = json.loads(result.stdout or "{}")
-        except json.JSONDecodeError:
-            last_error = "Invalid ffprobe output"
-            continue
-
-        if payload:
-            break
-        time.sleep(0.4)
-
-    if not payload:
-        logger.error(f"ffprobe failed: {last_error}")
-        return jsonify({"success": False, "message": last_error}), 502
-
-    streams = payload.get("streams") or []
-    if not streams:
-        return jsonify({"success": False, "message": "No video stream found"}), 404
-
-    stream = streams[0]
-    fps = parse_frame_rate(stream.get("avg_frame_rate"))
-
-    return jsonify({
-        "success": True,
-        "codec": stream.get("codec_name") or "",
-        "width": stream.get("width") or 0,
-        "height": stream.get("height") or 0,
-        "fps": fps or 0,
-    })
 
 
 def moveMac(portalId, mac):
@@ -2210,7 +2254,7 @@ def portals():
                 'total_groups': 0
             }
 
-    return render_template("portals.html", portals=portal_data, portal_stats=portal_stats)
+    return render_template("portals.html", portals=portal_data, portal_stats=portal_stats, settings=getSettings())
 
 
 @app.route("/api/portal/mac/delete", methods=["POST"])
@@ -2533,6 +2577,7 @@ def portalsAdd():
     proxy = request.form["proxy"]
     fetchEpg = "true" if request.form.get("fetch epg") else "false"
     autoNormalize = "true" if request.form.get("auto normalize names") else "false"
+    autoMatch = "true" if request.form.get("auto match") else "false"
     selectedGenres = request.form.getlist("selected_genres")  # Liste der Genre-IDs
 
     if not url.endswith(".php"):
@@ -2604,6 +2649,7 @@ def portalsAdd():
             "fetch epg": fetchEpg,
             "selected_genres": selectedGenres,  # Liste der Genre-IDs zum Importieren
             "auto normalize names": autoNormalize,
+            "auto match": autoMatch,
         }
 
         for setting, default in defaultPortal.items():
@@ -2653,6 +2699,7 @@ def portalUpdate():
     proxy = request.form["proxy"]
     fetchEpg = "true" if request.form.get("fetch epg") else "false"
     autoNormalize = "true" if request.form.get("auto normalize names") else "false"
+    autoMatch = "true" if request.form.get("auto match") else "false"
     retest = request.form.get("retest", None)
     selectedGenres = request.form.getlist("selected_genres")  # Liste der Genre-IDs
 
@@ -2735,6 +2782,7 @@ def portalUpdate():
         portals[id]["fetch epg"] = fetchEpg
         portals[id]["selected_genres"] = selectedGenres  # Genre-Filter
         portals[id]["auto normalize names"] = autoNormalize
+        portals[id]["auto match"] = autoMatch
         savePortals(portals)
         logger.info("Portal({}) updated!".format(name))
         flash("Portal({}) updated!".format(name), "success")
@@ -2813,24 +2861,26 @@ def editor_data():
         portal_filter = request.args.get('portal', default='')
         group_filter = request.args.get('group', default='')
         duplicate_filter = request.args.get('duplicates', default='')
-        resolution_filter = request.args.get('resolution', default='')
-        video_filter = request.args.get('video', default='')
+        resolution_include = request.args.get('resolution_include', default='')
+        resolution_exclude = request.args.get('resolution_exclude', default='')
+        codec_filter = request.args.get('codec', default='')
         country_filter = request.args.get('country', default='')
         event_tags_filter = request.args.get('event_tags', default='')
-        misc_filter = request.args.get('misc', default='')
+        misc_include = request.args.get('misc_include', default='')
+        misc_exclude = request.args.get('misc_exclude', default='')
         raw_filter = request.args.get('raw', default='')
         event_filter = request.args.get('event', default='')
         header_filter = request.args.get('header', default='')
+        match_filter = request.args.get('match', default='')
 
         # Map column indices to database columns
         column_map = {
             0: 'enabled',
             1: 'channel_id',  # Play button, not sortable but needs a column
-            2: 'name',  # Channel name
-            3: 'genre',
-            4: 'number',
-            5: 'epg_id',  # EPG ID - Special handling
-            6: 'portal_name'
+            2: 'number',
+            3: 'name',  # Channel name
+            4: 'genre',
+            5: 'portal_name'
         }
 
         # Build the SQL query
@@ -2893,19 +2943,24 @@ def editor_data():
             )"""
 
         # Tag filters
-        if resolution_filter:
-            values = [v.strip() for v in resolution_filter.split(',') if v.strip()]
+        if resolution_include:
+            values = [v.strip() for v in resolution_include.split(',') if v.strip()]
             if values:
                 placeholders = ','.join(['?'] * len(values))
                 base_query += f" AND c.resolution IN ({placeholders})"
                 params.extend(values)
 
-        if video_filter:
-            values = [v.strip() for v in video_filter.split(',') if v.strip()]
+        if resolution_exclude:
+            values = [v.strip() for v in resolution_exclude.split(',') if v.strip()]
             if values:
                 placeholders = ','.join(['?'] * len(values))
-                base_query += f" AND c.video_codec IN ({placeholders})"
+                base_query += f" AND (c.resolution IS NULL OR c.resolution = '' OR c.resolution NOT IN ({placeholders}))"
                 params.extend(values)
+
+        if codec_filter in ('true', 'include'):
+            base_query += " AND c.video_codec = 'HEVC'"
+        elif codec_filter == 'exclude':
+            base_query += " AND (c.video_codec IS NULL OR c.video_codec = '' OR c.video_codec != 'HEVC')"
 
         if country_filter:
             values = [v.strip() for v in country_filter.split(',') if v.strip()]
@@ -2923,14 +2978,23 @@ def editor_data():
                     params.append(f"%,{value},%")
                 base_query += " AND (" + " OR ".join(like_clauses) + ")"
 
-        if misc_filter:
-            values = [v.strip() for v in misc_filter.split(',') if v.strip()]
+        if misc_include:
+            values = [v.strip() for v in misc_include.split(',') if v.strip()]
             if values:
                 like_clauses = []
                 for value in values:
                     like_clauses.append("(',' || c.misc_tags || ',') LIKE ?")
                     params.append(f"%,{value},%")
                 base_query += " AND (" + " OR ".join(like_clauses) + ")"
+
+        if misc_exclude:
+            values = [v.strip() for v in misc_exclude.split(',') if v.strip()]
+            if values:
+                not_like = []
+                for value in values:
+                    not_like.append("(',' || c.misc_tags || ',') NOT LIKE ?")
+                    params.append(f"%,{value},%")
+                base_query += " AND (" + " AND ".join(not_like) + ")"
 
         if raw_filter in ('true', 'include'):
             base_query += " AND c.is_raw = 1"
@@ -2946,6 +3010,11 @@ def editor_data():
             base_query += " AND c.is_header = 1"
         elif header_filter == 'exclude':
             base_query += " AND (c.is_header = 0 OR c.is_header IS NULL)"
+
+        if match_filter in ('true', 'include'):
+            base_query += " AND c.matched_name IS NOT NULL AND c.matched_name != ''"
+        elif match_filter == 'exclude':
+            base_query += " AND (c.matched_name IS NULL OR c.matched_name = '')"
 
         # Add search filter if provided
         if search_value:
@@ -3014,7 +3083,7 @@ def editor_data():
                 c.enabled, c.custom_name, c.auto_name, c.custom_number, c.custom_genre,
                 c.custom_epg_id, c.available_macs, c.alternate_ids,
                 c.resolution, c.video_codec, c.country, c.audio_tags, c.event_tags, c.misc_tags,
-                c.matched_name, c.matched_source,
+                c.matched_name, c.matched_source, c.matched_station_id, c.matched_call_sign, c.matched_logo, c.matched_score,
                 c.is_raw, c.is_event, c.is_header
             {base_query}
             {order_clause}
@@ -3089,6 +3158,10 @@ def editor_data():
                 "miscTags": row['misc_tags'] or '',
                 "matchedName": row['matched_name'] or '',
                 "matchedSource": row['matched_source'] or '',
+                "matchedStationId": row['matched_station_id'] or '',
+                "matchedCallSign": row['matched_call_sign'] or '',
+                "matchedLogo": row['matched_logo'] or '',
+                "matchedScore": row['matched_score'] or '',
                 "isRaw": bool(row['is_raw']),
                 "isEvent": bool(row['is_event']),
                 "isHeader": bool(row['is_header']),
@@ -3308,78 +3381,6 @@ def editor_duplicate_counts():
     except Exception as e:
         logger.error(f"Error in editor_duplicate_counts: {e}")
         return flask.jsonify({"counts": [], "error": str(e)}), 500
-
-
-@app.route("/api/editor/deactivate-duplicates", methods=["POST"])
-@app.route("/editor/deactivate-duplicates", methods=["POST"])  # Keep old route for backward compatibility
-@authorise
-def editor_deactivate_duplicates():
-    """Deactivate duplicate enabled channels, keeping only the first occurrence."""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # Find all duplicate channels (using ROW_NUMBER to identify which to keep)
-        find_duplicates_query = """
-            WITH ranked_channels AS (
-                SELECT 
-                    portal,
-                    channel_id,
-                    COALESCE(NULLIF(custom_name, ''), NULLIF(auto_name, ''), name) as effective_name,
-                    ROW_NUMBER() OVER (
-                        PARTITION BY COALESCE(NULLIF(custom_name, ''), NULLIF(auto_name, ''), name) 
-                        ORDER BY portal, channel_id
-                    ) as row_num
-                FROM channels
-                WHERE enabled = 1
-            )
-            SELECT portal, channel_id, effective_name, row_num
-            FROM ranked_channels
-            WHERE effective_name IN (
-                SELECT effective_name
-                FROM ranked_channels
-                GROUP BY effective_name
-                HAVING COUNT(*) > 1
-            )
-            AND row_num > 1
-            ORDER BY effective_name, row_num
-        """
-        
-        cursor.execute(find_duplicates_query)
-        duplicates_to_deactivate = cursor.fetchall()
-        
-        # Deactivate the duplicate channels
-        deactivated_count = 0
-        for dup in duplicates_to_deactivate:
-            cursor.execute("""
-                UPDATE channels
-                SET enabled = 0
-                WHERE portal = ? AND channel_id = ?
-            """, (dup['portal'], dup['channel_id']))
-            deactivated_count += 1
-        
-        conn.commit()
-        conn.close()
-        
-        # Reset playlist cache to force regeneration
-        global last_playlist_host
-        last_playlist_host = None
-        
-        logger.info(f"Deactivated {deactivated_count} duplicate channels")
-        
-        return flask.jsonify({
-            "success": True,
-            "deactivated": deactivated_count,
-            "message": f"Deactivated {deactivated_count} duplicate channels"
-        })
-        
-    except Exception as e:
-        logger.error(f"Error in editor_deactivate_duplicates: {e}")
-        return flask.jsonify({
-            "success": False,
-            "deactivated": 0,
-            "error": str(e)
-        }), 500
 
 
 @app.route("/api/editor/save", methods=["POST"])

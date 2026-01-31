@@ -26,48 +26,41 @@
                     </select>
                 </div>
                 <div class="col-md-3">
-                    <label for="duplicateFilter" class="form-label small mb-1">Duplicates</label>
-                    <select id="duplicateFilter">
-                        <option value="">All Channels</option>
-                        <option value="enabled_only">Enabled Duplicates Only</option>
-                        <option value="unique_only">Unique Only</option>
-                    </select>
-                </div>
-                <div class="col-md-3">
                     <label for="searchFilter" class="form-label small mb-1">Search</label>
-                    <input type="text" id="searchFilter" class="form-control" placeholder="Filter channels...">
+                    <input type="search" id="searchFilter" class="form-control" placeholder="Filter channels...">
                 </div>
             </div>
             <div class="row g-3 align-items-end mt-1">
-                <div class="col-md-4">
-                    <label for="resolutionFilter" class="form-label small mb-1">Resolution</label>
-                    <select id="resolutionFilter" multiple placeholder="All Resolutions..."></select>
-                </div>
-                <div class="col-md-4">
-                    <label for="videoFilter" class="form-label small mb-1">Video Codec</label>
-                    <select id="videoFilter" multiple placeholder="All Video Codecs..."></select>
-                </div>
-                <div class="col-md-4">
+                <div class="col-md-6">
                     <label for="countryFilter" class="form-label small mb-1">Country</label>
                     <select id="countryFilter" multiple placeholder="All Countries..."></select>
                 </div>
-            </div>
-            <div class="row g-3 align-items-end mt-1">
                 <div class="col-md-6">
                     <label for="eventTagFilter" class="form-label small mb-1">Event Tags</label>
                     <select id="eventTagFilter" multiple placeholder="All Event Tags..."></select>
                 </div>
-                <div class="col-md-6">
-                    <label for="miscFilter" class="form-label small mb-1">Misc</label>
-                    <select id="miscFilter" multiple placeholder="All Misc Tags..."></select>
-                </div>
             </div>
             <div class="row g-3 align-items-end mt-1">
                 <div class="col-md-12">
-                    <div class="d-flex flex-wrap gap-2">
-                        <button type="button" class="btn btn-outline-secondary btn-sm tri-toggle" data-key="raw" data-state="off">RAW</button>
-                        <button type="button" class="btn btn-outline-secondary btn-sm tri-toggle" data-key="event" data-state="off">EVENT</button>
-                        <button type="button" class="btn btn-outline-secondary btn-sm tri-toggle" data-key="header" data-state="off">HEADER</button>
+                    <div class="filter-tag-groups">
+                        <div class="filter-tag-box">
+                            <label class="form-label small mb-1">Resolution</label>
+                            <div id="resolutionButtons" class="d-flex flex-wrap gap-2"></div>
+                        </div>
+                        <div class="filter-tag-box">
+                            <label class="form-label small mb-1">Misc</label>
+                            <div id="miscButtons" class="d-flex flex-wrap gap-2"></div>
+                        </div>
+                        <div class="filter-tag-box">
+                            <label class="form-label small mb-1">Flags</label>
+                            <div class="d-flex flex-wrap gap-2">
+                                <button type="button" class="btn btn-outline-secondary btn-sm tri-toggle" data-key="hevc" data-state="off">HEVC</button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm tri-toggle" data-key="raw" data-state="off">RAW</button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm tri-toggle" data-key="event" data-state="off">EVENT</button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm tri-toggle" data-key="match" data-state="off">MATCH</button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm tri-toggle" data-key="header" data-state="off">HEADER</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -84,10 +77,9 @@
                     </div>
                 </th>
                 <th>Preview</th>
+                <th>Nr</th>
                 <th>Name</th>
                 <th>Group</th>
-                <th>Number</th>
-                <th>EPG ID</th>
                 <th>Portal</th>
             </tr>
         </thead>
@@ -119,7 +111,6 @@
                         <source src="" type="video/mp4">
                         Your browser does not support HTML video.
                     </video>
-                    <div class="video-meta" id="videoMeta">Resolution: - | FPS: - | Codec: -</div>
                 </div>
             </div>
         </div>
@@ -472,112 +463,20 @@
 
     var player = document.getElementById("player")
     var title = document.getElementById("channelLabel")
-    var videoMeta = document.getElementById("videoMeta")
-    var currentCodec = ''
-    var hasStreamInfo = false
-    var fpsFrames = 0
-    var fpsStart = 0
-    var frameCallbackId = null
     player.volume = 0.25
     function selectChannel(ele) {
         link = ele.getAttribute('data-link');
         player.src = link;
-        currentCodec = ele.getAttribute('data-videoCodec') || '';
-        hasStreamInfo = false;
         channel = ele.getAttribute('data-customChannelName');
         if (channel == "") {
             channel = ele.getAttribute('data-autoChannelName') || ele.getAttribute('data-channelName');
         }
         title.innerHTML = channel
-        updateVideoMeta('...', '...', currentCodec || '-')
-        fetchStreamInfo(ele.getAttribute('data-portal'), ele.getAttribute('data-channelId'));
     }
 
     $('#videoModal').on('hidden.bs.modal', function () {
         player.src = "";
-        hasStreamInfo = false;
-        stopFpsTracking();
     })
-
-    player.addEventListener('loadedmetadata', function() {
-        if (hasStreamInfo) return;
-        const resolution = (player.videoWidth && player.videoHeight)
-            ? `${player.videoWidth}x${player.videoHeight}`
-            : '-';
-        updateVideoMeta(resolution, '...', currentCodec || '-');
-        startFpsTracking();
-    });
-
-    player.addEventListener('emptied', function() {
-        updateVideoMeta('-', '-', '-');
-        hasStreamInfo = false;
-        stopFpsTracking();
-    });
-
-    function updateVideoMeta(resolution, fps, codec) {
-        if (!videoMeta) return;
-        videoMeta.textContent = `Resolution: ${resolution} | FPS: ${fps} | Codec: ${codec || '-'}`;
-    }
-
-    function fetchStreamInfo(portal, channelId) {
-        if (!portal || !channelId) return;
-        fetch('/api/stream/info', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ portal: portal, channelId: channelId })
-        })
-            .then(response => response.json())
-            .then(data => {
-                if (!data || !data.success) {
-                    startFpsTracking();
-                    return;
-                }
-                hasStreamInfo = true;
-                const resolution = (data.width && data.height) ? `${data.width}x${data.height}` : '-';
-                const fpsValue = data.fps ? Number(data.fps).toFixed(2) : '-';
-                currentCodec = data.codec || currentCodec || '-';
-                updateVideoMeta(resolution, fpsValue, currentCodec || '-');
-            })
-            .catch(() => {
-                startFpsTracking();
-            });
-    }
-
-    function startFpsTracking() {
-        stopFpsTracking();
-        if (!player.requestVideoFrameCallback) {
-            updateVideoMeta(
-                (player.videoWidth && player.videoHeight) ? `${player.videoWidth}x${player.videoHeight}` : '-',
-                '-',
-                currentCodec || '-'
-            );
-            return;
-        }
-        fpsFrames = 0;
-        fpsStart = performance.now();
-        const onFrame = (now) => {
-            fpsFrames += 1;
-            const delta = now - fpsStart;
-            if (delta >= 1000) {
-                const fpsValue = Math.round((fpsFrames * 1000) / delta);
-                const resolution = (player.videoWidth && player.videoHeight)
-                    ? `${player.videoWidth}x${player.videoHeight}`
-                    : '-';
-                updateVideoMeta(resolution, fpsValue, currentCodec || '-');
-                fpsFrames = 0;
-                fpsStart = now;
-            }
-            frameCallbackId = player.requestVideoFrameCallback(onFrame);
-        };
-        frameCallbackId = player.requestVideoFrameCallback(onFrame);
-    }
-
-    function stopFpsTracking() {
-        if (frameCallbackId && player.cancelVideoFrameCallback) {
-            player.cancelVideoFrameCallback(frameCallbackId);
-        }
-        frameCallbackId = null;
-    }
 
     /* Create an array with the values of all the checkboxes in a column */
     $.fn.dataTable.ext.order['dom-checkbox'] = function (settings, col) {
@@ -603,7 +502,7 @@
     };
 
     // Tom Select instances
-    let portalSelect, groupSelect, duplicateSelect, resolutionSelect, videoSelect, countrySelect, eventTagSelect, miscSelect;
+    let portalSelect, groupSelect, countrySelect, eventTagSelect;
     // Store all groups data for dynamic filtering
     let allGroupsData = [];
     const FILTER_STORAGE_KEY = 'editorFilters';
@@ -623,17 +522,60 @@
 
     function applyToggleState(button, state) {
         button.dataset.state = state;
-        button.classList.remove('btn-outline-secondary', 'btn-success', 'btn-danger');
+        button.classList.remove('btn-outline-secondary', 'btn-success', 'btn-danger', 'state-include', 'state-exclude', 'state-off');
         if (state === 'include') {
             button.classList.add('btn-success');
+            button.classList.add('state-include');
             button.title = 'Include only';
         } else if (state === 'exclude') {
             button.classList.add('btn-danger');
+            button.classList.add('state-exclude');
             button.title = 'Exclude';
         } else {
             button.classList.add('btn-outline-secondary');
+            button.classList.add('state-off');
             button.title = 'Off';
         }
+    }
+
+    function bindTriToggle(button) {
+        button.addEventListener('mousemove', (e) => {
+            const rect = button.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const ratio = x / rect.width;
+            button.classList.remove('hover-left', 'hover-right');
+            button.classList.remove('hover-left', 'hover-right', 'hover-middle', 'hover-override');
+            if (ratio < 0.45) {
+                button.classList.add('hover-left');
+            } else if (ratio > 0.55) {
+                button.classList.add('hover-right');
+            } else {
+                button.classList.add('hover-middle');
+            }
+            const current = button.dataset.state || 'off';
+            if ((current === 'include' && ratio > 0.55) || (current === 'exclude' && ratio < 0.45)) {
+                button.classList.add('hover-override');
+            }
+        });
+        button.addEventListener('mouseleave', () => {
+            button.classList.remove('hover-left', 'hover-right', 'hover-middle');
+        });
+        button.addEventListener('click', (e) => {
+            e.preventDefault();
+            const rect = button.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const ratio = x / rect.width;
+            const current = button.dataset.state || 'off';
+            let next = 'off';
+            if (ratio < 0.45) {
+                next = current === 'include' ? 'off' : 'include';
+            } else if (ratio > 0.55) {
+                next = current === 'exclude' ? 'off' : 'exclude';
+            }
+            applyToggleState(button, next);
+            persistFilters();
+            if (dataTable) dataTable.ajax.reload();
+        });
     }
 
     // Initialize Tom Select dropdowns
@@ -676,43 +618,6 @@
             }
         });
 
-        // Duplicate filter with Tom Select (single-select)
-        duplicateSelect = new TomSelect('#duplicateFilter', {
-            placeholder: 'All Channels',
-            allowEmptyOption: true,
-            maxOptions: null,
-            onChange: function() {
-                persistFilters();
-                if (dataTable) dataTable.ajax.reload();
-            }
-        });
-
-        resolutionSelect = new TomSelect('#resolutionFilter', {
-            plugins: ['remove_button', 'clear_button'],
-            placeholder: 'All Resolutions...',
-            allowEmptyOption: true,
-            closeAfterSelect: false,
-            hidePlaceholder: true,
-            maxOptions: null,
-            onChange: function() {
-                persistFilters();
-                if (dataTable) dataTable.ajax.reload();
-            }
-        });
-
-        videoSelect = new TomSelect('#videoFilter', {
-            plugins: ['remove_button', 'clear_button'],
-            placeholder: 'All Video Codecs...',
-            allowEmptyOption: true,
-            closeAfterSelect: false,
-            hidePlaceholder: true,
-            maxOptions: null,
-            onChange: function() {
-                persistFilters();
-                if (dataTable) dataTable.ajax.reload();
-            }
-        });
-
         countrySelect = new TomSelect('#countryFilter', {
             plugins: ['remove_button', 'clear_button'],
             placeholder: 'All Countries...',
@@ -739,29 +644,10 @@
             }
         });
 
-        miscSelect = new TomSelect('#miscFilter', {
-            plugins: ['remove_button', 'clear_button'],
-            placeholder: 'All Misc Tags...',
-            allowEmptyOption: true,
-            closeAfterSelect: false,
-            hidePlaceholder: true,
-            maxOptions: null,
-            onChange: function() {
-                persistFilters();
-                if (dataTable) dataTable.ajax.reload();
-            }
-        });
-
         loadTagFilterValues();
 
         document.querySelectorAll('.tri-toggle').forEach(button => {
-            button.addEventListener('click', () => {
-                const state = button.dataset.state || 'off';
-                const next = state === 'off' ? 'include' : state === 'include' ? 'exclude' : 'off';
-                applyToggleState(button, next);
-                persistFilters();
-                if (dataTable) dataTable.ajax.reload();
-            });
+            bindTriToggle(button);
         });
 
         // Custom search input - connect to DataTable
@@ -833,25 +719,35 @@
             .catch(err => console.error('Error loading groups:', err));
     }
 
+    function renderToggleButtons(containerId, values, prefix) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        container.innerHTML = '';
+        values.forEach(value => {
+            const key = `${prefix}:${value}`;
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'btn btn-outline-secondary btn-sm tri-toggle';
+            button.dataset.key = key;
+            button.dataset.state = 'off';
+            button.textContent = value;
+            bindTriToggle(button);
+            container.appendChild(button);
+        });
+    }
+
     function loadTagFilterValues() {
         fetch('/api/editor/tag-values')
             .then(res => res.json())
             .then(data => {
-                (data.resolutions || []).forEach(value => {
-                    resolutionSelect.addOption({ value: value, text: value });
-                });
-                (data.video_codecs || []).forEach(value => {
-                    videoSelect.addOption({ value: value, text: value });
-                });
+                renderToggleButtons('resolutionButtons', data.resolutions || [], 'resolution');
                 (data.countries || []).forEach(value => {
                     countrySelect.addOption({ value: value, text: value });
                 });
                 (data.event_tags || []).forEach(value => {
                     eventTagSelect.addOption({ value: value, text: value });
                 });
-                (data.misc_tags || []).forEach(value => {
-                    miscSelect.addOption({ value: value, text: value });
-                });
+                renderToggleButtons('miscButtons', data.misc_tags || [], 'misc');
                 applyStoredSelects();
             })
             .catch(err => console.error('Error loading tag values:', err));
@@ -861,12 +757,8 @@
         const stored = loadStoredFilters();
         if (stored.portal && portalSelect) portalSelect.setValue(stored.portal);
         if (stored.group && groupSelect) groupSelect.setValue(stored.group);
-        if (stored.duplicate && duplicateSelect) duplicateSelect.setValue(stored.duplicate);
-        if (stored.resolution && resolutionSelect) resolutionSelect.setValue(stored.resolution);
-        if (stored.video && videoSelect) videoSelect.setValue(stored.video);
         if (stored.country && countrySelect) countrySelect.setValue(stored.country);
         if (stored.eventTags && eventTagSelect) eventTagSelect.setValue(stored.eventTags);
-        if (stored.misc && miscSelect) miscSelect.setValue(stored.misc);
         if (stored.toggles) {
             document.querySelectorAll('.tri-toggle').forEach(button => {
                 const key = button.dataset.key;
@@ -877,22 +769,22 @@
             const input = document.getElementById('searchFilter');
             if (input) input.value = stored.search;
         }
+        if (dataTable) {
+            dataTable.ajax.reload();
+        }
     }
 
     function persistFilters() {
-        const toggles = {};
+        const existing = loadStoredFilters();
+        const toggles = { ...(existing.toggles || {}) };
         document.querySelectorAll('.tri-toggle').forEach(button => {
             toggles[button.dataset.key] = button.dataset.state || 'off';
         });
         saveStoredFilters({
             portal: portalSelect ? portalSelect.getValue() : [],
             group: groupSelect ? groupSelect.getValue() : [],
-            duplicate: duplicateSelect ? duplicateSelect.getValue() : '',
-            resolution: resolutionSelect ? resolutionSelect.getValue() : [],
-            video: videoSelect ? videoSelect.getValue() : [],
             country: countrySelect ? countrySelect.getValue() : [],
             eventTags: eventTagSelect ? eventTagSelect.getValue() : [],
-            misc: miscSelect ? miscSelect.getValue() : [],
             search: document.getElementById('searchFilter')?.value || '',
             toggles: toggles,
         });
@@ -907,6 +799,29 @@
         return values || '';
     }
 
+    function hashCode(value) {
+        let hash = 0;
+        for (let i = 0; i < value.length; i++) {
+            hash = ((hash << 5) - hash) + value.charCodeAt(i);
+            hash |= 0;
+        }
+        return Math.abs(hash);
+    }
+
+    function applyCountryColors() {
+        const theme = document.documentElement.getAttribute('data-bs-theme') || 'dark';
+        const lightness = theme === 'dark' ? 32 : 72;
+        const saturation = 45;
+        const textColor = theme === 'dark' ? '#f8f9fa' : '#1f2328';
+        document.querySelectorAll('.name-country').forEach(el => {
+            const code = (el.dataset.country || el.textContent || '').trim();
+            if (!code) return;
+            const hue = hashCode(code) % 360;
+            el.style.backgroundColor = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+            el.style.color = textColor;
+        });
+    }
+
     $(document).ready(function () {
         // Initialize Tom Select filter dropdowns
         initializeFilters();
@@ -917,18 +832,17 @@
                 "<'row mb-1 mb-lg-0'<'col-auto text-light'i><'col-auto ms-auto'p>>",
             serverSide: true,
             processing: true,
-            order: [[0, 'desc'], [2, 'asc']],
+            order: [[0, 'desc'], [3, 'asc']],
             pageLength: 250,
             lengthMenu: [[25, 50, 100, 250, 500, 1000], [25, 50, 100, 250, 500, 1000]],
             columnDefs: [
                 { targets: [0, 1], width: "0%" },
                 { targets: 0, className: "align-middle", orderable: true, searchable: false, orderDataType: 'dom-checkbox' },
                 { targets: 1, className: "align-middle", orderable: false, searchable: false },
-                { targets: 2, className: "align-middle", type: 'string', width: "45%" },
-                { targets: 3, className: "align-middle", type: 'string' },
-                { targets: 4, className: "align-middle", width: "70px" },
-                { targets: 5, className: "align-middle", type: 'string' },
-                { targets: 6, className: "align-middle", width: "140px" }
+                { targets: 2, className: "align-middle", width: "56px" },
+                { targets: 3, className: "align-middle", type: 'string', width: "45%" },
+                { targets: 4, className: "align-middle", type: 'string' },
+                { targets: 5, className: "align-middle", width: "140px" }
             ],
             language: {
                 search: "",
@@ -970,14 +884,6 @@
                             }
                         }
                     },
-                    {
-                        text: '<i class="fas fa-trash"></i> Deactivate Duplicates',
-                        titleAttr: 'Deactivate enabled duplicate channels (keeps first enabled occurrence)',
-                        className: "btn btn-warning",
-                        action: function () {
-                            deactivateDuplicates();
-                        }
-                    }
                 ],
             },
             ajax: {
@@ -988,27 +894,50 @@
                     // Add custom filter parameters (comma-separated for multi-select)
                     d.portal = getFilterValues(portalSelect);
                     d.group = getFilterValues(groupSelect);
-                    d.duplicates = duplicateSelect ? duplicateSelect.getValue() : '';
-                    d.resolution = getFilterValues(resolutionSelect);
-                    d.video = getFilterValues(videoSelect);
                     d.country = getFilterValues(countrySelect);
                     d.event_tags = getFilterValues(eventTagSelect);
-                    d.misc = getFilterValues(miscSelect);
                     const toggles = {};
+                    const resolutionInclude = [];
+                    const resolutionExclude = [];
+                    const miscInclude = [];
+                    const miscExclude = [];
+                    let hevcState = 'off';
                     document.querySelectorAll('.tri-toggle').forEach(button => {
-                        toggles[button.dataset.key] = button.dataset.state || 'off';
+                        const key = button.dataset.key;
+                        const state = button.dataset.state || 'off';
+                        toggles[key] = state;
+                        if (key === 'hevc') {
+                            hevcState = state;
+                        } else if (key && key.startsWith('resolution:')) {
+                            const value = key.split(':')[1];
+                            if (state === 'include') resolutionInclude.push(value);
+                            if (state === 'exclude') resolutionExclude.push(value);
+                        } else if (key && key.startsWith('misc:')) {
+                            const value = key.split(':')[1];
+                            if (state === 'include') miscInclude.push(value);
+                            if (state === 'exclude') miscExclude.push(value);
+                        }
                     });
                     d.raw = toggles.raw === 'off' ? '' : toggles.raw;
                     d.event = toggles.event === 'off' ? '' : toggles.event;
                     d.header = toggles.header === 'off' ? '' : toggles.header;
+                    d.match = toggles.match === 'off' ? '' : toggles.match;
+                    d.codec = hevcState === 'off' ? '' : hevcState;
+                    d.resolution_include = resolutionInclude.join(',');
+                    d.resolution_exclude = resolutionExclude.join(',');
+                    d.misc_include = miscInclude.join(',');
+                    d.misc_exclude = miscExclude.join(',');
                 }
             },
             columns: [
                 {
                     data: "enabled",
                     render: function (data, type, row, meta) {
-                        let r = '<div \
-                                class="form-check form-switch editor-switch">\
+                        let r = '<div class="editor-toggle-wrap">\
+                                <button type="button" class="btn btn-link row-toggle" title="Details">\
+                                    <i class="fas fa-chevron-right expand-icon"></i>\
+                                </button>\
+                                <div class="form-check form-switch editor-switch">\
                                 <input \
                                 type="checkbox" \
                                 class="checkbox form-check-input" \
@@ -1018,7 +947,8 @@
                         if (data == true) {
                             r = r + ' checked';
                         }
-                        r = r + '></div>'
+                        r = r + '></div>';
+                        r += '</div>';
                         return r
                     }
                 },
@@ -1043,6 +973,20 @@
                     }
                 },
                 {
+                    data: "channelNumber",
+                    render: function (data, type, row, meta) {
+                        return '<input \
+                                type="text" \
+                                class="form-control table-input" \
+                                onchange="editCustomNumber(this)" \
+                                data-portal="' + row.portal + '" \
+                                data-channelId="' + row.channelId + '" \
+                                placeholder="' + row.channelNumber + '" \
+                                title="' + row.channelNumber + '" \
+                                value="' + row.customChannelNumber + '">'
+                    },
+                },
+                {
                     data: "channelName",
                     render: function (data, type, row, meta) {
                         var displayName = row.autoChannelName || row.channelName;
@@ -1050,15 +994,6 @@
                         var country = row.country || '--';
                         if (row.duplicateCount && row.duplicateCount > 1) {
                             tags += '<span class="name-tag name-tag-dup">' + row.duplicateCount + 'x</span>';
-                        }
-                        const eventTags = (row.eventTags || '').split(',').map(tag => tag.trim()).filter(Boolean);
-                        const hasNoEvent = eventTags.some(tag => {
-                            const upperTag = tag.toUpperCase();
-                            return upperTag === 'NO EVENT' || upperTag === 'NO EVENT STREAMING';
-                        });
-                        if (row.isEvent) {
-                            const eventClass = hasNoEvent ? 'name-tag-event-warning' : 'name-tag-event';
-                            tags += '<span class="name-tag ' + eventClass + '">EVENT</span>';
                         }
                         if (row.miscTags) {
                             row.miscTags.split(',').forEach(tag => {
@@ -1068,23 +1003,23 @@
                             });
                         }
                         // Right-to-left order (right edge -> left): EPG, Header, Codec, Quality, Raw.
+                        const hasMatch = !!row.matchedName;
                         if (row.isRaw) {
                             tags += '<span class="name-tag name-tag-raw">RAW</span>';
                         }
                         if (row.resolution) {
-                            tags += '<span class="name-tag name-tag-quality">' + row.resolution + '</span>';
+                            tags += '<span class="name-tag name-tag-quality name-tag-quality-' + row.resolution.toLowerCase() + '">' + row.resolution + '</span>';
                         } else {
                             tags += '<span class="name-tag name-tag-quality name-tag-empty">QUAL</span>';
                         }
-                        if (row.videoCodec) {
-                            tags += '<span class="name-tag name-tag-codec ' + (row.videoCodec === "HEVC" ? 'name-tag-ok' : 'name-tag-bad') + '">' + row.videoCodec + '</span>';
-                        } else {
-                            tags += '<span class="name-tag name-tag-codec name-tag-empty">CODEC</span>';
-                        }
-                        tags += '<span class="name-tag ' + (row.isHeader ? 'name-tag-ok' : 'name-tag-bad') + '">HEADER</span>';
-                        tags += '<span class="name-tag ' + (row.hasEpg ? 'name-tag-ok' : 'name-tag-bad') + '">EPG</span>';
+                        const hasHevc = row.videoCodec === "HEVC";
+                        tags += '<span class="name-tag name-tag-codec ' + (hasHevc ? 'name-tag-ok' : 'name-tag-empty') + '">HEVC</span>';
+                        tags += '<span class="name-tag name-tag-event-flag ' + (row.isEvent ? 'name-tag-ok' : 'name-tag-empty') + '">EVENT</span>';
+                        tags += '<span class="name-tag name-tag-match ' + (hasMatch ? 'name-tag-ok' : 'name-tag-empty') + '">MATCH</span>';
+                        tags += '<span class="name-tag name-tag-header-flag ' + (row.isHeader ? 'name-tag-ok' : 'name-tag-empty') + '">HEADER</span>';
+                        tags += '<span class="name-tag name-tag-epg ' + (row.hasEpg ? 'name-tag-ok' : 'name-tag-bad') + '">EPG</span>';
                         return '<div class="name-field">' +
-                               '<div class="name-country" title="Country">' + country + '</div>' +
+                               '<div class="name-country" title="Country" data-country="' + country + '">' + country + '</div>' +
                                '<input \
                                 type="text" \
                                 class="form-control table-input name-input" \
@@ -1113,34 +1048,6 @@
                     },
                 },
                 {
-                    data: "channelNumber",
-                    render: function (data, type, row, meta) {
-                        return '<input \
-                                type="text" \
-                                class="form-control table-input" \
-                                onchange="editCustomNumber(this)" \
-                                data-portal="' + row.portal + '" \
-                                data-channelId="' + row.channelId + '" \
-                                placeholder="' + row.channelNumber + '" \
-                                title="' + row.channelNumber + '" \
-                                value="' + row.customChannelNumber + '">'
-                    },
-                },
-                {
-                    data: "channelId",
-                    render: function (data, type, row, meta) {
-                        return '<input \
-                                type="text" \
-                                class="form-control table-input" \
-                                onchange="editCustomEpgId(this)" \
-                                data-portal="' + row.portal + '" \
-                                data-channelId="' + row.channelId + '" \
-                                placeholder="' + row.portal + row.channelId + '" \
-                                title="' + row.portal + row.channelId + '" \
-                                value="' + row.customEpgId + '">'
-                    },
-                },
-                {
                     data: "portalName",
                     render: function (data, type, row, meta) {
                         // Store the full row data in a data attribute for the modal
@@ -1154,55 +1061,67 @@
             ],
         });
 
+        dataTable.on('draw.dt', function() {
+            applyCountryColors();
+        });
+
+        $('#table tbody').on('click', 'button.row-toggle', function (e) {
+            e.preventDefault();
+            const tr = $(this).closest('tr');
+            const row = dataTable.row(tr);
+            if (row.child.isShown()) {
+                row.child.hide();
+                tr.removeClass('shown');
+                $(this).find('i').css('transform', 'rotate(0deg)');
+            } else {
+                row.child(renderChannelDetails(row.data())).show();
+                tr.addClass('shown');
+                $(this).find('i').css('transform', 'rotate(90deg)');
+            }
+        });
+
         const stored = loadStoredFilters();
         if (stored.search) {
             dataTable.search(stored.search).draw();
         }
         applyStoredSelects();
+        applyCountryColors();
     });
-    
-    // Function to deactivate duplicate enabled channels
-    async function deactivateDuplicates() {
-        const confirmed = await showConfirmDialog({
-            title: 'Deactivate Duplicates',
-            message: 'This will deactivate all duplicate enabled channels, keeping only the first occurrence of each. Continue?',
-            type: 'warning',
-            okText: 'Deactivate'
-        });
-        if (!confirmed) return;
 
-        fetch('/editor/deactivate-duplicates', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                if (typeof showToast === 'function') {
-                    showToast('Successfully deactivated ' + data.deactivated + ' duplicate channels!', 'success');
-                } else {
-                    showNotification('Successfully deactivated ' + data.deactivated + ' duplicate channels!', 'success');
-                }
-                dataTable.ajax.reload();
-            } else {
-                if (typeof showToast === 'function') {
-                    showToast('Error: ' + (data.error || 'Unknown error'), 'error');
-                } else {
-                    showNotification('Error: ' + (data.error || 'Unknown error'), 'error', 5000);
-                }
-            }
-        })
-        .catch(error => {
-            if (typeof showToast === 'function') {
-                showToast('Error deactivating duplicates: ' + error, 'error');
-            } else {
-                showNotification('Error deactivating duplicates: ' + error, 'error', 5000);
-            }
-        });
+    function renderChannelDetails(row) {
+            const matchedScore = row.matchedScore ? Number(row.matchedScore).toFixed(2) : '-';
+            const matchedName = row.matchedName || '-';
+            const matchedStationId = row.matchedStationId || '-';
+            const matchedCallSign = row.matchedCallSign || '-';
+            const logo = row.matchedName ? (row.matchedLogo || '') : '';
+            const epgValue = row.customEpgId || '';
+            const epgPlaceholder = row.portal + row.channelId;
+            return `
+            <div class="channel-subline">
+                <div class="subline-item subline-logo">
+                    <span class="subline-label">Logo</span>
+                    ${logo ? `<img class="channel-logo" loading="lazy" src="${logo}" alt="logo">` : '<span class="subline-empty">—</span>'}
+                </div>
+                <div class="subline-item"><span class="subline-label">Station ID</span><span class="subline-value">${matchedStationId}</span></div>
+                <div class="subline-item"><span class="subline-label">Matched Name</span><span class="subline-value">${matchedName}</span></div>
+                <div class="subline-item"><span class="subline-label">Call Sign</span><span class="subline-value">${matchedCallSign}</span></div>
+                <div class="subline-item"><span class="subline-label">Score</span><span class="subline-value">${matchedScore}</span></div>
+                <div class="subline-item subline-epg">
+                    <span class="subline-label">EPG ID</span>
+                    <input
+                        type="text"
+                        class="form-control table-input subline-input"
+                        onchange="editCustomEpgId(this)"
+                        data-portal="${row.portal}"
+                        data-channelId="${row.channelId}"
+                        placeholder="${epgPlaceholder}"
+                        title="${epgPlaceholder}"
+                        value="${epgValue}">
+                </div>
+            </div>
+            `;
     }
-
+    
     // Function to refresh channels from portal
     async function refreshChannels() {
         const confirmed = await showConfirmDialog({

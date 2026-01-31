@@ -39,6 +39,7 @@
                     <h5 class="mb-0">{{ portal.name or 'Unnamed Portal' }}</h5>
                     <div class="d-flex align-items-center gap-1">
                         <span class="badge bg-{{ 'success' if portal.get('fetch epg', 'true') == 'true' else 'danger' }}" title="EPG {{ 'enabled' if portal.get('fetch epg', 'true') == 'true' else 'disabled' }}">EPG</span>
+                        <span class="badge bg-{{ 'success' if portal.get('auto match', 'false') == 'true' else 'danger' }}" title="Matching {{ 'enabled' if portal.get('auto match', 'false') == 'true' else 'disabled' }}">Match</span>
                         <span class="badge bg-{{ 'success' if portal.enabled == 'true' else 'danger' }}">
                             {{ 'Enabled' if portal.enabled == 'true' else 'Disabled' }}
                         </span>
@@ -132,6 +133,7 @@
                         <span class="portal-expiry-value">-</span>
                     </span>
                     <span class="badge bg-{{ 'success' if portal.get('fetch epg', 'true') == 'true' else 'danger' }}" title="EPG {{ 'enabled' if portal.get('fetch epg', 'true') == 'true' else 'disabled' }}">EPG</span>
+                    <span class="badge bg-{{ 'success' if portal.get('auto match', 'false') == 'true' else 'danger' }}" title="Matching {{ 'enabled' if portal.get('auto match', 'false') == 'true' else 'disabled' }}">Match</span>
                     <span class="badge bg-{{ 'success' if portal.enabled == 'true' else 'danger' }}">
                         {{ 'Enabled' if portal.enabled == 'true' else 'Disabled' }}
                     </span>
@@ -307,6 +309,9 @@
 
                         <input type="checkbox" class="btn-check" id="add_auto_normalize" name="auto normalize names" value="true" autocomplete="off">
                         <label class="btn btn-outline-primary btn-sm" for="add_auto_normalize">Auto Normalize</label>
+
+                        <input type="checkbox" class="btn-check" id="add_auto_match" name="auto match" value="true" autocomplete="off">
+                        <label class="btn btn-outline-primary btn-sm" for="add_auto_match">Auto Match</label>
                     </div>
                     <div class="alert alert-secondary">
                         <i class="fas fa-info-circle"></i> After adding the portal, use the <strong>Groups</strong> button to select which groups to import.
@@ -375,6 +380,9 @@
 
                         <input type="checkbox" class="btn-check" id="edit_auto_normalize" name="auto normalize names" value="true" autocomplete="off">
                         <label class="btn btn-outline-primary btn-sm" for="edit_auto_normalize">Auto Normalize</label>
+
+                        <input type="checkbox" class="btn-check" id="edit_auto_match" name="auto match" value="true" autocomplete="off">
+                        <label class="btn btn-outline-primary btn-sm" for="edit_auto_match">Auto Match</label>
 
                         <input type="checkbox" class="btn-check" id="retest" name="retest" value="true" autocomplete="off">
                         <label class="btn btn-outline-primary btn-sm" for="retest">Retest MACs</label>
@@ -464,6 +472,9 @@
                             <button type="button" class="btn btn-outline-primary" onclick="selectAllModalGenres()">
                                 <i class="fas fa-check-double"></i> All
                             </button>
+                            <button type="button" class="btn btn-outline-primary" onclick="applyDefaultGroupSelection()">
+                                <i class="fas fa-magic"></i> Lade Standarts
+                            </button>
                             <button type="button" class="btn btn-outline-secondary" onclick="deselectAllModalGenres()">
                                 <i class="fas fa-times"></i> None
                             </button>
@@ -499,6 +510,7 @@
 {% block scripts %}
 <script>
 const portalsData = {{ portals | tojson }};
+portalsData.__settings__ = {{ settings | tojson }};
 
 // View toggle
 function setView(view) {
@@ -551,6 +563,7 @@ function editPortal(portalId) {
     document.getElementById('edit_proxy').value = portal.proxy || '';
     document.getElementById('edit_fetch_epg').checked = (portal['fetch epg'] || 'true') === 'true';
     document.getElementById('edit_auto_normalize').checked = (portal['auto normalize names'] || 'false') === 'true';
+    document.getElementById('edit_auto_match').checked = (portal['auto match'] || 'false') === 'true';
 
     new bootstrap.Modal(document.getElementById('editPortalModal')).show();
 }
@@ -1161,7 +1174,7 @@ function renderGenreModalTiles(genres, selectedGenres) {
         const isSelected = selectedGenres.length === 0 || selectedGenres.includes(g.id);
         return `
             <div class="genre-tile ${isSelected ? 'selected' : ''}"
-                 data-genre-id="${g.id}" data-genre-title="${g.title.toLowerCase()}"
+                 data-genre-id="${g.id}" data-genre-title="${g.title}"
                  onclick="toggleGenreTile(this); updateGenreModalStats();">
                 <div class="genre-tile-title">${g.title}</div>
                 <div class="genre-tile-count">${g.channel_count || 0}</div>
@@ -1199,6 +1212,34 @@ function selectAllModalGenres() {
 function deselectAllModalGenres() {
     document.querySelectorAll('#genreModalTilesContainer .genre-tile').forEach(tile => {
         tile.classList.remove('selected');
+    });
+    updateGenreModalStats();
+}
+
+function applyDefaultGroupSelection() {
+    const patternsRaw = (portalsData.__settings__ && portalsData.__settings__["auto group selection patterns"]) || "";
+    const patterns = patternsRaw.split(/\r?\n/).map(p => p.trim()).filter(Boolean);
+    if (!patterns.length) {
+        showToast('Keine Standard-Patterns gesetzt (Settings).', 'warning');
+        return;
+    }
+    document.querySelectorAll('#genreModalTilesContainer .genre-tile').forEach(tile => {
+        const title = tile.dataset.genreTitle || '';
+        let matched = false;
+        for (const pattern of patterns) {
+            try {
+                if (new RegExp(pattern, 'i').test(title)) {
+                    matched = true;
+                    break;
+                }
+            } catch (e) {
+                if (title.toLowerCase().includes(pattern.toLowerCase())) {
+                    matched = true;
+                    break;
+                }
+            }
+        }
+        tile.classList.toggle('selected', matched);
     });
     updateGenreModalStats();
 }
