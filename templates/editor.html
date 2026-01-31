@@ -887,7 +887,7 @@
                 ],
             },
             ajax: {
-                "url": "{{ url_for('editor_data') }}",
+                "url": "{{ url_for('editor.editor_data') }}",
                 "dataType": "json",
                 "contentType": "application/json",
                 "data": function(d) {
@@ -1137,7 +1137,7 @@
         var originalText = btn.html();
         btn.html('<i class="fas fa-spinner fa-spin"></i> Refreshing...').prop('disabled', true);
 
-        fetch('{{ url_for("editorRefresh") }}', {
+        fetch('{{ url_for("editor.editorRefresh") }}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

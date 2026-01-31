@@ -1122,6 +1122,9 @@ async function openGenreModal(portalId) {
                 title: g.title,
                 channel_count: g.channel_count
             }));
+            if (!genreModalGenres.find(g => String(g.id) === 'UNGROUPED')) {
+                genreModalGenres.unshift({ id: 'UNGROUPED', title: 'Ungrouped', channel_count: 0 });
+            }
             const activeGenreIds = dbData.groups.filter(g => g.active).map(g => g.id);
             renderGenreModalTiles(genreModalGenres, activeGenreIds);
             updateGenreModalStats();
@@ -1151,6 +1154,9 @@ async function openGenreModal(portalId) {
 
         if (data.success && data.genres && data.genres.length > 0) {
             genreModalGenres = data.genres;
+            if (!genreModalGenres.find(g => String(g.id) === 'UNGROUPED')) {
+                genreModalGenres.unshift({ id: 'UNGROUPED', title: 'Ungrouped', channel_count: 0 });
+            }
             renderGenreModalTiles(data.genres, portal.selected_genres || []);
             updateGenreModalStats();
             document.getElementById('genreModalContent').style.display = 'block';
@@ -1170,7 +1176,11 @@ function renderGenreModalTiles(genres, selectedGenres) {
     const container = document.getElementById('genreModalTilesContainer');
     const totalChannels = genres.reduce((sum, g) => sum + (g.channel_count || 0), 0);
 
-    container.innerHTML = genres.map(g => {
+    const ensured = [...genres];
+    if (!ensured.find(g => String(g.id) === 'UNGROUPED')) {
+        ensured.unshift({ id: 'UNGROUPED', title: 'Ungrouped', channel_count: 0 });
+    }
+    container.innerHTML = ensured.map(g => {
         const isSelected = selectedGenres.length === 0 || selectedGenres.includes(g.id);
         return `
             <div class="genre-tile ${isSelected ? 'selected' : ''}"
@@ -1292,6 +1302,9 @@ async function savePortalGenres() {
             });
 
             showToast(`Groups updated: ${data.active_groups}/${data.total_groups} groups, ${data.active_channels}/${data.total_channels} channels`, 'success');
+            if (data.match_started) {
+                pollMatchStatus(currentGenreModalPortalId);
+            }
         } else {
             showToast('Error saving groups: ' + (data.message || 'Unknown error'), 'error');
             btn.disabled = false;
@@ -1302,6 +1315,38 @@ async function savePortalGenres() {
         btn.disabled = false;
         btn.innerHTML = '<i class="fas fa-save"></i> Save';
     }
+}
+
+function pollMatchStatus(portalId) {
+    const startedAt = Date.now();
+    const poll = () => {
+        fetch('/api/portal/match/status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ portal_id: portalId })
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (!data.success) return;
+                if (data.status === 'completed') {
+                    showToast(`Matching completed: ${data.matched} channels`, 'success');
+                    return;
+                }
+                if (data.status === 'error') {
+                    showToast(`Matching failed: ${data.error || 'Unknown error'}`, 'error');
+                    return;
+                }
+                if (Date.now() - startedAt < 300000) {
+                    setTimeout(poll, 2000);
+                }
+            })
+            .catch(() => {
+                if (Date.now() - startedAt < 300000) {
+                    setTimeout(poll, 3000);
+                }
+            });
+    };
+    setTimeout(poll, 1500);
 }
 
 // Reset genre modal when closed

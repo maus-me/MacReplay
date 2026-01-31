@@ -1,6 +1,11 @@
 __pycache__/
 *.pyc
 *.pyo
+*.pyd
+*.so
+.Python
+.pytest_cache/
+.mypy_cache/
 
 # Node modules
 node_modules/
@@ -9,15 +14,19 @@ frontend/node_modules/
 # Data and logs (user-specific)
 data/
 logs/
+*.log
 
 # Docker compose (user-specific configuration)
 docker-compose.yml
+.env
+.env.*
 
 # IDE
 .idea/
 .vscode/
 *.swp
 *.swo
+*~
 
 # OS
 .DS_Store
@@ -28,3 +37,12 @@ Thumbs.db
 dist/
 build/
 *.spec
+.venv/
+venv/
+ENV/
+
+# Runtime data
+MacReplay.json
+channels.db
+epg_cache.xml
+epg_cache.xml.meta

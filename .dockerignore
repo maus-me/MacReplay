@@ -12,6 +12,8 @@ __pycache__/
 *.pyd
 .Python
 *.so
+.pytest_cache/
+.mypy_cache/
 
 # IDE files
 .vscode/
@@ -19,6 +21,8 @@ __pycache__/
 *.swp
 *.swo
 *~
+.env
+.env.*
 
 # OS files
 .DS_Store
@@ -27,14 +31,26 @@ Thumbs.db
 # Local data directories (these will be mounted as volumes)
 data/
 logs/
+*.log
 
 # Documentation
 README.md
+README-Docker.md
+DB_SCHEMA.md
+IDEAS.md
+TAGS_IDEAS.md
+codex.md
+CLAUDE.md
 
 # Windows specific files
 *.exe
 *.ico
 replay.ico
+
+# Python virtual environments
+.venv/
+venv/
+ENV/
 
 # FFmpeg Windows binaries (we'll use system ffmpeg in container)
 ffmpeg/ 
