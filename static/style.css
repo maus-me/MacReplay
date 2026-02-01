@@ -198,6 +198,68 @@ Table of Contents
     color: var(--bs-body-color);
 }
 
+/* ===== Settings: Tag Rule Editor ===== */
+.tag-rule-group {
+    border: 1px solid var(--bs-border-color);
+    background-color: var(--bs-secondary-bg);
+    border-radius: 12px;
+    padding: 0.75rem 0.85rem;
+}
+
+[data-bs-theme="dark"] .tag-rule-group {
+    background-color: #2f343a;
+}
+
+.tag-rule-actions {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+}
+
+.tag-rule-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 0.6rem;
+}
+
+.tag-rule-row {
+    display: grid;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.tag-rule-row-label {
+    grid-template-columns: minmax(90px, 0.7fr) minmax(220px, 2fr) auto;
+}
+
+.tag-rule-row-line {
+    grid-template-columns: minmax(220px, 1fr) auto;
+}
+
+.tag-rule-delete {
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tag-rule-empty {
+    padding: 0.4rem 0.2rem;
+    font-size: 0.9rem;
+}
+
+.tag-rule-raw {
+    margin-top: 0.6rem;
+}
+
+.tag-rule-textarea {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 0.85rem;
+}
+
 /* Reduce hover fill for outline primary buttons (use subtle tint) */
 .btn-outline-primary:hover {
     background-color: rgba(13, 110, 253, 0.08);
@@ -261,6 +323,20 @@ Table of Contents
 [data-bs-theme="dark"] .filter-card .ts-wrapper .ts-control {
     border-color: var(--bs-border-color);
     color: var(--bs-body-color);
+}
+
+[data-bs-theme="dark"] .filter-card .ts-wrapper .item {
+    background-color: #1f2b38;
+    color: #e9f1ff;
+    border: 1px solid #33455b;
+}
+
+[data-bs-theme="dark"] .filter-card .ts-wrapper .item .remove {
+    color: #c8d6e8;
+}
+
+[data-bs-theme="dark"] .filter-card .ts-wrapper .item .remove:hover {
+    color: #ffffff;
 }
 
 [data-bs-theme="dark"] .filter-card .ts-wrapper.single .ts-control > .item,
@@ -509,6 +585,21 @@ table.dataTable thead th {
     height: auto !important;
     min-height: 0 !important;
     padding: 0 !important;
+}
+
+/* Filter dropdown selection chips for readability */
+.filter-card .ts-wrapper.single .ts-control > .item {
+    background-color: var(--bs-secondary-bg);
+    color: var(--bs-body-color);
+    border: 1px solid var(--bs-border-color);
+    padding: 2px 6px !important;
+    border-radius: 6px;
+}
+
+[data-bs-theme="dark"] .filter-card .ts-wrapper.single .ts-control > .item {
+    background-color: #1f2b38;
+    color: #e9f1ff;
+    border-color: #33455b;
 }
 
 /* Filter card styling - light gray background */

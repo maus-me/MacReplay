@@ -499,7 +499,7 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-primary" id="saveGenresBtn" onclick="savePortalGenres()">
-                    <i class="fas fa-save"></i> Save & Refresh Channels
+                    <i class="fas fa-save"></i> Save & Refresh
                 </button>
             </div>
         </div>
@@ -999,11 +999,19 @@ async function refreshPortalChannels(portalId) {
 
         const data = await response.json();
 
-        if (data.status === 'success') {
-            showToast(`${data.stats.channels} channels loaded for "${data.portal}"`, 'success');
-
-            // Update stats in DOM without reload
-            updatePortalStats(portalId, data.stats);
+        if (data.status === 'queued') {
+            showToast('Refresh queued. It will run after the current one finishes.', 'info');
+            pollRefreshStatus(portalId);
+        } else if (data.status === 'running') {
+            showToast('Refresh already running. Please wait...', 'warning');
+            pollRefreshStatus(portalId);
+        } else if (data.status === 'completed') {
+            if (data.stats) {
+                showToast(`${data.stats.channels} channels loaded for "${data.portal}"`, 'success');
+                updatePortalStats(portalId, data.stats);
+            } else {
+                showToast(`Refresh completed for "${portalName}"`, 'success');
+            }
         } else {
             showToast('Error: ' + (data.message || 'Unknown error'), 'error');
         }
@@ -1016,6 +1024,42 @@ async function refreshPortalChannels(portalId) {
             btn.innerHTML = '<i class="fas fa-sync"></i>';
         });
     }
+}
+
+function pollRefreshStatus(portalId) {
+    const startedAt = Date.now();
+    const poll = () => {
+        fetch('/api/portal/refresh/status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ portal_id: portalId })
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'completed') {
+                    if (data.stats) {
+                        showToast(`Refresh completed: ${data.stats.channels} channels`, 'success');
+                        updatePortalStats(portalId, data.stats);
+                    } else {
+                        showToast('Refresh completed.', 'success');
+                    }
+                    return;
+                }
+                if (data.status === 'error') {
+                    showToast(`Refresh failed: ${data.error || 'Unknown error'}`, 'error');
+                    return;
+                }
+                if (Date.now() - startedAt < 300000) {
+                    setTimeout(poll, 2000);
+                }
+            })
+            .catch(() => {
+                if (Date.now() - startedAt < 300000) {
+                    setTimeout(poll, 3000);
+                }
+            });
+    };
+    setTimeout(poll, 1500);
 }
 
 function updatePortalStats(portalId, stats) {
@@ -1272,7 +1316,7 @@ async function savePortalGenres() {
 
     const btn = document.getElementById('saveGenresBtn');
     btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving & Refreshing...';
 
     try {
         const response = await fetch('/api/portal/genres/update', {
@@ -1304,6 +1348,13 @@ async function savePortalGenres() {
             showToast(`Groups updated: ${data.active_groups}/${data.total_groups} groups, ${data.active_channels}/${data.total_channels} channels`, 'success');
             if (data.match_started) {
                 pollMatchStatus(currentGenreModalPortalId);
+            }
+            if (data.refresh_status === 'queued') {
+                showToast('Channel refresh queued.', 'info');
+                pollRefreshStatus(currentGenreModalPortalId);
+            } else if (data.refresh_status === 'running') {
+                showToast('Channel refresh already running.', 'warning');
+                pollRefreshStatus(currentGenreModalPortalId);
             }
         } else {
             showToast('Error saving groups: ' + (data.message || 'Unknown error'), 'error');
@@ -1361,7 +1412,7 @@ document.getElementById('genreModal')?.addEventListener('hidden.bs.modal', funct
     const btn = document.getElementById('saveGenresBtn');
     if (btn) {
         btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-save"></i> Save';
+        btn.innerHTML = '<i class="fas fa-save"></i> Save & Refresh';
     }
 });
 

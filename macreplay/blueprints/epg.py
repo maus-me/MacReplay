@@ -1,5 +1,4 @@
 import os
-import threading
 from datetime import datetime, timezone, timedelta
 import xml.etree.ElementTree as ET
 
@@ -11,13 +10,14 @@ from ..security import authorise
 def create_epg_blueprint(
     *,
     refresh_xmltv,
+    enqueue_epg_refresh,
     get_cached_xmltv,
     get_last_updated,
     get_epg_refresh_status,
     logger,
     getPortals,
     get_db_connection,
-    effective_channel_name,
+    effective_epg_name,
 ):
     bp = Blueprint("epg", __name__)
 
@@ -34,7 +34,7 @@ def create_epg_blueprint(
             refresh_xmltv()
         elif (datetime.now(timezone.utc).timestamp() - last_updated) > 900:
             logger.info("EPG cache is stale, triggering background refresh...")
-            threading.Thread(target=refresh_xmltv, daemon=True).start()
+            enqueue_epg_refresh(reason="cache_stale")
 
         cached_xmltv = get_cached_xmltv()
         return Response(cached_xmltv, mimetype="text/xml")
@@ -65,19 +65,22 @@ def create_epg_blueprint(
                 """
             )
             channel_portal_map = {}
+            enabled_epg_ids = set()
             for row in cursor.fetchall():
-                channel_name = effective_channel_name(
+                epg_id = row["custom_epg_id"] if row["custom_epg_id"] else effective_epg_name(
                     row["custom_name"], row["auto_name"], row["name"]
                 )
-                epg_id = row["custom_epg_id"] if row["custom_epg_id"] else channel_name
                 portal_id = row["portal"]
                 portal_name = portals.get(portal_id, {}).get("name", portal_id)
                 channel_portal_map[epg_id] = portal_name
+                enabled_epg_ids.add(epg_id)
             conn.close()
 
             channels = []
             for channel in root.findall("channel"):
                 channel_id = channel.get("id")
+                if channel_id not in enabled_epg_ids:
+                    continue
                 display_name = channel.find("display-name")
                 icon = channel.find("icon")
                 channels.append(
@@ -118,6 +121,8 @@ def create_epg_blueprint(
 
             for programme in root.findall("programme"):
                 channel_id = programme.get("channel")
+                if channel_id not in enabled_epg_ids:
+                    continue
                 start_str = programme.get("start")
                 stop_str = programme.get("stop")
 
@@ -204,8 +209,7 @@ def create_epg_blueprint(
                     }
                 )
 
-            refresh_thread = threading.Thread(target=refresh_xmltv, daemon=True)
-            refresh_thread.start()
+            enqueue_epg_refresh(reason="manual_api")
             logger.info("Manual EPG refresh triggered via API")
             return jsonify({"status": "started", "message": "EPG refresh started"})
         except Exception as e:

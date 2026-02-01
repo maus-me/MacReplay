@@ -1,6 +1,6 @@
 import json
 import threading
-import xml.etree.ElementTree as ET
+from datetime import datetime
 
 import flask
 from flask import Blueprint, jsonify, redirect, render_template, request, flash
@@ -14,11 +14,13 @@ def create_editor_blueprint(
     get_db_connection,
     ACTIVE_GROUP_CONDITION,
     get_cached_xmltv,
+    get_epg_channel_ids,
     host,
-    refresh_xmltv,
+    enqueue_epg_refresh,
     refresh_lineup,
-    refresh_channels_cache,
+    enqueue_refresh_all,
     set_last_playlist_host,
+    filter_cache,
 ):
     bp = Blueprint("editor", __name__)
 
@@ -52,6 +54,7 @@ def create_editor_blueprint(
             event_filter = request.args.get("event", default="")
             header_filter = request.args.get("header", default="")
             match_filter = request.args.get("match", default="")
+            epg_filter = request.args.get("epg", default="")
 
             column_map = {
                 0: "enabled",
@@ -64,6 +67,8 @@ def create_editor_blueprint(
 
             conn = get_db_connection()
             cursor = conn.cursor()
+
+            epg_channels = get_epg_channel_ids()
 
             base_query = f"""FROM channels c
                 LEFT JOIN groups g ON c.portal = g.portal AND c.genre_id = g.genre_id
@@ -99,20 +104,23 @@ def create_editor_blueprint(
                     if clauses:
                         base_query += " AND (" + " OR ".join(clauses) + ")"
 
+            base_query_total = base_query
+            params_total = list(params)
+
             if duplicate_filter == "enabled_only":
-                base_query += """ AND c.enabled = 1 AND COALESCE(NULLIF(c.custom_name, ''), NULLIF(c.auto_name, ''), c.name) IN (
-                    SELECT COALESCE(NULLIF(custom_name, ''), NULLIF(auto_name, ''), name)
+                base_query += """ AND c.enabled = 1 AND COALESCE(NULLIF(c.custom_name, ''), NULLIF(c.matched_name, ''), NULLIF(c.auto_name, ''), c.name) IN (
+                    SELECT COALESCE(NULLIF(custom_name, ''), NULLIF(matched_name, ''), NULLIF(auto_name, ''), name)
                     FROM channels
                     WHERE enabled = 1
-                    GROUP BY COALESCE(NULLIF(custom_name, ''), NULLIF(auto_name, ''), name)
+                    GROUP BY COALESCE(NULLIF(custom_name, ''), NULLIF(matched_name, ''), NULLIF(auto_name, ''), name)
                     HAVING COUNT(*) > 1
                 )"""
             elif duplicate_filter == "unique_only":
-                base_query += """ AND COALESCE(NULLIF(c.custom_name, ''), NULLIF(c.auto_name, ''), c.name) IN (
-                    SELECT COALESCE(NULLIF(custom_name, ''), NULLIF(auto_name, ''), name)
+                base_query += """ AND COALESCE(NULLIF(c.custom_name, ''), NULLIF(c.matched_name, ''), NULLIF(c.auto_name, ''), c.name) IN (
+                    SELECT COALESCE(NULLIF(custom_name, ''), NULLIF(matched_name, ''), NULLIF(auto_name, ''), name)
                     FROM channels
                     WHERE enabled = 1
-                    GROUP BY COALESCE(NULLIF(custom_name, ''), NULLIF(auto_name, ''), name)
+                    GROUP BY COALESCE(NULLIF(custom_name, ''), NULLIF(matched_name, ''), NULLIF(auto_name, ''), name)
                     HAVING COUNT(*) = 1
                 )"""
 
@@ -189,9 +197,30 @@ def create_editor_blueprint(
             elif match_filter == "exclude":
                 base_query += " AND (c.matched_name IS NULL OR c.matched_name = '')"
 
+            if epg_filter in ("true", "include", "exclude"):
+                epg_expr = "COALESCE(NULLIF(c.custom_epg_id, ''), COALESCE(NULLIF(c.custom_name, ''), NULLIF(c.auto_name, ''), c.name))"
+                if epg_channels:
+                    cursor.execute(
+                        "CREATE TEMP TABLE IF NOT EXISTS epg_channels (epg_id TEXT PRIMARY KEY)"
+                    )
+                    cursor.execute("DELETE FROM epg_channels")
+                    cursor.executemany(
+                        "INSERT OR IGNORE INTO epg_channels (epg_id) VALUES (?)",
+                        [(value,) for value in epg_channels],
+                    )
+                    if epg_filter in ("true", "include"):
+                        base_query += f" AND {epg_expr} IN (SELECT epg_id FROM epg_channels)"
+                    else:
+                        base_query += f" AND {epg_expr} NOT IN (SELECT epg_id FROM epg_channels)"
+                else:
+                    if epg_filter in ("true", "include"):
+                        base_query += " AND 0"
+
             if search_value:
                 base_query += """ AND (
+                    c.display_name LIKE ? OR
                     c.name LIKE ? OR
+                    c.matched_name LIKE ? OR
                     c.custom_name LIKE ? OR
                     c.auto_name LIKE ? OR
                     c.genre LIKE ? OR
@@ -207,14 +236,93 @@ def create_editor_blueprint(
                     c.misc_tags LIKE ?
                 )"""
                 search_param = f"%{search_value}%"
-                params.extend([search_param] * 14)
+                params.extend([search_param] * 16)
 
-            cursor.execute("SELECT COUNT(*) FROM channels")
-            records_total = cursor.fetchone()[0]
+            use_materialized_counts = not any(
+                [
+                    search_value,
+                    duplicate_filter,
+                    resolution_include,
+                    resolution_exclude,
+                    codec_filter,
+                    country_filter,
+                    event_tags_filter,
+                    misc_include,
+                    misc_exclude,
+                    raw_filter,
+                    event_filter,
+                    header_filter,
+                    match_filter,
+                    epg_filter,
+                ]
+            )
+            records_total = None
+            records_filtered = None
 
-            count_query = f"SELECT COUNT(*) {base_query}"
-            cursor.execute(count_query, params)
-            records_filtered = cursor.fetchone()[0]
+            if use_materialized_counts:
+                portal_values = [p.strip() for p in portal_filter.split(",") if p.strip()]
+                if group_filter:
+                    group_values = [g.strip() for g in group_filter.split(",") if g.strip()]
+                    include_ungrouped = "Ungrouped" in group_values
+                    group_values = [g for g in group_values if g != "Ungrouped"]
+
+                    clauses = []
+                    stats_params = []
+                    if portal_values:
+                        placeholders = ",".join(["?"] * len(portal_values))
+                        clauses.append(f"portal_name IN ({placeholders})")
+                        stats_params.extend(portal_values)
+
+                    group_clauses = []
+                    if group_values:
+                        placeholders = ",".join(["?"] * len(group_values))
+                        group_clauses.append(f"group_name IN ({placeholders})")
+                        stats_params.extend(group_values)
+                    if include_ungrouped:
+                        group_clauses.append("group_name = 'Ungrouped'")
+
+                    if group_clauses:
+                        clauses.append("(" + " OR ".join(group_clauses) + ")")
+
+                    where_clause = ""
+                    if clauses:
+                        where_clause = " WHERE " + " AND ".join(clauses)
+
+                    cursor.execute(
+                        f"SELECT SUM(channel_count) FROM group_stats{where_clause}",
+                        stats_params,
+                    )
+                    records_total = cursor.fetchone()[0] or 0
+                else:
+                    stats_params = []
+                    where_clause = ""
+                    if portal_values:
+                        placeholders = ",".join(["?"] * len(portal_values))
+                        where_clause = f" WHERE portal_name IN ({placeholders})"
+                        stats_params.extend(portal_values)
+                    cursor.execute(
+                        f"SELECT SUM(active_channels) FROM portal_stats{where_clause}",
+                        stats_params,
+                    )
+                    records_total = cursor.fetchone()[0] or 0
+
+                records_filtered = records_total
+            else:
+                cursor.execute(f"SELECT COUNT(*) {base_query_total}", params_total)
+                records_total = cursor.fetchone()[0]
+
+                count_query = f"SELECT COUNT(*) {base_query}"
+                cursor.execute(count_query, params)
+                records_filtered = cursor.fetchone()[0]
+
+            if use_materialized_counts and records_total == 0:
+                cursor.execute("SELECT COUNT(*) FROM portal_stats")
+                if cursor.fetchone()[0] == 0:
+                    cursor.execute(f"SELECT COUNT(*) {base_query_total}", params_total)
+                    records_total = cursor.fetchone()[0]
+                    count_query = f"SELECT COUNT(*) {base_query}"
+                    cursor.execute(count_query, params)
+                    records_filtered = cursor.fetchone()[0]
 
             order_clauses = []
             i = 0
@@ -228,9 +336,7 @@ def create_editor_blueprint(
                 col_name = column_map.get(col_idx, "name")
 
                 if col_name == "name":
-                    order_clauses.append(
-                        f"COALESCE(NULLIF(c.custom_name, ''), NULLIF(c.auto_name, ''), c.name) {direction}"
-                    )
+                    order_clauses.append(f"c.display_name {direction}")
                 elif col_name == "genre":
                     order_clauses.append(
                         f"COALESCE(NULLIF(c.custom_genre, ''), c.genre) {direction}"
@@ -248,15 +354,13 @@ def create_editor_blueprint(
                 i += 1
 
             if not order_clauses:
-                order_clauses.append(
-                    "COALESCE(NULLIF(c.custom_name, ''), NULLIF(c.auto_name, ''), c.name) ASC"
-                )
+                order_clauses.append("c.display_name ASC")
 
             order_clause = "ORDER BY " + ", ".join(order_clauses)
 
             data_query = f"""
                 SELECT
-                    c.portal, c.channel_id, c.portal_name, c.name, c.number, c.genre, c.genre_id, c.logo,
+                    c.portal, c.channel_id, c.portal_name, c.name, c.display_name, c.number, c.genre, c.genre_id, c.logo,
                     c.enabled, c.custom_name, c.auto_name, c.custom_number, c.custom_genre,
                     c.custom_epg_id, c.available_macs, c.alternate_ids,
                     c.resolution, c.video_codec, c.country, c.audio_tags, c.event_tags, c.misc_tags,
@@ -272,12 +376,10 @@ def create_editor_blueprint(
             channel_rows = cursor.fetchall()
 
             duplicate_counts_query = """
-                SELECT
-                    COALESCE(NULLIF(custom_name, ''), NULLIF(auto_name, ''), name) as channel_name,
-                    COUNT(*) as count
+                SELECT display_name as channel_name, COUNT(*) as count
                 FROM channels
                 WHERE enabled = 1
-                GROUP BY COALESCE(NULLIF(custom_name, ''), NULLIF(auto_name, ''), name)
+                GROUP BY display_name
                 HAVING COUNT(*) > 1
             """
             cursor.execute(duplicate_counts_query)
@@ -285,23 +387,13 @@ def create_editor_blueprint(
                 row["channel_name"]: row["count"] for row in cursor.fetchall()
             }
 
-            epg_channels = set()
-            cached_xmltv = get_cached_xmltv()
-            if cached_xmltv:
-                try:
-                    root = ET.fromstring(cached_xmltv)
-                    for programme in root.findall("programme"):
-                        epg_channels.add(programme.get("channel"))
-                except Exception as e:
-                    logger.debug(f"Could not parse EPG for editor: {e}")
-
             channels = []
             for row in channel_rows:
                 portal = row["portal"]
                 channel_id = row["channel_id"]
-                effective_name = row["custom_name"] or row["auto_name"] or row["name"]
-                duplicate_count = duplicate_counts.get(effective_name, 0)
-                epg_id = row["custom_epg_id"] or effective_name
+                display_name = row["display_name"] or ""
+                duplicate_count = duplicate_counts.get(display_name, 0)
+                epg_id = row["custom_epg_id"] or (row["custom_name"] or row["auto_name"] or row["name"])
                 has_epg = epg_id in epg_channels
 
                 channels.append(
@@ -314,11 +406,14 @@ def create_editor_blueprint(
                         "channelName": row["name"] or "",
                         "customChannelName": row["custom_name"] or "",
                         "autoChannelName": row["auto_name"] or "",
+                        "matchedChannelName": row["matched_name"] or "",
+                        "effectiveDisplayName": display_name,
                         "genre": row["genre"] or "",
                         "genreId": row["genre_id"] or "",
                         "customGenre": row["custom_genre"] or "",
                         "channelId": channel_id,
                         "customEpgId": row["custom_epg_id"] or "",
+                        "effectiveEpgId": epg_id or "",
                         "link": f"http://{host}/play/{portal}/{channel_id}?web=true",
                         "logo": row["logo"] or "",
                         "availableMacs": row["available_macs"] or "",
@@ -371,6 +466,11 @@ def create_editor_blueprint(
     @authorise
     def editor_portals():
         try:
+            cache_key = ("editor_portals",)
+            cached = filter_cache.get(cache_key)
+            if cached is not None:
+                return flask.jsonify(cached)
+
             conn = get_db_connection()
             cursor = conn.cursor()
 
@@ -386,7 +486,9 @@ def create_editor_blueprint(
             portals = [row["portal_name"] for row in cursor.fetchall()]
             conn.close()
 
-            return flask.jsonify({"portals": portals})
+            payload = {"portals": portals}
+            filter_cache.set(cache_key, payload)
+            return flask.jsonify(payload)
         except Exception as e:
             logger.error(f"Error in editor_portals: {e}")
             return flask.jsonify({"portals": [], "error": str(e)}), 500
@@ -396,10 +498,14 @@ def create_editor_blueprint(
     @authorise
     def editor_genres():
         try:
+            portal = flask.request.args.get("portal", "").strip()
+            cache_key = ("editor_genres", portal)
+            cached = filter_cache.get(cache_key)
+            if cached is not None:
+                return flask.jsonify(cached)
+
             conn = get_db_connection()
             cursor = conn.cursor()
-
-            portal = flask.request.args.get("portal", "").strip()
 
             if portal:
                 cursor.execute(
@@ -429,7 +535,9 @@ def create_editor_blueprint(
             genres = [row["genre"] for row in cursor.fetchall()]
             conn.close()
 
-            return flask.jsonify({"genres": genres})
+            payload = {"genres": genres}
+            filter_cache.set(cache_key, payload)
+            return flask.jsonify(payload)
         except Exception as e:
             logger.error(f"Error in editor_genres: {e}")
             return flask.jsonify({"genres": [], "error": str(e)}), 500
@@ -438,6 +546,11 @@ def create_editor_blueprint(
     @authorise
     def editor_tag_values():
         try:
+            cache_key = ("editor_tag_values",)
+            cached = filter_cache.get(cache_key)
+            if cached is not None:
+                return flask.jsonify(cached)
+
             conn = get_db_connection()
             cursor = conn.cursor()
 
@@ -484,15 +597,15 @@ def create_editor_blueprint(
 
             conn.close()
 
-            return flask.jsonify(
-                {
-                    "resolutions": resolutions,
-                    "video_codecs": video_codecs,
-                    "countries": countries,
-                    "event_tags": sorted(event_values),
-                    "misc_tags": sorted(misc_values),
-                }
-            )
+            payload = {
+                "resolutions": resolutions,
+                "video_codecs": video_codecs,
+                "countries": countries,
+                "event_tags": sorted(event_values),
+                "misc_tags": sorted(misc_values),
+            }
+            filter_cache.set(cache_key, payload)
+            return flask.jsonify(payload)
         except Exception as e:
             logger.error(f"Error in editor_tag_values: {e}")
             return flask.jsonify(
@@ -511,6 +624,11 @@ def create_editor_blueprint(
     @authorise
     def editor_genres_grouped():
         try:
+            cache_key = ("editor_genres_grouped",)
+            cached = filter_cache.get(cache_key)
+            if cached is not None:
+                return flask.jsonify(cached)
+
             conn = get_db_connection()
             cursor = conn.cursor()
 
@@ -542,7 +660,9 @@ def create_editor_blueprint(
 
             conn.close()
 
-            return flask.jsonify({"genres_by_portal": genres_by_portal})
+            payload = {"genres_by_portal": genres_by_portal}
+            filter_cache.set(cache_key, payload)
+            return flask.jsonify(payload)
         except Exception as e:
             logger.error(f"Error in editor_genres_grouped: {e}")
             return flask.jsonify({"genres_by_portal": [], "error": str(e)}), 500
@@ -557,12 +677,10 @@ def create_editor_blueprint(
 
             cursor.execute(
                 """
-                SELECT 
-                    COALESCE(NULLIF(custom_name, ''), NULLIF(auto_name, ''), name) as channel_name,
-                    COUNT(*) as count
+                SELECT display_name as channel_name, COUNT(*) as count
                 FROM channels
                 WHERE enabled = 1
-                GROUP BY COALESCE(NULLIF(custom_name, ''), NULLIF(auto_name, ''), name)
+                GROUP BY display_name
                 ORDER BY count DESC, channel_name
                 """
             )
@@ -582,7 +700,7 @@ def create_editor_blueprint(
     @bp.route("/editor/save", methods=["POST"])
     @authorise
     def editorSave():
-        threading.Thread(target=refresh_xmltv, daemon=True).start()
+        enqueue_epg_refresh(reason="editor_save")
         set_last_playlist_host(None)
         threading.Thread(target=refresh_lineup).start()
 
@@ -632,10 +750,11 @@ def create_editor_blueprint(
                 cursor.execute(
                     """
                     UPDATE channels 
-                    SET custom_name = ? 
+                    SET custom_name = ?,
+                        display_name = COALESCE(NULLIF(?, ''), NULLIF(matched_name, ''), NULLIF(auto_name, ''), name)
                     WHERE portal = ? AND channel_id = ?
                     """,
-                    (custom_name, portal, channel_id),
+                    (custom_name, custom_name, portal, channel_id),
                 )
 
             for edit in groupEdits:
@@ -666,7 +785,60 @@ def create_editor_blueprint(
                     (custom_epg_id, portal, channel_id),
                 )
 
+            portals_to_rebuild = {edit["portal"] for edit in groupEdits} if groupEdits else set()
+            if portals_to_rebuild:
+                stats_timestamp = datetime.utcnow().isoformat()
+                for portal_id in portals_to_rebuild:
+                    cursor.execute(
+                        "SELECT portal_name FROM channels WHERE portal = ? LIMIT 1",
+                        (portal_id,),
+                    )
+                    row = cursor.fetchone()
+                    portal_name = row["portal_name"] if row and row["portal_name"] else ""
+
+                    cursor.execute("DELETE FROM group_stats WHERE portal = ?", (portal_id,))
+                    cursor.execute(
+                        """
+                        INSERT INTO group_stats (portal, portal_name, group_name, channel_count, updated_at)
+                        SELECT
+                            ?,
+                            ?,
+                            CASE
+                                WHEN COALESCE(NULLIF(custom_genre, ''), genre) IS NULL
+                                     OR COALESCE(NULLIF(custom_genre, ''), genre) = ''
+                                THEN 'Ungrouped'
+                                ELSE COALESCE(NULLIF(custom_genre, ''), genre)
+                            END as group_name,
+                            COUNT(*) as channel_count,
+                            ?
+                        FROM channels
+                        WHERE portal = ?
+                        GROUP BY CASE
+                            WHEN COALESCE(NULLIF(custom_genre, ''), genre) IS NULL
+                                 OR COALESCE(NULLIF(custom_genre, ''), genre) = ''
+                            THEN 'Ungrouped'
+                            ELSE COALESCE(NULLIF(custom_genre, ''), genre)
+                        END
+                        """,
+                        (portal_id, portal_name, stats_timestamp, portal_id),
+                    )
+
+                    cursor.execute(
+                        "SELECT COUNT(*) as cnt FROM channels WHERE portal = ?",
+                        (portal_id,),
+                    )
+                    active_channels = cursor.fetchone()[0] or 0
+                    cursor.execute(
+                        """
+                        UPDATE portal_stats
+                        SET active_channels = ?, updated_at = ?
+                        WHERE portal = ?
+                        """,
+                        (active_channels, stats_timestamp, portal_id),
+                    )
+
             conn.commit()
+            filter_cache.clear()
             logger.info("Channel edits saved to database!")
 
         except Exception as e:
@@ -874,9 +1046,9 @@ def create_editor_blueprint(
     @authorise
     def editorRefresh():
         try:
-            total = refresh_channels_cache()
-            logger.info(f"Channel cache refreshed: {total} channels")
-            return flask.jsonify({"status": "success", "total": total})
+            total = enqueue_refresh_all(reason="editor_refresh")
+            logger.info("Channel cache refresh queued from editor (%s portals).", total)
+            return flask.jsonify({"status": "queued", "total": total})
         except Exception as e:
             logger.error(f"Error refreshing channel cache: {e}")
             return flask.jsonify({"status": "error", "message": str(e)}), 500

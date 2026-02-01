@@ -1,6 +1,5 @@
 import sqlite3
 import uuid
-from threading import Thread
 from datetime import datetime
 
 from flask import Blueprint, jsonify, redirect, render_template, request, flash
@@ -17,14 +16,14 @@ def create_portal_blueprint(
     getSettings,
     get_db_connection,
     ACTIVE_GROUP_CONDITION,
-    normalize_mac_data,
-    refresh_channels_cache,
-    run_portal_matching,
     channelsdvr_match_status,
     channelsdvr_match_status_lock,
+    normalize_mac_data,
+    job_manager,
     defaultPortal,
     DB_PATH,
     set_cached_xmltv,
+    filter_cache,
 ):
     bp = Blueprint("portal", __name__)
 
@@ -38,48 +37,19 @@ def create_portal_blueprint(
         try:
             conn = get_db_connection()
             cursor = conn.cursor()
-
             cursor.execute(
-                f"""
-                SELECT
-                    c.portal,
-                    COUNT(*) as total_channels,
-                    SUM(CASE WHEN {ACTIVE_GROUP_CONDITION} THEN 1 ELSE 0 END) as active_channels
-                FROM channels c
-                LEFT JOIN groups g ON c.portal = g.portal AND c.genre_id = g.genre_id
-                GROUP BY c.portal
+                """
+                SELECT portal, total_channels, active_channels, total_groups, active_groups
+                FROM portal_stats
                 """
             )
             for row in cursor.fetchall():
                 portal_stats[row["portal"]] = {
                     "channels": row["active_channels"] or 0,
                     "total_channels": row["total_channels"] or 0,
+                    "groups": row["active_groups"] or 0,
+                    "total_groups": row["total_groups"] or 0,
                 }
-
-            cursor.execute(
-                """
-                SELECT
-                    portal,
-                    COUNT(*) as total_groups,
-                    SUM(CASE WHEN active = 1 THEN 1 ELSE 0 END) as active_groups
-                FROM groups
-                GROUP BY portal
-                """
-            )
-            for row in cursor.fetchall():
-                if row["portal"] in portal_stats:
-                    portal_stats[row["portal"]]["groups"] = row["active_groups"] or 0
-                    portal_stats[row["portal"]]["total_groups"] = row[
-                        "total_groups"
-                    ] or 0
-                else:
-                    portal_stats[row["portal"]] = {
-                        "channels": 0,
-                        "total_channels": 0,
-                        "groups": row["active_groups"] or 0,
-                        "total_groups": row["total_groups"] or 0,
-                    }
-
             conn.close()
         except Exception as e:
             logger.error(f"Error getting portal stats: {e}")
@@ -100,361 +70,102 @@ def create_portal_blueprint(
             settings=getSettings(),
         )
 
-    @bp.route("/api/portal/mac/delete", methods=["POST"])
-    @authorise
-    def delete_portal_mac():
-        try:
-            data = request.get_json()
-            portal_id = data.get("portal_id")
-            mac = data.get("mac")
-
-            if not portal_id or not mac:
-                return jsonify({"success": False, "message": "Missing portal_id or mac"})
-
-            portals = getPortals()
-            if portal_id not in portals:
-                return jsonify({"success": False, "message": "Portal not found"})
-
-            if mac not in portals[portal_id].get("macs", {}):
-                return jsonify({"success": False, "message": "MAC not found in portal"})
-
-            del portals[portal_id]["macs"][mac]
-            savePortals(portals)
-
-            logger.info(
-                "Deleted MAC(%s) from Portal(%s)",
-                mac,
-                portals[portal_id].get("name", portal_id),
-            )
-            return jsonify({"success": True})
-
-        except Exception as e:
-            logger.error(f"Error deleting MAC: {e}")
-            return jsonify({"success": False, "message": str(e)})
-
-    @bp.route("/api/portals/data", methods=["GET"])
-    @authorise
-    def portals_data():
-        return jsonify(getPortals())
-
-    @bp.route("/api/portal/macs/refresh", methods=["POST"])
-    @authorise
-    def refresh_portal_macs():
-        try:
-            data = request.get_json()
-            portal_id = data.get("portal_id")
-
-            if not portal_id:
-                return jsonify({"success": False, "message": "Portal ID required"})
-
-            portals = getPortals()
-            if portal_id not in portals:
-                return jsonify({"success": False, "message": "Portal not found"})
-
-            portal = portals[portal_id]
-            url = portal["url"]
-            proxy = portal.get("proxy", "")
-
-            updated_count = 0
-            errors = []
-
-            for mac in list(portal["macs"].keys()):
-                try:
-                    token = stb.getToken(url, mac, proxy)
-                    if token:
-                        profile = stb.getProfile(url, mac, token, proxy)
-                        expiry = stb.getExpires(url, mac, token, proxy)
-
-                        if profile or expiry:
-                            old_data = normalize_mac_data(portal["macs"].get(mac, {}))
-                            if not expiry:
-                                expiry = old_data.get("expiry", "Unknown")
-
-                            watchdog_timeout = (
-                                int(profile.get("watchdog_timeout", 0)) if profile else 0
-                            )
-                            playback_limit = (
-                                int(profile.get("playback_limit", 0)) if profile else 0
-                            )
-
-                            portal["macs"][mac] = {
-                                "expiry": expiry if expiry else "Unknown",
-                                "watchdog_timeout": watchdog_timeout,
-                                "playback_limit": playback_limit,
-                            }
-                            updated_count += 1
-                            logger.info(
-                                "Refreshed MAC %s: expiry=%s, watchdog=%s, streams=%s",
-                                mac,
-                                expiry,
-                                watchdog_timeout,
-                                playback_limit,
-                            )
-                        else:
-                            errors.append(f"{mac}: Could not get profile or expiry")
-                    else:
-                        errors.append(f"{mac}: Could not get token")
-                except Exception as e:
-                    errors.append(f"{mac}: {str(e)}")
-                    logger.error(f"Error refreshing MAC {mac}: {e}")
-
-            portals[portal_id] = portal
-            savePortals(portals)
-
-            message = f"Updated {updated_count} of {len(portal['macs'])} MACs"
-            if errors:
-                message += f". Errors: {len(errors)}"
-
-            logger.info(
-                "MAC refresh for portal %s: %s",
-                portal.get("name", portal_id),
-                message,
-            )
-            return jsonify(
-                {
-                    "success": True,
-                    "message": message,
-                    "updated": updated_count,
-                    "errors": errors,
-                    "macs": portal["macs"],
-                }
-            )
-
-        except Exception as e:
-            logger.error(f"Error refreshing MACs: {e}")
-            return jsonify({"success": False, "message": str(e)})
-
     @bp.route("/api/portal/genres", methods=["POST"])
     @authorise
-    def get_portal_genres():
-        try:
-            data = request.get_json()
-            url = data.get("url")
-            mac = data.get("mac")
-            proxy = data.get("proxy", "")
-
-            if not url or not mac:
-                return jsonify({"success": False, "message": "URL and MAC are required"})
-
-            if not url.endswith(".php"):
-                resolved_url = stb.getUrl(url, proxy)
-                if not resolved_url:
-                    return jsonify(
-                        {"success": False, "message": "Could not resolve portal URL"}
-                    )
-                url = resolved_url
-
-            token = stb.getToken(url, mac, proxy)
-            if not token:
-                return jsonify(
-                    {"success": False, "message": "Could not authenticate with portal"}
-                )
-
-            stb.getProfile(url, mac, token, proxy)
-            genres = stb.getGenres(url, mac, token, proxy)
-
-            if not genres:
-                return jsonify({"success": False, "message": "No genres found"})
-
-            channels = stb.getAllChannels(url, mac, token, proxy)
-            channel_counts = {}
-            if channels:
-                channel_list = (
-                    channels if isinstance(channels, list) else list(channels.values())
-                )
-                for channel in channel_list:
-                    if isinstance(channel, dict):
-                        genre_id = str(channel.get("tv_genre_id", ""))
-                        channel_counts[genre_id] = channel_counts.get(genre_id, 0) + 1
-
-            genre_list = [
-                {
-                    "id": str(g["id"]),
-                    "title": g["title"],
-                    "channel_count": channel_counts.get(str(g["id"]), 0),
-                }
-                for g in genres
-            ]
-            genre_list.sort(key=lambda x: x["title"].lower())
-
-            logger.info(
-                "Fetched %s genres with channel counts from portal", len(genre_list)
-            )
-            return jsonify({"success": True, "genres": genre_list})
-
-        except Exception as e:
-            logger.error(f"Error fetching genres: {e}")
-            return jsonify({"success": False, "message": str(e)})
-
-    @bp.route("/api/portal/groups", methods=["POST"])
-    @authorise
-    def get_portal_groups():
-        try:
-            data = request.get_json()
-            portal_id = data.get("portal_id")
-
-            if not portal_id:
-                return jsonify({"success": False, "message": "Portal ID required"})
-
-            conn = get_db_connection()
-            cursor = conn.cursor()
-
-            cursor.execute(
-                """
-                SELECT COUNT(*) as cnt
-                FROM channels
-                WHERE portal = ? AND (genre_id IS NULL OR genre_id = '')
-                """,
-                [portal_id],
-            )
-            ungrouped_count = cursor.fetchone()[0] or 0
-
-            cursor.execute(
-                """
-                SELECT genre_id, name, channel_count, active
-                FROM groups
-                WHERE portal = ?
-                ORDER BY name
-                """,
-                [portal_id],
-            )
-
-            groups = []
-            has_ungrouped = False
-            for row in cursor.fetchall():
-                if row["genre_id"] == "UNGROUPED":
-                    has_ungrouped = True
-                    groups.append(
-                        {
-                            "id": "UNGROUPED",
-                            "title": "Ungrouped",
-                            "channel_count": ungrouped_count,
-                            "active": row["active"] == 1,
-                        }
-                    )
-                    continue
-                groups.append(
-                    {
-                        "id": row["genre_id"],
-                        "title": row["name"] or f"Group {row['genre_id']}",
-                        "channel_count": row["channel_count"] or 0,
-                        "active": row["active"] == 1,
-                    }
-                )
-
-            if not has_ungrouped:
-                groups.insert(
-                    0,
-                    {
-                        "id": "UNGROUPED",
-                        "title": "Ungrouped",
-                        "channel_count": ungrouped_count,
-                        "active": False,
-                    },
-                )
-
-            conn.close()
-
-            if not groups:
-                return jsonify(
-                    {
-                        "success": False,
-                        "message": "No groups found in database. Please refresh channels first.",
-                    }
-                )
-
-            logger.info(
-                "Loaded %s groups from database for portal %s", len(groups), portal_id
-            )
-            return jsonify({"success": True, "groups": groups})
-
-        except Exception as e:
-            logger.error(f"Error getting groups from database: {e}")
-            return jsonify({"success": False, "message": str(e)})
-
-    @bp.route("/api/portal/genres/update", methods=["POST"])
-    @authorise
     def update_portal_genres():
+        data = request.get_json(silent=True) or {}
+        portal_id = data.get("portal_id")
+        selected_genres = data.get("selected_genres") or []
+
+        if not portal_id:
+            return jsonify({"success": False, "message": "Portal ID required"}), 400
+
+        portals = getPortals()
+        if portal_id not in portals:
+            return jsonify({"success": False, "message": "Portal not found"}), 404
+
+        selected_genres = [str(g) for g in selected_genres if g is not None]
+
         try:
-            data = request.get_json()
-            portal_id = data.get("portal_id")
-            selected_genres = [str(g) for g in data.get("selected_genres", [])]
-
-            if not portal_id:
-                return jsonify({"success": False, "message": "Portal ID required"})
-
-            portals = getPortals()
-            if portal_id not in portals:
-                return jsonify({"success": False, "message": "Portal not found"})
-
-            portal = portals[portal_id]
-            logger.info(
-                "Updating genres for portal %s", portal.get("name", portal_id)
-            )
-            logger.info("Selected genres: %s", selected_genres)
-
             conn = get_db_connection()
             cursor = conn.cursor()
 
-            cursor.execute(
-                """
-                SELECT COUNT(*) as cnt
-                FROM channels
-                WHERE portal = ? AND (genre_id IS NULL OR genre_id = '')
-                """,
-                [portal_id],
-            )
-            ungrouped_count = cursor.fetchone()[0] or 0
-            cursor.execute(
-                """
-                INSERT INTO groups (portal, genre_id, name, channel_count, active)
-                VALUES (?, 'UNGROUPED', 'Ungrouped', ?, 0)
-                ON CONFLICT(portal, genre_id) DO UPDATE SET
-                    name = excluded.name,
-                    channel_count = excluded.channel_count
-                """,
-                (portal_id, ungrouped_count),
-            )
-
-            cursor.execute("UPDATE groups SET active = 0 WHERE portal = ?", [portal_id])
-
+            cursor.execute("UPDATE groups SET active = 0 WHERE portal = ?", (portal_id,))
             if selected_genres:
-                placeholders = ",".join(["?" for _ in selected_genres])
+                placeholders = ",".join(["?"] * len(selected_genres))
                 cursor.execute(
                     f"UPDATE groups SET active = 1 WHERE portal = ? AND genre_id IN ({placeholders})",
-                    [portal_id] + selected_genres,
+                    [portal_id, *selected_genres],
                 )
-
-            conn.commit()
 
             cursor.execute(
                 """
-                SELECT
-                    COUNT(*) as total_groups,
-                    SUM(CASE WHEN active = 1 THEN 1 ELSE 0 END) as active_groups,
-                    SUM(channel_count) as total_channels,
-                    SUM(CASE WHEN active = 1 THEN channel_count ELSE 0 END) as active_channels
-                FROM groups WHERE portal = ?
+                SELECT COUNT(*) as total_groups,
+                       SUM(CASE WHEN active = 1 THEN 1 ELSE 0 END) as active_groups
+                FROM groups
+                WHERE portal = ?
                 """,
-                [portal_id],
+                (portal_id,),
             )
             row = cursor.fetchone()
-            conn.close()
-
             total_groups = row[0] or 0
             active_groups = row[1] or 0
-            total_channels = row[2] or 0
-            active_channels = row[3] or 0
+
+            cursor.execute(
+                """
+                SELECT COUNT(*)
+                FROM channels c
+                LEFT JOIN groups g ON c.portal = g.portal AND c.genre_id = g.genre_id
+                WHERE c.portal = ? AND {ACTIVE_GROUP_CONDITION}
+                """.format(ACTIVE_GROUP_CONDITION=ACTIVE_GROUP_CONDITION),
+                (portal_id,),
+            )
+            active_channels = cursor.fetchone()[0] or 0
+
+            cursor.execute(
+                "SELECT COUNT(*) FROM channels WHERE portal = ?",
+                (portal_id,),
+            )
+            total_channels = cursor.fetchone()[0] or 0
+
+            portal = portals[portal_id]
+            portal_name = portal.get("name", portal_id)
+            cursor.execute(
+                """
+                INSERT INTO portal_stats (portal, portal_name, total_channels, active_channels, total_groups, active_groups, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(portal) DO UPDATE SET
+                    portal_name = excluded.portal_name,
+                    total_channels = excluded.total_channels,
+                    active_channels = excluded.active_channels,
+                    total_groups = excluded.total_groups,
+                    active_groups = excluded.active_groups,
+                    updated_at = excluded.updated_at
+                """,
+                (
+                    portal_id,
+                    portal_name,
+                    total_channels,
+                    active_channels,
+                    total_groups,
+                    active_groups,
+                    datetime.utcnow().isoformat(),
+                ),
+            )
+
+            conn.commit()
+            conn.close()
 
             portal["selected_genres"] = selected_genres
             portal["total_groups"] = total_groups
             portal["total_channels"] = total_channels
             portals[portal_id] = portal
             savePortals(portals)
+            filter_cache.clear()
 
             logger.info(
                 "Updated genres for %s: %s/%s groups active, %s/%s channels",
-                portal.get("name", portal_id),
+                portal_name,
                 active_groups,
                 total_groups,
                 active_channels,
@@ -464,39 +175,15 @@ def create_portal_blueprint(
             set_cached_xmltv(None)
 
             match_started = False
-            if getSettings().get("channelsdvr enabled", "false") == "true":
-                def background_match():
-                    with channelsdvr_match_status_lock:
-                        channelsdvr_match_status[portal_id] = {
-                            "status": "running",
-                            "started_at": datetime.utcnow().isoformat(),
-                            "completed_at": None,
-                            "matched": 0,
-                            "error": None,
-                        }
-                    try:
-                        matched_count = run_portal_matching(portal_id)
-                        with channelsdvr_match_status_lock:
-                            channelsdvr_match_status[portal_id].update(
-                                {
-                                    "status": "completed",
-                                    "completed_at": datetime.utcnow().isoformat(),
-                                    "matched": matched_count,
-                                }
-                            )
-                    except Exception as e:
-                        with channelsdvr_match_status_lock:
-                            channelsdvr_match_status[portal_id].update(
-                                {
-                                    "status": "error",
-                                    "completed_at": datetime.utcnow().isoformat(),
-                                    "error": str(e),
-                                }
-                            )
-                        logger.error(f"Matching failed for portal {portal_id}: {e}")
-
-                Thread(target=background_match, daemon=True).start()
+            if (
+                getSettings().get("channelsdvr enabled", "false") == "true"
+                and portals.get(portal_id, {}).get("auto match", "false") == "true"
+            ):
                 match_started = True
+
+            refresh_status = job_manager.enqueue_refresh_portal(
+                portal_id, reason="groups_update"
+            )
 
             return jsonify(
                 {
@@ -507,12 +194,13 @@ def create_portal_blueprint(
                     "total_channels": total_channels,
                     "active_channels": active_channels,
                     "match_started": match_started,
+                    "refresh_status": refresh_status,
                 }
             )
 
         except Exception as e:
             logger.error(f"Error updating genres: {e}")
-            return jsonify({"success": False, "message": str(e)})
+            return jsonify({"success": False, "message": str(e)}), 500
 
     @bp.route("/api/portal/match/status", methods=["POST"])
     @authorise
@@ -623,20 +311,11 @@ def create_portal_blueprint(
             portals = getPortals()
             portals[portal_id] = portal
             savePortals(portals)
+            filter_cache.clear()
             logger.info("Portal(%s) added!", portal["name"])
             flash(f"Portal({portal['name']}) added!", "success")
 
-            def background_refresh():
-                try:
-                    refresh_channels_cache()
-                    logger.info(
-                        "Background channel refresh completed for new portal %s", name
-                    )
-                except Exception as e:
-                    logger.error(f"Error refreshing channels after portal add: {e}")
-
-            thread = Thread(target=background_refresh, daemon=True)
-            thread.start()
+            job_manager.enqueue_refresh_all(reason="portal_add")
             flash("Channels are being loaded in the background.", "info")
 
         else:
@@ -754,6 +433,7 @@ def create_portal_blueprint(
             portals[portal_id]["auto normalize names"] = autoNormalize
             portals[portal_id]["auto match"] = autoMatch
             savePortals(portals)
+            filter_cache.clear()
             logger.info("Portal(%s) updated!", name)
             flash(f"Portal({name}) updated!", "success")
 
@@ -783,6 +463,7 @@ def create_portal_blueprint(
         name = portals[portal_id]["name"]
         del portals[portal_id]
         savePortals(portals)
+        filter_cache.clear()
         logger.info("Portal (%s) removed!", name)
 
         try:
@@ -790,6 +471,8 @@ def create_portal_blueprint(
             cursor = conn.cursor()
             cursor.execute("DELETE FROM channels WHERE portal = ?", (portal_id,))
             deleted_count = cursor.rowcount
+            cursor.execute("DELETE FROM group_stats WHERE portal = ?", (portal_id,))
+            cursor.execute("DELETE FROM portal_stats WHERE portal = ?", (portal_id,))
             conn.commit()
             conn.close()
             logger.info(
@@ -827,59 +510,31 @@ def create_portal_blueprint(
 
             portal_name = portals[portal_id].get("name", portal_id)
             logger.info("Refreshing channels for portal: %s", portal_name)
-
-            total = refresh_channels_cache(target_portal_id=portal_id)
-            logger.info(
-                "Portal %s channel refresh completed: %s channels",
-                portal_name,
-                total,
+            refresh_status = job_manager.enqueue_refresh_portal(
+                portal_id, reason="manual_refresh"
             )
-
-            conn = get_db_connection()
-            cursor = conn.cursor()
-
-            cursor.execute(
-                f"""
-                SELECT
-                    COUNT(*) as total_channels,
-                    SUM(CASE WHEN {ACTIVE_GROUP_CONDITION} THEN 1 ELSE 0 END) as active_channels
-                FROM channels c
-                LEFT JOIN groups g ON c.portal = g.portal AND c.genre_id = g.genre_id
-                WHERE c.portal = ?
-                """,
-                [portal_id],
-            )
-            ch_row = cursor.fetchone()
-
-            cursor.execute(
-                """
-                SELECT
-                    COUNT(*) as total_groups,
-                    SUM(CASE WHEN active = 1 THEN 1 ELSE 0 END) as active_groups
-                FROM groups WHERE portal = ?
-                """,
-                [portal_id],
-            )
-            gr_row = cursor.fetchone()
-            conn.close()
-
-            stats = {
-                "total_channels": ch_row[0] or 0,
-                "channels": ch_row[1] or 0,
-                "total_groups": gr_row[0] or 0,
-                "groups": gr_row[1] or 0,
-            }
-
-            return jsonify(
+            status_payload = job_manager.get_portal_refresh_status(portal_id)
+            status_payload.update(
                 {
-                    "status": "success",
-                    "total": total,
+                    "status": refresh_status,
                     "portal": portal_name,
-                    "stats": stats,
                 }
             )
+            return jsonify(status_payload), 202
         except Exception as e:
             logger.error(f"Error refreshing portal channels: {e}")
             return jsonify({"status": "error", "message": str(e)}), 500
+
+    @bp.route("/api/portal/refresh/status", methods=["POST"])
+    @authorise
+    def portal_refresh_status():
+        data = request.get_json(silent=True) or {}
+        portal_id = data.get("portal_id")
+        if not portal_id:
+            return jsonify({"status": "error", "message": "Portal ID required"}), 400
+        status = job_manager.get_portal_refresh_status(portal_id)
+        if not status:
+            return jsonify({"status": "idle"})
+        return jsonify(status)
 
     return bp

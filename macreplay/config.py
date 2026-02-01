@@ -84,7 +84,7 @@ defaultSettings = {
     "tag video codec patterns": "AV1=\\bAV1\\b\nVP9=\\bVP9\\b\nHEVC=\\b(HEVC|H\\.?265|H265)\\b\nH264=\\b(H\\.?264|H264|AVC)\\b\nMPEG2=\\bMPEG[- ]?2\\b",
     "tag audio patterns": "AAC=\\bAAC\\b\nAC3=\\bAC3\\b\nEAC3=\\bEAC3\\b\nDDP=\\b(DD\\+|DDP)\\b\nDD=\\bDD\\b\nDTS=\\bDTS\\b\nMP3=\\bMP3\\b\nFLAC=\\bFLAC\\b\nDOLBY=\\bDOLBY\\b\nATMOS=\\bATMOS\\b\n7.1=\\b7\\.1\\b\n5.1=\\b5\\.1\\b\n2.0=\\b2\\.0\\b",
     "tag event patterns": "\\bPPV\\b\n\\bEVENT\\b\n\\bLIVE EVENT\\b\n\\bLIVE-EVENT\\b\n\\bNO EVENT\\b\n\\bNO EVENT STREAMING\\b\n\\bMATCH TIME\\b",
-    "tag misc patterns": "\\bSAT\\b\n\\bBAR\\b",
+    "tag misc patterns": "(?<!\\b\\d\\s)\\bSAT(?![.\\s]*\\d)\\b\n\\bBAR\\b",
     "tag header patterns": "^\\s*([#*✦┃★]{2,})\\s*(.+?)\\s*\\1\\s*$",
     "channelsdvr enabled": "false",
     "channelsdvr db path": "/app/data/channelidentifiarr.db",

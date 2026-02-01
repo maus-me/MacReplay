@@ -1,6 +1,4 @@
 import logging
-from threading import Thread
-
 from flask import Blueprint, jsonify, redirect, render_template, request, flash
 
 from ..config import defaultSettings, getSettings, saveSettings
@@ -9,7 +7,7 @@ from ..security import authorise
 logger = logging.getLogger("MacReplay")
 
 
-def create_settings_blueprint(refresh_xmltv):
+def create_settings_blueprint(enqueue_epg_refresh):
     bp = Blueprint("settings", __name__)
 
     @bp.route("/api/settings", methods=["GET"])
@@ -38,7 +36,7 @@ def create_settings_blueprint(refresh_xmltv):
 
         saveSettings(settings)
         logger.info("Settings saved!")
-        Thread(target=refresh_xmltv).start()
+        enqueue_epg_refresh(reason="settings_save")
         flash("Settings saved!", "success")
         return redirect("/settings", code=302)
 

@@ -7,10 +7,12 @@ import re
 import unicodedata
 import json
 import gzip
+import hashlib
 from datetime import datetime, timedelta
 import xml.etree.ElementTree as ET
 import xml.dom.minidom as minidom
 import threading
+from collections import deque
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import logging
 from macreplay.config import (
@@ -38,6 +40,7 @@ from macreplay.blueprints.misc import create_misc_blueprint
 from macreplay.blueprints.hdhr import create_hdhr_blueprint
 from macreplay.blueprints.playlist import create_playlist_blueprint
 from macreplay.blueprints.streaming import create_streaming_blueprint
+from macreplay.services.jobs import JobManager
 logger = logging.getLogger("MacReplay")
 logger.setLevel(logging.INFO)
 logFormat = logging.Formatter("%(asctime)s [%(levelname)s] %(message)s")
@@ -58,6 +61,36 @@ ACTIVE_GROUP_CONDITION = (
     " )"
     ")"
 )
+
+class FilterCache:
+    def __init__(self, ttl_seconds=120):
+        self.ttl_seconds = ttl_seconds
+        self._data = {}
+        self._lock = threading.Lock()
+
+    def get(self, key):
+        now = time.time()
+        with self._lock:
+            entry = self._data.get(key)
+            if not entry:
+                return None
+            expires_at, value = entry
+            if expires_at < now:
+                self._data.pop(key, None)
+                return None
+            return value
+
+    def set(self, key, value):
+        expires_at = time.time() + self.ttl_seconds
+        with self._lock:
+            self._data[key] = (expires_at, value)
+
+    def clear(self):
+        with self._lock:
+            self._data.clear()
+
+
+filter_cache = FilterCache(ttl_seconds=120)
 
 # EPG Refresh Interval: can be set via env (in hours), overrides settings if set
 EPG_REFRESH_INTERVAL_ENV = os.getenv("EPG_REFRESH_INTERVAL", None)
@@ -135,11 +168,47 @@ cached_playlist = None
 last_playlist_host = None
 cached_xmltv = None
 last_updated = 0
+epg_channel_ids = set()
+epg_channel_ids_lock = threading.Lock()
 
 
 def _set_cached_xmltv(value):
     global cached_xmltv
     cached_xmltv = value
+    if value is None:
+        _set_epg_channel_ids(set())
+    else:
+        _set_epg_channel_ids(_parse_epg_channel_ids(value))
+
+
+def _set_epg_channel_ids(ids):
+    global epg_channel_ids
+    with epg_channel_ids_lock:
+        epg_channel_ids = set(ids or [])
+
+
+def _get_epg_channel_ids():
+    with epg_channel_ids_lock:
+        return set(epg_channel_ids)
+
+
+def _parse_epg_channel_ids(xmltv):
+    if not xmltv:
+        return set()
+    try:
+        root = ET.fromstring(xmltv)
+    except Exception:
+        return set()
+    ids = set()
+    for channel in root.findall("channel"):
+        cid = channel.get("id")
+        if cid:
+            ids.add(cid)
+    for programme in root.findall("programme"):
+        cid = programme.get("channel")
+        if cid:
+            ids.add(cid)
+    return ids
 
 
 def _set_last_playlist_host(value):
@@ -284,7 +353,7 @@ DEFAULT_EVENT_PATTERNS = [
 ]
 
 DEFAULT_MISC_PATTERNS = [
-    r"\bSAT\b",
+    r"\bSAT\b(?!\s+\d{1,2}\b)",
     r"\bBAR\b",
 ]
 
@@ -292,6 +361,9 @@ channelsdvr_cache = {}
 channelsdvr_cache_lock = threading.Lock()
 channelsdvr_match_status = {}
 channelsdvr_match_status_lock = threading.Lock()
+channels_refresh_status = {}
+channels_refresh_status_lock = threading.Lock()
+channels_refresh_lock = threading.Lock()
 DEFAULT_HEADER_PATTERNS = [
     r"^\s*([#*✦┃★]{2,})\s*(.+?)\s*\1\s*$",
 ]
@@ -335,6 +407,16 @@ def ensure_resolution_patterns(patterns):
             else:
                 pattern = f"(?:{pattern}|ULTRA)"
         updated.append((label, pattern))
+    return updated
+
+
+def normalize_misc_patterns(patterns):
+    updated = []
+    for pattern in patterns:
+        if pattern.strip() in (r"\bSAT\b", "SAT"):
+            updated.append(r"(?<!\b\d\s)\bSAT(?![.\s]*\d)\b")
+        else:
+            updated.append(pattern)
     return updated
 
 
@@ -698,13 +780,14 @@ def parse_group_selection_patterns(value):
 
 
 def build_tag_config(settings):
+    hevc_only = [( "HEVC", r"\b(HEVC|H\.?265|H265)\b" )]
     return {
         "countries": parse_country_codes(settings.get("tag country codes"), DEFAULT_COUNTRY_CODES),
         "resolution": ensure_resolution_patterns(parse_labeled_patterns(settings.get("tag resolution patterns"), DEFAULT_RESOLUTION_PATTERNS)),
-        "video": parse_labeled_patterns(settings.get("tag video codec patterns"), DEFAULT_VIDEO_CODEC_PATTERNS),
-        "audio": parse_labeled_patterns(settings.get("tag audio patterns"), DEFAULT_AUDIO_TAG_PATTERNS),
+        "video": hevc_only,
+        "audio": [],
         "event": parse_event_patterns(settings.get("tag event patterns"), DEFAULT_EVENT_PATTERNS),
-        "misc": parse_list_patterns(settings.get("tag misc patterns"), DEFAULT_MISC_PATTERNS),
+        "misc": normalize_misc_patterns(parse_list_patterns(settings.get("tag misc patterns"), DEFAULT_MISC_PATTERNS)),
         "header": parse_list_patterns(settings.get("tag header patterns"), DEFAULT_HEADER_PATTERNS),
     }
 
@@ -741,7 +824,8 @@ def run_portal_matching(portal_id):
         cursor.execute("""
             UPDATE channels
             SET matched_name = ?, matched_source = ?, matched_station_id = ?,
-                matched_call_sign = ?, matched_logo = ?, matched_score = ?
+                matched_call_sign = ?, matched_logo = ?, matched_score = ?,
+                display_name = COALESCE(NULLIF(custom_name, ''), NULLIF(?, ''), NULLIF(auto_name, ''), name)
             WHERE portal = ? AND channel_id = ?
         """, (
             tag_info.get("matched_name", ""),
@@ -750,6 +834,7 @@ def run_portal_matching(portal_id):
             tag_info.get("matched_call_sign", ""),
             tag_info.get("matched_logo", ""),
             tag_info.get("matched_score", ""),
+            tag_info.get("matched_name", ""),
             portal_id,
             row['channel_id']
         ))
@@ -847,6 +932,7 @@ def extract_channel_tags(raw_name, tag_config, settings=None, allow_match=True):
 
     resolution = ""
     resolution_pattern = ""
+    resolution_match_end = None
     segment_candidates = name.split("|") if "|" in name else [name]
     for segment in segment_candidates:
         segment_fold = ascii_fold(segment).upper()
@@ -862,6 +948,12 @@ def extract_channel_tags(raw_name, tag_config, settings=None, allow_match=True):
             if resolution:
                 break
         if resolution:
+            try:
+                full_match = re.search(resolution_pattern, name_upper)
+            except re.error:
+                full_match = None
+            if full_match:
+                resolution_match_end = full_match.end()
             break
 
     video_codec = ""
@@ -891,8 +983,20 @@ def extract_channel_tags(raw_name, tag_config, settings=None, allow_match=True):
 
     misc_tags = []
     for pattern in tag_config["misc"]:
-        if re.search(pattern, name_upper):
-            misc_tags.append(pattern)
+        try:
+            match = re.search(pattern, name_upper)
+        except re.error:
+            match = None
+        if not match:
+            continue
+        is_sat_pattern = pattern in (
+            r"\bSAT(?![.\s]*\d)\b",
+            r"(?<!\b\d\s)\bSAT(?![.\s]*\d)\b",
+        )
+        if is_sat_pattern:
+            if resolution_match_end is None or match.start() <= resolution_match_end:
+                continue
+        misc_tags.append(pattern)
     misc_tags = list(dict.fromkeys([normalize_event_label(tag) for tag in misc_tags]))
 
     country = ""
@@ -917,6 +1021,20 @@ def extract_channel_tags(raw_name, tag_config, settings=None, allow_match=True):
                 break
         if folded_for_match:
             match_input = folded_for_match
+        match_input_clean = match_input
+        if country:
+            match_input_clean = re.sub(
+                rf"(?i)(^|[^A-Za-z0-9]){re.escape(country)}(?=$|[^A-Za-z0-9])",
+                " ",
+                match_input_clean,
+            )
+        match_input_clean = re.sub(r"(?i)\b3\s+SAT\b", "3SAT", match_input_clean)
+        for pattern in tag_config["misc"]:
+            match_input_clean = re.sub(pattern, " ", match_input_clean, flags=re.IGNORECASE)
+        match_input_clean = re.sub(r"[:\-\|]+", " ", match_input_clean)
+        match_input_clean = re.sub(r"\s+", " ", match_input_clean).strip()
+        if match_input_clean:
+            match_input = match_input_clean
         match = match_channelsdvr_name(match_input, country, settings)
         if match:
             canonical_name = match.get("name", "")
@@ -1031,8 +1149,13 @@ def extract_channel_tags(raw_name, tag_config, settings=None, allow_match=True):
     }
 
 
-def effective_channel_name(custom_name, auto_name, name):
-    """Return preferred display name: custom > auto > original."""
+def effective_display_name(custom_name, matched_name, auto_name, name):
+    """Return preferred display name: custom > matched > auto > original."""
+    return custom_name or matched_name or auto_name or name
+
+
+def effective_epg_name(custom_name, auto_name, name):
+    """Return preferred EPG name: custom > auto > original."""
     return custom_name or auto_name or name
 
 
@@ -1564,6 +1687,10 @@ def refresh_channels_cache(target_portal_id=None):
 
     total_channels = 0
 
+    def build_channel_hash(values):
+        joined = "|".join(values)
+        return hashlib.sha1(joined.encode("utf-8")).hexdigest()
+
     portal_ids = []
     for portal_id, portal in portals.items():
         if target_portal_id and portal_id != target_portal_id:
@@ -1604,6 +1731,11 @@ def refresh_channels_cache(target_portal_id=None):
             active_genres = {str(row[0]) for row in cursor.fetchall() if row[0]}
         except Exception as e:
             logger.debug(f"Could not load active genres for portal {portal_name}: {e}")
+
+        existing_hashes = {}
+        cursor.execute("SELECT channel_id, channel_hash FROM channels WHERE portal = ?", (portal_id,))
+        for row in cursor.fetchall():
+            existing_hashes[row["channel_id"]] = row["channel_hash"] or ""
 
         # Now insert all collected channels into the database
         if channels_by_id:
@@ -1647,7 +1779,7 @@ def refresh_channels_cache(target_portal_id=None):
 
                     channels_to_import[primary_id] = {
                         "data": primary_info["data"],
-                        "available_macs": list(combined_macs),
+                        "available_macs": sorted(combined_macs),
                         "alternate_ids": alternate_ids
                     }
 
@@ -1657,11 +1789,22 @@ def refresh_channels_cache(target_portal_id=None):
             if merged_count > 0:
                 logger.info(f"Auto-merged {merged_count} duplicate channels by name for {portal_name}")
 
+            # Count channels per genre (use deduplicated channels, full portal set)
+            genre_channel_counts = {}
+            for ch_info in channels_to_import.values():
+                g_id = str(ch_info["data"].get("tv_genre_id", ""))
+                genre_channel_counts[g_id] = genre_channel_counts.get(g_id, 0) + 1
+
             channels_imported = 0
+            channels_updated = 0
+            channels_skipped = 0
+            channels_deleted = 0
+            new_channel_ids = set()
+
             for channel_id, channel_info in channels_to_import.items():
                 channel = channel_info["data"]
-                available_macs = ",".join(channel_info["available_macs"])
-                alternate_ids = ",".join(channel_info["alternate_ids"])
+                available_macs = ",".join(sorted(channel_info["available_macs"]))
+                alternate_ids = ",".join(sorted(channel_info["alternate_ids"]))
 
                 channel_name = str(channel["name"])
                 channel_number = str(channel["number"])
@@ -1688,18 +1831,69 @@ def refresh_channels_cache(target_portal_id=None):
                 is_raw = tag_info["is_raw"]
 
                 # Upsert into database
+                enable_by_group = (
+                    (not active_genres)
+                    or (genre_id in active_genres)
+                    or ((not genre_id) and ("UNGROUPED" in active_genres))
+                )
+                if not enable_by_group:
+                    continue
+                enabled_default = 0
+
+                new_channel_ids.add(channel_id)
+
+                display_name = effective_display_name("", matched_name, auto_name, channel_name)
+
+                channel_hash = build_channel_hash(
+                    [
+                        portal_id,
+                        channel_id,
+                        portal_name,
+                        channel_name,
+                        channel_number,
+                        genre,
+                        genre_id,
+                        logo,
+                        auto_name,
+                        resolution,
+                        video_codec,
+                        country,
+                        audio_tags,
+                        event_tags,
+                        misc_tags,
+                        matched_name,
+                        matched_source,
+                        str(matched_station_id),
+                        str(matched_call_sign),
+                        str(matched_logo),
+                        str(matched_score),
+                        str(is_header),
+                        str(is_event),
+                        str(is_raw),
+                        available_macs,
+                        alternate_ids,
+                        cmd,
+                    ]
+                )
+
+                if existing_hashes.get(channel_id, "") == channel_hash:
+                    channels_skipped += 1
+                    continue
+
                 cursor.execute('''
                     INSERT INTO channels (
-                        portal, channel_id, portal_name, name, number, genre, genre_id, logo,
+                        portal, channel_id, portal_name, name, display_name, number, genre, genre_id, logo,
                         enabled, custom_name, auto_name, custom_number, custom_genre,
                         custom_epg_id, fallback_channel, resolution, video_codec, country,
                             audio_tags, event_tags, misc_tags, matched_name, matched_source,
                             matched_station_id, matched_call_sign, matched_logo, matched_score,
-                            is_header, is_event, is_raw, available_macs, alternate_ids, cmd
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            is_header, is_event, is_raw, available_macs, alternate_ids, cmd,
+                            channel_hash
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                         ON CONFLICT(portal, channel_id) DO UPDATE SET
                             portal_name = excluded.portal_name,
                             name = excluded.name,
+                            display_name = COALESCE(NULLIF(channels.custom_name, ''), NULLIF(excluded.matched_name, ''), NULLIF(excluded.auto_name, ''), excluded.name),
                             number = excluded.number,
                             genre = excluded.genre,
                             genre_id = excluded.genre_id,
@@ -1714,12 +1908,30 @@ def refresh_channels_cache(target_portal_id=None):
                             audio_tags = excluded.audio_tags,
                             event_tags = excluded.event_tags,
                             misc_tags = excluded.misc_tags,
-                            matched_name = excluded.matched_name,
-                            matched_source = excluded.matched_source,
-                            matched_station_id = excluded.matched_station_id,
-                            matched_call_sign = excluded.matched_call_sign,
-                            matched_logo = excluded.matched_logo,
-                            matched_score = excluded.matched_score,
+                            matched_name = CASE
+                                WHEN excluded.matched_name != '' THEN excluded.matched_name
+                                ELSE channels.matched_name
+                            END,
+                            matched_source = CASE
+                                WHEN excluded.matched_name != '' THEN excluded.matched_source
+                                ELSE channels.matched_source
+                            END,
+                            matched_station_id = CASE
+                                WHEN excluded.matched_name != '' THEN excluded.matched_station_id
+                                ELSE channels.matched_station_id
+                            END,
+                            matched_call_sign = CASE
+                                WHEN excluded.matched_name != '' THEN excluded.matched_call_sign
+                                ELSE channels.matched_call_sign
+                            END,
+                            matched_logo = CASE
+                                WHEN excluded.matched_name != '' THEN excluded.matched_logo
+                                ELSE channels.matched_logo
+                            END,
+                            matched_score = CASE
+                                WHEN excluded.matched_name != '' THEN excluded.matched_score
+                                ELSE channels.matched_score
+                            END,
                             is_header = excluded.is_header,
                             is_event = excluded.is_event,
                             is_raw = excluded.is_raw,
@@ -1728,26 +1940,39 @@ def refresh_channels_cache(target_portal_id=None):
                                 WHEN excluded.alternate_ids != '' THEN excluded.alternate_ids
                                 ELSE channels.alternate_ids
                             END,
-                            cmd = excluded.cmd
+                            cmd = excluded.cmd,
+                            channel_hash = excluded.channel_hash
                     ''', (
-                        portal_id, channel_id, portal_name, channel_name, channel_number,
-                        genre, genre_id, logo, 0, "", auto_name, "", "", "",
+                        portal_id, channel_id, portal_name, channel_name, display_name, channel_number,
+                        genre, genre_id, logo, enabled_default, "", auto_name, "", "", "",
                         "", resolution, video_codec, country, audio_tags, event_tags, misc_tags,
                         matched_name, matched_source, matched_station_id, matched_call_sign, matched_logo, matched_score,
                         is_header, is_event, is_raw,
-                        available_macs, alternate_ids, cmd
+                        available_macs, alternate_ids, cmd, channel_hash
                     ))
 
-                channels_imported += 1
-                total_channels += 1
+                if channel_id in existing_hashes:
+                    channels_updated += 1
+                else:
+                    channels_imported += 1
+
+            if existing_hashes:
+                to_delete = [cid for cid in existing_hashes.keys() if cid not in new_channel_ids]
+                if to_delete:
+                    chunk_size = 500
+                    for i in range(0, len(to_delete), chunk_size):
+                        chunk = to_delete[i:i + chunk_size]
+                        placeholders = ",".join(["?"] * len(chunk))
+                        cursor.execute(
+                            f"DELETE FROM channels WHERE portal = ? AND channel_id IN ({placeholders})",
+                            [portal_id, *chunk],
+                        )
+                        channels_deleted += len(chunk)
+
+            active_channels_count = len(new_channel_ids)
+            total_channels += active_channels_count
 
             # Populate groups table from all_genres
-            # Count channels per genre (use deduplicated channels)
-            genre_channel_counts = {}
-            for ch_info in channels_to_import.values():
-                g_id = str(ch_info["data"].get("tv_genre_id", ""))
-                genre_channel_counts[g_id] = genre_channel_counts.get(g_id, 0) + 1
-
             # Upsert groups - preserve active flag for existing groups
             for genre_id, genre_name in all_genres.items():
                 channel_count = genre_channel_counts.get(str(genre_id), 0)
@@ -1758,6 +1983,15 @@ def refresh_channels_cache(target_portal_id=None):
                         name = excluded.name,
                         channel_count = excluded.channel_count
                 ''', (portal_id, str(genre_id), genre_name, channel_count))
+
+            ungrouped_count = genre_channel_counts.get("", 0)
+            cursor.execute('''
+                INSERT INTO groups (portal, genre_id, name, channel_count, active)
+                VALUES (?, 'UNGROUPED', 'Ungrouped', ?, 0)
+                ON CONFLICT(portal, genre_id) DO UPDATE SET
+                    name = excluded.name,
+                    channel_count = excluded.channel_count
+            ''', (portal_id, ungrouped_count))
 
             # Auto-select groups based on settings (only if no active groups set yet)
             settings = getSettings()
@@ -1787,6 +2021,71 @@ def refresh_channels_cache(target_portal_id=None):
                         f"Auto-selected {len(matched_genres)} groups for {portal_name} based on settings"
                     )
 
+            stats_timestamp = datetime.utcnow().isoformat()
+            cursor.execute("DELETE FROM group_stats WHERE portal = ?", (portal_id,))
+            cursor.execute(
+                """
+                INSERT INTO group_stats (portal, portal_name, group_name, channel_count, updated_at)
+                SELECT
+                    ?,
+                    ?,
+                    CASE
+                        WHEN COALESCE(NULLIF(custom_genre, ''), genre) IS NULL
+                             OR COALESCE(NULLIF(custom_genre, ''), genre) = ''
+                        THEN 'Ungrouped'
+                        ELSE COALESCE(NULLIF(custom_genre, ''), genre)
+                    END as group_name,
+                    COUNT(*) as channel_count,
+                    ?
+                FROM channels
+                WHERE portal = ?
+                GROUP BY CASE
+                    WHEN COALESCE(NULLIF(custom_genre, ''), genre) IS NULL
+                         OR COALESCE(NULLIF(custom_genre, ''), genre) = ''
+                    THEN 'Ungrouped'
+                    ELSE COALESCE(NULLIF(custom_genre, ''), genre)
+                END
+                """,
+                (portal_id, portal_name, stats_timestamp, portal_id),
+            )
+
+            cursor.execute(
+                """
+                SELECT COUNT(*) as total_groups,
+                       SUM(CASE WHEN active = 1 THEN 1 ELSE 0 END) as active_groups
+                FROM groups
+                WHERE portal = ?
+                """,
+                (portal_id,),
+            )
+            row = cursor.fetchone()
+            total_groups = row[0] or 0
+            active_groups = row[1] or 0
+
+            cursor.execute(
+                """
+                INSERT INTO portal_stats (portal, portal_name, total_channels, active_channels, total_groups, active_groups, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(portal) DO UPDATE SET
+                    portal_name = excluded.portal_name,
+                    total_channels = excluded.total_channels,
+                    active_channels = excluded.active_channels,
+                    total_groups = excluded.total_groups,
+                    active_groups = excluded.active_groups,
+                    updated_at = excluded.updated_at
+                """,
+                (
+                    portal_id,
+                    portal_name,
+                    len(channels_to_import),
+                    active_channels_count,
+                    total_groups,
+                    active_groups,
+                    stats_timestamp,
+                ),
+            )
+
+            filter_cache.clear()
             conn.commit()
 
             # Log summary
@@ -1795,7 +2094,9 @@ def refresh_channels_cache(target_portal_id=None):
                 num_macs = len(ch_info["available_macs"])
                 mac_coverage[num_macs] = mac_coverage.get(num_macs, 0) + 1
 
-            logger.info(f"Successfully cached {channels_imported} channels for {portal_name}")
+            logger.info(
+                f"Channels cached for {portal_name}: +{channels_imported} updated={channels_updated} skipped={channels_skipped} deleted={channels_deleted}"
+            )
             logger.info(f"MAC coverage: {mac_coverage} (key=number of MACs, value=channel count)")
         else:
             logger.error(f"Failed to fetch channels for portal: {portal_name}")
@@ -1857,10 +2158,10 @@ def refresh_xmltv():
         f"""
         SELECT
             c.portal, c.channel_id, c.name, c.number, c.logo,
-            c.custom_name, c.auto_name, c.custom_number, c.custom_epg_id
+            c.custom_name, c.auto_name, c.matched_name, c.custom_number, c.custom_epg_id
         FROM channels c
         LEFT JOIN groups g ON c.portal = g.portal AND c.genre_id = g.genre_id
-        WHERE c.enabled = 1 AND {ACTIVE_GROUP_CONDITION}
+        WHERE {ACTIVE_GROUP_CONDITION}
         """
     )
 
@@ -1877,6 +2178,7 @@ def refresh_xmltv():
                 "logo": row["logo"],
                 "custom_name": row["custom_name"],
                 "auto_name": row["auto_name"],
+                "matched_name": row["matched_name"],
                 "custom_number": row["custom_number"],
                 "custom_epg_id": row["custom_epg_id"],
             }
@@ -1938,13 +2240,15 @@ def refresh_xmltv():
         for ch in enabled_by_portal[portal_id]:
             try:
                 channelId = str(ch["channel_id"])
-                channelName = effective_channel_name(
-                    ch["custom_name"], ch["auto_name"], ch["name"]
+                channelName = effective_display_name(
+                    ch["custom_name"], ch["matched_name"], ch["auto_name"], ch["name"]
                 )
                 channelNumber = (
                     ch["custom_number"] if ch["custom_number"] else str(ch["number"])
                 )
-                epgId = ch["custom_epg_id"] if ch["custom_epg_id"] else channelName
+                epgId = ch["custom_epg_id"] if ch["custom_epg_id"] else effective_epg_name(
+                    ch["custom_name"], ch["auto_name"], ch["name"]
+                )
                 channelLogo = ch["logo"] or ""
 
                 if epgId in seen_channel_ids:
@@ -2051,6 +2355,7 @@ def refresh_xmltv():
     cached_xmltv = formatted_xmltv
     last_updated = time.time()
     logger.debug(f"Generated XMLTV: {formatted_xmltv}")
+    _set_epg_channel_ids(seen_channel_ids)
 
     save_epg_cache(cached_xmltv, last_updated, logger, EPG_CACHE_PATH)
 
@@ -2081,7 +2386,7 @@ def refresh_lineup():
     cursor.execute(f'''
         SELECT
             c.portal, c.channel_id, c.name, c.number,
-            c.custom_name, c.auto_name, c.custom_number
+            c.custom_name, c.auto_name, c.matched_name, c.custom_number
         FROM channels c
         LEFT JOIN groups g ON c.portal = g.portal AND c.genre_id = g.genre_id
         WHERE c.enabled = 1 AND {ACTIVE_GROUP_CONDITION}
@@ -2091,7 +2396,9 @@ def refresh_lineup():
     for row in cursor.fetchall():
         portal = row['portal']
         channel_id = row['channel_id']
-        channel_name = effective_channel_name(row['custom_name'], row['auto_name'], row['name'])
+        channel_name = effective_display_name(
+            row['custom_name'], row['matched_name'], row['auto_name'], row['name']
+        )
         channel_number = row['custom_number'] if row['custom_number'] else row['number']
         
         # Use HLS URL if output format is set to HLS, otherwise use MPEG-TS
@@ -2112,17 +2419,34 @@ def refresh_lineup():
     logger.info(f"Lineup refreshed with {len(lineup)} channels.")
     
     
-app.register_blueprint(create_settings_blueprint(refresh_xmltv))
+job_manager = JobManager(
+    logger=logger,
+    refresh_channels_cache=refresh_channels_cache,
+    run_portal_matching=run_portal_matching,
+    refresh_xmltv=refresh_xmltv,
+    getSettings=getSettings,
+    getPortals=getPortals,
+    get_db_connection=get_db_connection,
+    ACTIVE_GROUP_CONDITION=ACTIVE_GROUP_CONDITION,
+    channelsdvr_match_status=channelsdvr_match_status,
+    channelsdvr_match_status_lock=channelsdvr_match_status_lock,
+    channels_refresh_status=channels_refresh_status,
+    channels_refresh_status_lock=channels_refresh_status_lock,
+    set_cached_xmltv=_set_cached_xmltv,
+)
+
+app.register_blueprint(create_settings_blueprint(job_manager.enqueue_epg_refresh))
 app.register_blueprint(
     create_epg_blueprint(
         refresh_xmltv=refresh_xmltv,
+        enqueue_epg_refresh=job_manager.enqueue_epg_refresh,
         get_cached_xmltv=lambda: cached_xmltv,
         get_last_updated=lambda: last_updated,
         get_epg_refresh_status=lambda: epg_refresh_status,
         logger=logger,
         getPortals=getPortals,
         get_db_connection=get_db_connection,
-        effective_channel_name=effective_channel_name,
+        effective_epg_name=effective_epg_name,
     )
 )
 app.register_blueprint(
@@ -2133,14 +2457,14 @@ app.register_blueprint(
         getSettings=getSettings,
         get_db_connection=get_db_connection,
         ACTIVE_GROUP_CONDITION=ACTIVE_GROUP_CONDITION,
-        normalize_mac_data=normalize_mac_data,
-        refresh_channels_cache=refresh_channels_cache,
-        run_portal_matching=run_portal_matching,
         channelsdvr_match_status=channelsdvr_match_status,
         channelsdvr_match_status_lock=channelsdvr_match_status_lock,
+        normalize_mac_data=normalize_mac_data,
+        job_manager=job_manager,
         defaultPortal=defaultPortal,
         DB_PATH=DB_PATH,
         set_cached_xmltv=_set_cached_xmltv,
+        filter_cache=filter_cache,
     )
 )
 app.register_blueprint(
@@ -2149,11 +2473,13 @@ app.register_blueprint(
         get_db_connection=get_db_connection,
         ACTIVE_GROUP_CONDITION=ACTIVE_GROUP_CONDITION,
         get_cached_xmltv=lambda: cached_xmltv,
+        get_epg_channel_ids=_get_epg_channel_ids,
         host=host,
-        refresh_xmltv=refresh_xmltv,
+        enqueue_epg_refresh=job_manager.enqueue_epg_refresh,
         refresh_lineup=refresh_lineup,
-        refresh_channels_cache=refresh_channels_cache,
+        enqueue_refresh_all=job_manager.enqueue_refresh_all,
         set_last_playlist_host=_set_last_playlist_host,
+        filter_cache=filter_cache,
     )
 )
 app.register_blueprint(create_misc_blueprint(LOG_DIR=LOG_DIR, occupied=occupied))
@@ -2173,7 +2499,8 @@ app.register_blueprint(
         getSettings=getSettings,
         get_db_connection=get_db_connection,
         ACTIVE_GROUP_CONDITION=ACTIVE_GROUP_CONDITION,
-        effective_channel_name=effective_channel_name,
+        effective_display_name=effective_display_name,
+        effective_epg_name=effective_epg_name,
         get_cached_playlist=_get_cached_playlist,
         set_cached_playlist=_set_cached_playlist,
         get_last_playlist_host=_get_last_playlist_host,
@@ -2207,9 +2534,9 @@ def start_epg_scheduler():
                 logger.info(f"EPG scheduler: Next refresh in {interval_hours} hours ({interval_seconds} seconds)")
                 time.sleep(interval_seconds)
 
-                logger.info("EPG scheduler: Starting scheduled EPG refresh...")
-                refresh_xmltv()
-                logger.info("EPG scheduler: EPG refresh completed!")
+                logger.info("EPG scheduler: Queueing scheduled EPG refresh...")
+                job_manager.enqueue_epg_refresh(reason="scheduled")
+                logger.info("EPG scheduler: EPG refresh queued.")
 
             except Exception as e:
                 logger.error(f"EPG scheduler error: {e}")
@@ -2242,9 +2569,9 @@ def start_channel_scheduler():
                 logger.info(f"Channel scheduler: Next refresh in {interval_hours} hours ({interval_seconds} seconds)")
                 time.sleep(interval_seconds)
 
-                logger.info("Channel scheduler: Starting scheduled channel refresh...")
-                total = refresh_channels_cache()
-                logger.info(f"Channel scheduler: Channel refresh completed! {total} channels cached.")
+                logger.info("Channel scheduler: Queueing scheduled channel refresh...")
+                total = job_manager.enqueue_refresh_all(reason="scheduled")
+                logger.info("Channel scheduler: Channel refresh queued (%s portals).", total)
 
             except Exception as e:
                 logger.error(f"Channel scheduler error: {e}")
@@ -2278,6 +2605,7 @@ def start_refresh():
         # Try to load EPG from persistent cache first
         global cached_xmltv, last_updated
         cached_xmltv, last_updated, cache_loaded = load_epg_cache(logger, EPG_CACHE_PATH)
+        _set_epg_channel_ids(_parse_epg_channel_ids(cached_xmltv))
 
         if cache_loaded and is_epg_cache_valid(cached_xmltv, last_updated, get_epg_refresh_interval):
             interval = get_epg_refresh_interval()

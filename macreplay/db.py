@@ -23,6 +23,7 @@ def init_db(get_portals, logger):
             channel_id TEXT NOT NULL,
             portal_name TEXT,
             name TEXT,
+            display_name TEXT,
             number TEXT,
             genre TEXT,
             genre_id TEXT,
@@ -75,6 +76,18 @@ def init_db(get_portals, logger):
     # Add cmd column to cache the stream command URL (avoids fetching all channels on every stream)
     try:
         cursor.execute("ALTER TABLE channels ADD COLUMN cmd TEXT")
+    except Exception:
+        pass  # Column already exists
+
+    # Add channel_hash column to support incremental refresh updates
+    try:
+        cursor.execute("ALTER TABLE channels ADD COLUMN channel_hash TEXT")
+    except Exception:
+        pass  # Column already exists
+
+    # Add display_name column for fast name lookup/sort
+    try:
+        cursor.execute("ALTER TABLE channels ADD COLUMN display_name TEXT")
     except Exception:
         pass  # Column already exists
 
@@ -158,8 +171,23 @@ def init_db(get_portals, logger):
     ''')
 
     cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_channels_display_name
+        ON channels(display_name)
+    ''')
+
+    cursor.execute('''
         CREATE INDEX IF NOT EXISTS idx_channels_portal
         ON channels(portal)
+    ''')
+
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_channels_portal_name
+        ON channels(portal_name)
+    ''')
+
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_channels_genre_id
+        ON channels(genre_id)
     ''')
 
     cursor.execute('''
@@ -192,6 +220,16 @@ def init_db(get_portals, logger):
         ON channels(is_header)
     ''')
 
+    # Backfill display_name for existing rows (custom > matched > auto > name)
+    try:
+        cursor.execute('''
+            UPDATE channels
+            SET display_name = COALESCE(NULLIF(custom_name, ''), NULLIF(matched_name, ''), NULLIF(auto_name, ''), name)
+            WHERE display_name IS NULL OR display_name = ''
+        ''')
+    except Exception:
+        pass
+
     # Create groups table for genre/group management
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS groups (
@@ -207,6 +245,39 @@ def init_db(get_portals, logger):
     cursor.execute('''
         CREATE INDEX IF NOT EXISTS idx_groups_active
         ON groups(portal, active)
+    ''')
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS portal_stats (
+            portal TEXT PRIMARY KEY,
+            portal_name TEXT,
+            total_channels INTEGER DEFAULT 0,
+            active_channels INTEGER DEFAULT 0,
+            total_groups INTEGER DEFAULT 0,
+            active_groups INTEGER DEFAULT 0,
+            updated_at TEXT
+        )
+    ''')
+
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_portal_stats_name
+        ON portal_stats(portal_name)
+    ''')
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS group_stats (
+            portal TEXT NOT NULL,
+            portal_name TEXT,
+            group_name TEXT NOT NULL,
+            channel_count INTEGER DEFAULT 0,
+            updated_at TEXT,
+            PRIMARY KEY (portal, group_name)
+        )
+    ''')
+
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_group_stats_portal
+        ON group_stats(portal)
     ''')
 
     conn.commit()
@@ -246,3 +317,24 @@ def init_db(get_portals, logger):
         conn.commit()
 
     conn.close()
+
+
+def cleanup_db(*, vacuum=False):
+    """Cleanup derived tag fields and optionally VACUUM/ANALYZE the DB."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        UPDATE channels
+        SET video_codec = '', audio_tags = ''
+        """
+    )
+    updated = cursor.rowcount
+    conn.commit()
+
+    if vacuum:
+        conn.execute("ANALYZE")
+        conn.execute("VACUUM")
+
+    conn.close()
+    return {"updated": updated, "vacuumed": bool(vacuum)}

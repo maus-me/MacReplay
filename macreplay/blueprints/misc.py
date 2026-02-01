@@ -3,6 +3,7 @@ import os
 import flask
 from flask import Blueprint, jsonify, redirect, render_template, request
 
+from ..db import cleanup_db
 from ..security import authorise
 
 
@@ -59,6 +60,14 @@ def create_misc_blueprint(*, LOG_DIR, occupied):
             return flask.jsonify({"lines": [], "error": "Log file not found"})
         except Exception as e:
             return flask.jsonify({"lines": [], "error": str(e)})
+
+    @bp.route("/api/db/cleanup", methods=["POST"])
+    @authorise
+    def db_cleanup():
+        payload = request.get_json(silent=True) or {}
+        vacuum = bool(payload.get("vacuum"))
+        result = cleanup_db(vacuum=vacuum)
+        return jsonify({"ok": True, "result": result})
 
     @bp.route("/", methods=["GET"])
     def home():

@@ -10,7 +10,8 @@ def create_playlist_blueprint(
     getSettings,
     get_db_connection,
     ACTIVE_GROUP_CONDITION,
-    effective_channel_name,
+    effective_display_name,
+    effective_epg_name,
     get_cached_playlist,
     set_cached_playlist,
     get_last_playlist_host,
@@ -46,7 +47,7 @@ def create_playlist_blueprint(
             f"""
             SELECT
                 c.portal, c.channel_id, c.name, c.number, c.genre,
-                c.custom_name, c.auto_name, c.custom_number, c.custom_genre, c.custom_epg_id
+                c.custom_name, c.auto_name, c.matched_name, c.custom_number, c.custom_genre, c.custom_epg_id
             FROM channels c
             LEFT JOIN groups g ON c.portal = g.portal AND c.genre_id = g.genre_id
             WHERE c.enabled = 1 AND {ACTIVE_GROUP_CONDITION}
@@ -58,13 +59,15 @@ def create_playlist_blueprint(
             portal = row["portal"]
             channel_id = row["channel_id"]
 
-            channel_name = effective_channel_name(
-                row["custom_name"], row["auto_name"], row["name"]
+            channel_name = effective_display_name(
+                row["custom_name"], row["matched_name"], row["auto_name"], row["name"]
             )
             channel_number = row["custom_number"] if row["custom_number"] else row["number"]
             channel_number = channel_number or ""
             genre = row["custom_genre"] if row["custom_genre"] else row["genre"]
-            epg_id = row["custom_epg_id"] if row["custom_epg_id"] else channel_name
+            epg_id = row["custom_epg_id"] if row["custom_epg_id"] else effective_epg_name(
+                row["custom_name"], row["auto_name"], row["name"]
+            )
 
             channel_entry = (
                 "#EXTINF:-1"
