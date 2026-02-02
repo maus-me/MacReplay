@@ -19,7 +19,7 @@ def init_db(get_portals, logger):
 
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS channels (
-            portal TEXT NOT NULL,
+            portal_id TEXT NOT NULL,
             channel_id TEXT NOT NULL,
             portal_name TEXT,
             name TEXT,
@@ -52,7 +52,7 @@ def init_db(get_portals, logger):
             alternate_ids TEXT,
             cmd TEXT,
             channel_hash TEXT,
-            PRIMARY KEY (portal, channel_id)
+            PRIMARY KEY (portal_id, channel_id)
         )
     ''')
 
@@ -73,8 +73,8 @@ def init_db(get_portals, logger):
     ''')
 
     cursor.execute('''
-        CREATE INDEX IF NOT EXISTS idx_channels_portal
-        ON channels(portal)
+        CREATE INDEX IF NOT EXISTS idx_channels_portal_id
+        ON channels(portal_id)
     ''')
 
     cursor.execute('''
@@ -120,23 +120,23 @@ def init_db(get_portals, logger):
     # Create groups table for genre/group management
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS groups (
-            portal TEXT NOT NULL,
+            portal_id TEXT NOT NULL,
             genre_id TEXT NOT NULL,
             name TEXT,
             channel_count INTEGER DEFAULT 0,
             active INTEGER DEFAULT 1,
-            PRIMARY KEY (portal, genre_id)
+            PRIMARY KEY (portal_id, genre_id)
         )
     ''')
 
     cursor.execute('''
         CREATE INDEX IF NOT EXISTS idx_groups_active
-        ON groups(portal, active)
+        ON groups(portal_id, active)
     ''')
 
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS portal_stats (
-            portal TEXT PRIMARY KEY,
+            portal_id TEXT PRIMARY KEY,
             portal_name TEXT,
             total_channels INTEGER DEFAULT 0,
             active_channels INTEGER DEFAULT 0,
@@ -153,18 +153,18 @@ def init_db(get_portals, logger):
 
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS group_stats (
-            portal TEXT NOT NULL,
+            portal_id TEXT NOT NULL,
             portal_name TEXT,
             group_name TEXT NOT NULL,
             channel_count INTEGER DEFAULT 0,
             updated_at TEXT,
-            PRIMARY KEY (portal, group_name)
+            PRIMARY KEY (portal_id, group_name)
         )
     ''')
 
     cursor.execute('''
-        CREATE INDEX IF NOT EXISTS idx_group_stats_portal
-        ON group_stats(portal)
+        CREATE INDEX IF NOT EXISTS idx_group_stats_portal_id
+        ON group_stats(portal_id)
     ''')
 
     conn.commit()

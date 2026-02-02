@@ -331,8 +331,8 @@ class JobManager:
                 COUNT(*) as total_channels,
                 SUM(CASE WHEN {self.ACTIVE_GROUP_CONDITION} THEN 1 ELSE 0 END) as active_channels
             FROM channels c
-            LEFT JOIN groups g ON c.portal = g.portal AND c.genre_id = g.genre_id
-            WHERE c.portal = ?
+            LEFT JOIN groups g ON c.portal_id = g.portal_id AND c.genre_id = g.genre_id
+            WHERE c.portal_id = ?
             """,
             [portal_id],
         )
@@ -343,7 +343,7 @@ class JobManager:
             SELECT
                 COUNT(*) as total_groups,
                 SUM(CASE WHEN active = 1 THEN 1 ELSE 0 END) as active_groups
-            FROM groups WHERE portal = ?
+            FROM groups WHERE portal_id = ?
             """,
             [portal_id],
         )

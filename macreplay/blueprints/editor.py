@@ -75,7 +75,7 @@ def create_editor_blueprint(
             epg_channels = get_epg_channel_ids()
 
             base_query = f"""FROM channels c
-                LEFT JOIN groups g ON c.portal = g.portal AND c.genre_id = g.genre_id
+                LEFT JOIN groups g ON c.portal_id = g.portal_id AND c.genre_id = g.genre_id
                 WHERE {ACTIVE_GROUP_CONDITION}"""
             params = []
 
@@ -350,7 +350,7 @@ def create_editor_blueprint(
                     )
                 elif col_name == "epg_id":
                     order_clauses.append(
-                        f"COALESCE(NULLIF(c.custom_epg_id, ''), c.portal || c.channel_id) {direction}"
+                        f"COALESCE(NULLIF(c.custom_epg_id, ''), c.portal_id || c.channel_id) {direction}"
                     )
                 else:
                     order_clauses.append(f"c.{col_name} {direction}")
@@ -363,7 +363,7 @@ def create_editor_blueprint(
 
             data_query = f"""
                 SELECT
-                    c.portal, c.channel_id, c.portal_name, c.name, c.display_name, c.number, c.genre, c.genre_id, c.logo,
+                    c.portal_id as portal, c.channel_id, c.portal_name, c.name, c.display_name, c.number, c.genre, c.genre_id, c.logo,
                     c.enabled, c.custom_name, c.auto_name, c.custom_number, c.custom_genre,
                     c.custom_epg_id, c.available_macs, c.alternate_ids,
                     c.resolution, c.video_codec, c.country, c.event_tags, c.misc_tags,
@@ -580,7 +580,7 @@ def create_editor_blueprint(
             """
             SELECT name, custom_name, auto_name, display_name, country
             FROM channels
-            WHERE portal = ? AND channel_id = ?
+            WHERE portal_id = ? AND channel_id = ?
             """,
             (portal, channel_id),
         )
@@ -622,7 +622,7 @@ def create_editor_blueprint(
             SET matched_name = ?, matched_source = ?, matched_station_id = ?,
                 matched_call_sign = ?, matched_logo = ?, matched_score = ?,
                 display_name = COALESCE(NULLIF(custom_name, ''), NULLIF(?, ''), NULLIF(auto_name, ''), name)
-            WHERE portal = ? AND channel_id = ?
+            WHERE portal_id = ? AND channel_id = ?
             """,
             (
                 matched_name,
@@ -658,7 +658,7 @@ def create_editor_blueprint(
             SET matched_name = '', matched_source = '', matched_station_id = '',
                 matched_call_sign = '', matched_logo = '', matched_score = NULL,
                 display_name = COALESCE(NULLIF(custom_name, ''), NULLIF(auto_name, ''), name)
-            WHERE portal = ? AND channel_id = ?
+            WHERE portal_id = ? AND channel_id = ?
             """,
             (portal, channel_id),
         )
@@ -688,7 +688,7 @@ def create_editor_blueprint(
                     WHERE COALESCE(NULLIF(custom_genre, ''), genre) IS NOT NULL
                         AND COALESCE(NULLIF(custom_genre, ''), genre) != ''
                         AND COALESCE(NULLIF(custom_genre, ''), genre) != 'None'
-                        AND portal = ?
+                        AND portal_id = ?
                     ORDER BY genre
                     """,
                     (portal,),
@@ -896,7 +896,7 @@ def create_editor_blueprint(
                     """
                     UPDATE channels 
                     SET enabled = ? 
-                    WHERE portal = ? AND channel_id = ?
+                    WHERE portal_id = ? AND channel_id = ?
                     """,
                     (enabled, portal, channel_id),
                 )
@@ -910,7 +910,7 @@ def create_editor_blueprint(
                     """
                     UPDATE channels 
                     SET custom_number = ? 
-                    WHERE portal = ? AND channel_id = ?
+                    WHERE portal_id = ? AND channel_id = ?
                     """,
                     (custom_number, portal, channel_id),
                 )
@@ -925,7 +925,7 @@ def create_editor_blueprint(
                     UPDATE channels 
                     SET custom_name = ?,
                         display_name = COALESCE(NULLIF(?, ''), NULLIF(matched_name, ''), NULLIF(auto_name, ''), name)
-                    WHERE portal = ? AND channel_id = ?
+                    WHERE portal_id = ? AND channel_id = ?
                     """,
                     (custom_name, custom_name, portal, channel_id),
                 )
@@ -939,7 +939,7 @@ def create_editor_blueprint(
                     """
                     UPDATE channels 
                     SET custom_genre = ? 
-                    WHERE portal = ? AND channel_id = ?
+                    WHERE portal_id = ? AND channel_id = ?
                     """,
                     (custom_genre, portal, channel_id),
                 )
@@ -953,7 +953,7 @@ def create_editor_blueprint(
                     """
                     UPDATE channels 
                     SET custom_epg_id = ? 
-                    WHERE portal = ? AND channel_id = ?
+                    WHERE portal_id = ? AND channel_id = ?
                     """,
                     (custom_epg_id, portal, channel_id),
                 )
@@ -963,16 +963,16 @@ def create_editor_blueprint(
                 stats_timestamp = datetime.utcnow().isoformat()
                 for portal_id in portals_to_rebuild:
                     cursor.execute(
-                        "SELECT portal_name FROM channels WHERE portal = ? LIMIT 1",
+                        "SELECT portal_name FROM channels WHERE portal_id = ? LIMIT 1",
                         (portal_id,),
                     )
                     row = cursor.fetchone()
                     portal_name = row["portal_name"] if row and row["portal_name"] else ""
 
-                    cursor.execute("DELETE FROM group_stats WHERE portal = ?", (portal_id,))
+                    cursor.execute("DELETE FROM group_stats WHERE portal_id = ?", (portal_id,))
                     cursor.execute(
                         """
-                        INSERT INTO group_stats (portal, portal_name, group_name, channel_count, updated_at)
+                        INSERT INTO group_stats (portal_id, portal_name, group_name, channel_count, updated_at)
                         SELECT
                             ?,
                             ?,
@@ -985,7 +985,7 @@ def create_editor_blueprint(
                             COUNT(*) as channel_count,
                             ?
                         FROM channels
-                        WHERE portal = ?
+                        WHERE portal_id = ?
                         GROUP BY CASE
                             WHEN COALESCE(NULLIF(custom_genre, ''), genre) IS NULL
                                  OR COALESCE(NULLIF(custom_genre, ''), genre) = ''
@@ -997,7 +997,7 @@ def create_editor_blueprint(
                     )
 
                     cursor.execute(
-                        "SELECT COUNT(*) as cnt FROM channels WHERE portal = ?",
+                        "SELECT COUNT(*) as cnt FROM channels WHERE portal_id = ?",
                         (portal_id,),
                     )
                     active_channels = cursor.fetchone()[0] or 0
@@ -1005,7 +1005,7 @@ def create_editor_blueprint(
                         """
                         UPDATE portal_stats
                         SET active_channels = ?, updated_at = ?
-                        WHERE portal = ?
+                        WHERE portal_id = ?
                         """,
                         (active_channels, stats_timestamp, portal_id),
                     )
@@ -1054,7 +1054,7 @@ def create_editor_blueprint(
             cursor = conn.cursor()
 
             cursor.execute(
-                "SELECT alternate_ids, available_macs FROM channels WHERE portal = ? AND channel_id = ?",
+                "SELECT alternate_ids, available_macs FROM channels WHERE portal_id = ? AND channel_id = ?",
                 [primary_portal, primary_channel_id],
             )
             primary_row = cursor.fetchone()
@@ -1063,7 +1063,7 @@ def create_editor_blueprint(
                 return jsonify({"success": False, "error": "Primary channel not found"}), 404
 
             cursor.execute(
-                "SELECT available_macs FROM channels WHERE portal = ? AND channel_id = ?",
+                "SELECT available_macs FROM channels WHERE portal_id = ? AND channel_id = ?",
                 [secondary_portal, secondary_channel_id],
             )
             secondary_row = cursor.fetchone()
@@ -1097,12 +1097,12 @@ def create_editor_blueprint(
             new_available_macs = ",".join(sorted(primary_macs))
 
             cursor.execute(
-                "UPDATE channels SET alternate_ids = ?, available_macs = ? WHERE portal = ? AND channel_id = ?",
+                "UPDATE channels SET alternate_ids = ?, available_macs = ? WHERE portal_id = ? AND channel_id = ?",
                 [new_alternate_ids, new_available_macs, primary_portal, primary_channel_id],
             )
 
             cursor.execute(
-                "DELETE FROM channels WHERE portal = ? AND channel_id = ?",
+                "DELETE FROM channels WHERE portal_id = ? AND channel_id = ?",
                 [secondary_portal, secondary_channel_id],
             )
 
@@ -1148,7 +1148,7 @@ def create_editor_blueprint(
                 """
                 SELECT channel_id, name, custom_name, auto_name, genre
                 FROM channels
-                WHERE portal = ?
+                WHERE portal_id = ?
                   AND channel_id != ?
                   AND (name LIKE ? OR custom_name LIKE ? OR auto_name LIKE ? OR channel_id LIKE ?)
                 LIMIT 10

@@ -46,10 +46,10 @@ def create_playlist_blueprint(
         cursor.execute(
             f"""
             SELECT
-                c.portal, c.channel_id, c.name, c.number, c.genre,
+                c.portal_id as portal, c.channel_id, c.name, c.number, c.genre,
                 c.custom_name, c.auto_name, c.matched_name, c.custom_number, c.custom_genre, c.custom_epg_id
             FROM channels c
-            LEFT JOIN groups g ON c.portal = g.portal AND c.genre_id = g.genre_id
+            LEFT JOIN groups g ON c.portal_id = g.portal_id AND c.genre_id = g.genre_id
             WHERE c.enabled = 1 AND {ACTIVE_GROUP_CONDITION}
             {order_clause}
             """

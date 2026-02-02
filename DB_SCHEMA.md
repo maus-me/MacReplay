@@ -6,7 +6,7 @@ Source: live schema from `/host_opt/stb-proxy/data/channels.db` and `init_db()` 
 
 | Field | Type | Purpose |
 |---|---|---|
-| `portal` | TEXT | Portal ID (part of primary key) |
+| `portal_id` | TEXT | Portal ID (part of primary key) |
 | `channel_id` | TEXT | Channel ID within portal (part of primary key) |
 | `portal_name` | TEXT | Display name of portal |
 | `name` | TEXT | Original channel name from portal |
@@ -44,7 +44,7 @@ Indexes:
 - `idx_channels_enabled` on `channels(enabled)`
 - `idx_channels_name` on `channels(name)`
 - `idx_channels_display_name` on `channels(display_name)`
-- `idx_channels_portal` on `channels(portal)`
+- `idx_channels_portal_id` on `channels(portal_id)`
 - `idx_channels_portal_name` on `channels(portal_name)`
 - `idx_channels_genre_id` on `channels(genre_id)`
 - `idx_channels_resolution` on `channels(resolution)`
@@ -58,33 +58,36 @@ Indexes:
 
 | Field | Type | Purpose |
 |---|---|---|
-| `portal` | TEXT | Portal ID (part of primary key) |
+| `portal_id` | TEXT | Portal ID (part of primary key) |
 | `genre_id` | TEXT | Genre ID (part of primary key) |
 | `name` | TEXT | Group/genre name |
 | `channel_count` | INTEGER | Number of channels in the group |
 | `active` | INTEGER | 1/0 whether group is active |
 
 Index:
-- `idx_groups_active` on `groups(portal, active)`
+- `idx_groups_active` on `groups(portal_id, active)`
 
 ## Table: `portal_stats`
 
 | Field | Type | Purpose |
 |---|---|---|
-| `portal` | TEXT | Portal ID (primary key) |
+| `portal_id` | TEXT | Portal ID (primary key) |
 | `portal_name` | TEXT | Display name of portal |
-| `channel_count` | INTEGER | Total channels for portal |
+| `total_channels` | INTEGER | Total channels for portal |
+| `active_channels` | INTEGER | Enabled channels for portal |
+| `total_groups` | INTEGER | Total groups for portal |
+| `active_groups` | INTEGER | Active groups for portal |
 | `updated_at` | TEXT | ISO timestamp of last update |
 
 ## Table: `group_stats`
 
 | Field | Type | Purpose |
 |---|---|---|
-| `portal` | TEXT | Portal ID |
+| `portal_id` | TEXT | Portal ID |
 | `portal_name` | TEXT | Display name of portal |
 | `group_name` | TEXT | Group/genre name |
 | `channel_count` | INTEGER | Channels in group |
 | `updated_at` | TEXT | ISO timestamp of last update |
 
 Index:
-- `idx_group_stats_portal` on `group_stats(portal)`
+- `idx_group_stats_portal_id` on `group_stats(portal_id)`

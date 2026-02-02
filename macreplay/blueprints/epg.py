@@ -60,7 +60,7 @@ def create_epg_blueprint(
             cursor = conn.cursor()
             cursor.execute(
                 """
-                SELECT portal, name, custom_name, auto_name, custom_epg_id
+                SELECT portal_id as portal, name, custom_name, auto_name, custom_epg_id
                 FROM channels WHERE enabled = 1
                 """
             )

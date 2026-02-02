@@ -56,11 +56,11 @@ ACTIVE_GROUP_CONDITION = (
     "  (c.genre_id IS NULL OR c.genre_id = '')"
     "  AND EXISTS ("
     "    SELECT 1 FROM groups g3"
-    "    WHERE g3.portal = c.portal AND g3.genre_id = 'UNGROUPED' AND g3.active = 1"
+    "    WHERE g3.portal_id = c.portal_id AND g3.genre_id = 'UNGROUPED' AND g3.active = 1"
     "  )"
     " )"
     " OR NOT EXISTS ("
-    "  SELECT 1 FROM groups g2 WHERE g2.portal = c.portal AND g2.active = 1"
+    "  SELECT 1 FROM groups g2 WHERE g2.portal_id = c.portal_id AND g2.active = 1"
     " )"
     ")"
 )
@@ -1208,8 +1208,8 @@ def run_portal_matching(portal_id):
     cursor.execute(f"""
         SELECT c.channel_id, c.name, c.country, c.is_header
         FROM channels c
-        LEFT JOIN groups g ON c.portal = g.portal AND c.genre_id = g.genre_id
-        WHERE c.portal = ? AND {ACTIVE_GROUP_CONDITION}
+        LEFT JOIN groups g ON c.portal_id = g.portal_id AND c.genre_id = g.genre_id
+        WHERE c.portal_id = ? AND {ACTIVE_GROUP_CONDITION}
     """, (portal_id,))
 
     rows = cursor.fetchall()
@@ -1226,7 +1226,7 @@ def run_portal_matching(portal_id):
             SET matched_name = ?, matched_source = ?, matched_station_id = ?,
                 matched_call_sign = ?, matched_logo = ?, matched_score = ?,
                 display_name = COALESCE(NULLIF(custom_name, ''), NULLIF(?, ''), NULLIF(auto_name, ''), name)
-            WHERE portal = ? AND channel_id = ?
+            WHERE portal_id = ? AND channel_id = ?
         """, (
             tag_info.get("matched_name", ""),
             tag_info.get("matched_source", ""),
@@ -2115,13 +2115,13 @@ def refresh_channels_cache(target_portal_id=None):
         portal_auto_normalize = portal.get("auto normalize names", "false") == "true"
         active_genres = set()
         try:
-            cursor.execute("SELECT genre_id FROM groups WHERE portal = ? AND active = 1", (portal_id,))
+            cursor.execute("SELECT genre_id FROM groups WHERE portal_id = ? AND active = 1", (portal_id,))
             active_genres = {str(row[0]) for row in cursor.fetchall() if row[0]}
         except Exception as e:
             logger.debug(f"Could not load active genres for portal {portal_name}: {e}")
 
         existing_hashes = {}
-        cursor.execute("SELECT channel_id, channel_hash FROM channels WHERE portal = ?", (portal_id,))
+        cursor.execute("SELECT channel_id, channel_hash FROM channels WHERE portal_id = ?", (portal_id,))
         for row in cursor.fetchall():
             existing_hashes[row["channel_id"]] = row["channel_hash"] or ""
 
@@ -2268,7 +2268,7 @@ def refresh_channels_cache(target_portal_id=None):
 
                 cursor.execute('''
                     INSERT INTO channels (
-                        portal, channel_id, portal_name, name, display_name, number, genre, genre_id, logo,
+                        portal_id, channel_id, portal_name, name, display_name, number, genre, genre_id, logo,
                         enabled, custom_name, auto_name, custom_number, custom_genre,
                         custom_epg_id, resolution, video_codec, country,
                             event_tags, misc_tags, matched_name, matched_source,
@@ -2276,7 +2276,7 @@ def refresh_channels_cache(target_portal_id=None):
                             is_header, is_event, is_raw, available_macs, alternate_ids, cmd,
                             channel_hash
                         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        ON CONFLICT(portal, channel_id) DO UPDATE SET
+                        ON CONFLICT(portal_id, channel_id) DO UPDATE SET
                             portal_name = excluded.portal_name,
                             name = excluded.name,
                             display_name = COALESCE(NULLIF(channels.custom_name, ''), NULLIF(excluded.matched_name, ''), NULLIF(excluded.auto_name, ''), excluded.name),
@@ -2349,7 +2349,7 @@ def refresh_channels_cache(target_portal_id=None):
                         chunk = to_delete[i:i + chunk_size]
                         placeholders = ",".join(["?"] * len(chunk))
                         cursor.execute(
-                            f"DELETE FROM channels WHERE portal = ? AND channel_id IN ({placeholders})",
+                            f"DELETE FROM channels WHERE portal_id = ? AND channel_id IN ({placeholders})",
                             [portal_id, *chunk],
                         )
                         channels_deleted += len(chunk)
@@ -2362,18 +2362,18 @@ def refresh_channels_cache(target_portal_id=None):
             for genre_id, genre_name in all_genres.items():
                 channel_count = genre_channel_counts.get(str(genre_id), 0)
                 cursor.execute('''
-                    INSERT INTO groups (portal, genre_id, name, channel_count, active)
+                    INSERT INTO groups (portal_id, genre_id, name, channel_count, active)
                     VALUES (?, ?, ?, ?, 1)
-                    ON CONFLICT(portal, genre_id) DO UPDATE SET
+                    ON CONFLICT(portal_id, genre_id) DO UPDATE SET
                         name = excluded.name,
                         channel_count = excluded.channel_count
                 ''', (portal_id, str(genre_id), genre_name, channel_count))
 
             ungrouped_count = genre_channel_counts.get("", 0)
             cursor.execute('''
-                INSERT INTO groups (portal, genre_id, name, channel_count, active)
+                INSERT INTO groups (portal_id, genre_id, name, channel_count, active)
                 VALUES (?, 'UNGROUPED', 'Ungrouped', ?, 0)
-                ON CONFLICT(portal, genre_id) DO UPDATE SET
+                ON CONFLICT(portal_id, genre_id) DO UPDATE SET
                     name = excluded.name,
                     channel_count = excluded.channel_count
             ''', (portal_id, ungrouped_count))
@@ -2396,10 +2396,10 @@ def refresh_channels_cache(target_portal_id=None):
                                 matched_genres.append(str(genre_id))
                                 break
                 if matched_genres:
-                    cursor.execute("UPDATE groups SET active = 0 WHERE portal = ?", (portal_id,))
+                    cursor.execute("UPDATE groups SET active = 0 WHERE portal_id = ?", (portal_id,))
                     placeholders = ",".join(["?"] * len(matched_genres))
                     cursor.execute(
-                        f"UPDATE groups SET active = 1 WHERE portal = ? AND genre_id IN ({placeholders})",
+                        f"UPDATE groups SET active = 1 WHERE portal_id = ? AND genre_id IN ({placeholders})",
                         [portal_id, *matched_genres],
                     )
                     logger.info(
@@ -2407,10 +2407,10 @@ def refresh_channels_cache(target_portal_id=None):
                     )
 
             stats_timestamp = datetime.utcnow().isoformat()
-            cursor.execute("DELETE FROM group_stats WHERE portal = ?", (portal_id,))
+            cursor.execute("DELETE FROM group_stats WHERE portal_id = ?", (portal_id,))
             cursor.execute(
                 """
-                INSERT INTO group_stats (portal, portal_name, group_name, channel_count, updated_at)
+                INSERT INTO group_stats (portal_id, portal_name, group_name, channel_count, updated_at)
                 SELECT
                     ?,
                     ?,
@@ -2423,7 +2423,7 @@ def refresh_channels_cache(target_portal_id=None):
                     COUNT(*) as channel_count,
                     ?
                 FROM channels
-                WHERE portal = ?
+                WHERE portal_id = ?
                 GROUP BY CASE
                     WHEN COALESCE(NULLIF(custom_genre, ''), genre) IS NULL
                          OR COALESCE(NULLIF(custom_genre, ''), genre) = ''
@@ -2439,7 +2439,7 @@ def refresh_channels_cache(target_portal_id=None):
                 SELECT COUNT(*) as total_groups,
                        SUM(CASE WHEN active = 1 THEN 1 ELSE 0 END) as active_groups
                 FROM groups
-                WHERE portal = ?
+                WHERE portal_id = ?
                 """,
                 (portal_id,),
             )
@@ -2449,9 +2449,9 @@ def refresh_channels_cache(target_portal_id=None):
 
             cursor.execute(
                 """
-                INSERT INTO portal_stats (portal, portal_name, total_channels, active_channels, total_groups, active_groups, updated_at)
+                INSERT INTO portal_stats (portal_id, portal_name, total_channels, active_channels, total_groups, active_groups, updated_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT(portal) DO UPDATE SET
+                ON CONFLICT(portal_id) DO UPDATE SET
                     portal_name = excluded.portal_name,
                     total_channels = excluded.total_channels,
                     active_channels = excluded.active_channels,
@@ -2544,10 +2544,10 @@ def refresh_xmltv():
     cursor.execute(
         f"""
         SELECT
-            c.portal, c.channel_id, c.name, c.number, c.logo,
+            c.portal_id as portal, c.channel_id, c.name, c.number, c.logo,
             c.custom_name, c.auto_name, c.matched_name, c.custom_number, c.custom_epg_id
         FROM channels c
-        LEFT JOIN groups g ON c.portal = g.portal AND c.genre_id = g.genre_id
+        LEFT JOIN groups g ON c.portal_id = g.portal_id AND c.genre_id = g.genre_id
         WHERE {ACTIVE_GROUP_CONDITION}
         """
     )
@@ -2827,10 +2827,10 @@ def refresh_lineup():
 
     cursor.execute(f'''
         SELECT
-            c.portal, c.channel_id, c.name, c.number,
+            c.portal_id as portal, c.channel_id, c.name, c.number,
             c.custom_name, c.auto_name, c.matched_name, c.custom_number
         FROM channels c
-        LEFT JOIN groups g ON c.portal = g.portal AND c.genre_id = g.genre_id
+        LEFT JOIN groups g ON c.portal_id = g.portal_id AND c.genre_id = g.genre_id
         WHERE c.enabled = 1 AND {ACTIVE_GROUP_CONDITION}
         ORDER BY CAST(COALESCE(NULLIF(c.custom_number, ''), c.number) AS INTEGER)
     ''')

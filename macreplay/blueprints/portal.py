@@ -39,12 +39,12 @@ def create_portal_blueprint(
             cursor = conn.cursor()
             cursor.execute(
                 """
-                SELECT portal, total_channels, active_channels, total_groups, active_groups
+                SELECT portal_id, total_channels, active_channels, total_groups, active_groups
                 FROM portal_stats
                 """
             )
             for row in cursor.fetchall():
-                portal_stats[row["portal"]] = {
+                portal_stats[row["portal_id"]] = {
                     "channels": row["active_channels"] or 0,
                     "total_channels": row["total_channels"] or 0,
                     "groups": row["active_groups"] or 0,
@@ -90,11 +90,11 @@ def create_portal_blueprint(
             conn = get_db_connection()
             cursor = conn.cursor()
 
-            cursor.execute("UPDATE groups SET active = 0 WHERE portal = ?", (portal_id,))
+            cursor.execute("UPDATE groups SET active = 0 WHERE portal_id = ?", (portal_id,))
             if selected_genres:
                 placeholders = ",".join(["?"] * len(selected_genres))
                 cursor.execute(
-                    f"UPDATE groups SET active = 1 WHERE portal = ? AND genre_id IN ({placeholders})",
+                    f"UPDATE groups SET active = 1 WHERE portal_id = ? AND genre_id IN ({placeholders})",
                     [portal_id, *selected_genres],
                 )
 
@@ -103,7 +103,7 @@ def create_portal_blueprint(
                 SELECT COUNT(*) as total_groups,
                        SUM(CASE WHEN active = 1 THEN 1 ELSE 0 END) as active_groups
                 FROM groups
-                WHERE portal = ?
+                WHERE portal_id = ?
                 """,
                 (portal_id,),
             )
@@ -115,15 +115,15 @@ def create_portal_blueprint(
                 """
                 SELECT COUNT(*)
                 FROM channels c
-                LEFT JOIN groups g ON c.portal = g.portal AND c.genre_id = g.genre_id
-                WHERE c.portal = ? AND {ACTIVE_GROUP_CONDITION}
+                LEFT JOIN groups g ON c.portal_id = g.portal_id AND c.genre_id = g.genre_id
+                WHERE c.portal_id = ? AND {ACTIVE_GROUP_CONDITION}
                 """.format(ACTIVE_GROUP_CONDITION=ACTIVE_GROUP_CONDITION),
                 (portal_id,),
             )
             active_channels = cursor.fetchone()[0] or 0
 
             cursor.execute(
-                "SELECT COUNT(*) FROM channels WHERE portal = ?",
+                "SELECT COUNT(*) FROM channels WHERE portal_id = ?",
                 (portal_id,),
             )
             total_channels = cursor.fetchone()[0] or 0
@@ -132,9 +132,9 @@ def create_portal_blueprint(
             portal_name = portal.get("name", portal_id)
             cursor.execute(
                 """
-                INSERT INTO portal_stats (portal, portal_name, total_channels, active_channels, total_groups, active_groups, updated_at)
+                INSERT INTO portal_stats (portal_id, portal_name, total_channels, active_channels, total_groups, active_groups, updated_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT(portal) DO UPDATE SET
+                ON CONFLICT(portal_id) DO UPDATE SET
                     portal_name = excluded.portal_name,
                     total_channels = excluded.total_channels,
                     active_channels = excluded.active_channels,
@@ -469,10 +469,10 @@ def create_portal_blueprint(
         try:
             conn = sqlite3.connect(DB_PATH)
             cursor = conn.cursor()
-            cursor.execute("DELETE FROM channels WHERE portal = ?", (portal_id,))
+            cursor.execute("DELETE FROM channels WHERE portal_id = ?", (portal_id,))
             deleted_count = cursor.rowcount
-            cursor.execute("DELETE FROM group_stats WHERE portal = ?", (portal_id,))
-            cursor.execute("DELETE FROM portal_stats WHERE portal = ?", (portal_id,))
+            cursor.execute("DELETE FROM group_stats WHERE portal_id = ?", (portal_id,))
+            cursor.execute("DELETE FROM portal_stats WHERE portal_id = ?", (portal_id,))
             conn.commit()
             conn.close()
             logger.info(

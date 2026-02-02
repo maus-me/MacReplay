@@ -125,7 +125,7 @@ def create_streaming_blueprint(
             conn = get_db_connection()
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT available_macs, alternate_ids, cmd, name FROM channels WHERE portal = ? AND channel_id = ?",
+                "SELECT available_macs, alternate_ids, cmd, name FROM channels WHERE portal_id = ? AND channel_id = ?",
                 [portalId, channelId],
             )
             row = cursor.fetchone()
