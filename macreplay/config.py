@@ -63,6 +63,7 @@ defaultSettings = {
     "channel refresh interval": "24",
     "epg future hours": "24",
     "epg past hours": "2",
+    "epg custom sources": "[]",
     "test streams": "true",
     "try all macs": "true",
     "parallel mac probing": "false",

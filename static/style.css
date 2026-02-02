@@ -260,6 +260,74 @@ Table of Contents
     font-size: 0.85rem;
 }
 
+.epg-sources-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.epg-source-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 14px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.15);
+}
+
+.epg-source-main {
+    flex: 1;
+    min-width: 0;
+}
+
+.epg-source-title {
+    font-weight: 600;
+    color: #f5f7fa;
+    margin-bottom: 4px;
+}
+
+.epg-source-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    color: #9aa4b2;
+    font-size: 0.85rem;
+}
+
+.epg-source-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* ===== Editor: Row Menu + Manual Match ===== */
+.editor-row-menu-btn {
+    min-width: 34px;
+    height: 34px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.manual-match-channel {
+    padding: 0.45rem 0.6rem;
+    border-radius: 8px;
+    background-color: var(--bs-tertiary-bg);
+    border: 1px solid var(--bs-border-color);
+    font-weight: 600;
+}
+
+.manual-match-results .list-group-item {
+    border-color: var(--bs-border-color);
+    background-color: var(--bs-card-bg);
+}
+
+[data-bs-theme="dark"] .manual-match-results .list-group-item {
+    background-color: #2b3035;
+}
+
 /* Reduce hover fill for outline primary buttons (use subtle tint) */
 .btn-outline-primary:hover {
     background-color: rgba(13, 110, 253, 0.08);
@@ -696,6 +764,24 @@ table.dataTable thead th {
 
 .subline-epg .subline-input {
     height: 22px;
+}
+
+.subline-epg .epg-input-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.subline-epg .epg-refresh-btn {
+    flex: 0 0 auto;
+    padding: 4px 8px;
+    height: 26px;
+}
+
+.subline-epg .epg-source-hint {
+    margin-top: 4px;
+    font-size: 0.75rem;
+    color: var(--bs-secondary-color);
 }
 
 .subline-logo .channel-logo {

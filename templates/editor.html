@@ -82,6 +82,7 @@
                 <th>Name</th>
                 <th>Group</th>
                 <th>Portal</th>
+                <th></th>
             </tr>
         </thead>
         <tbody>
@@ -272,6 +273,39 @@
         </div>
     </div>
 
+    <!-- Manual Match Modal -->
+    <div class="modal fade" id="manualMatchModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-magic text-success me-2"></i>
+                        Manual Match
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Channel</label>
+                        <div class="manual-match-channel" id="manualMatchChannel">-</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="manualMatchSearch" class="form-label">Search name</label>
+                        <input type="text" class="form-control" id="manualMatchSearch" placeholder="Type to search ChannelsDVR...">
+                    </div>
+                    <div class="manual-match-results" id="manualMatchResults">
+                        <div class="text-muted">No suggestions yet.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>
 
 {% endblock %}
@@ -286,6 +320,7 @@
 <!-- Tom Select for searchable multi-select -->
 <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
 
+<datalist id="epg-suggestions"></datalist>
 <script>
     // Toast Notification Functions
     function showNotification(message, type = 'success', duration = 3000) {
@@ -293,6 +328,15 @@
         if (typeof showToast === 'function') {
             showToast(message, toastType, duration);
         }
+    }
+
+    function escapeHtml(value) {
+        return String(value || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
     }
 
     // Confirmation Dialog Function
@@ -406,6 +450,168 @@
         var c = ele.value;
         var j = { "portal": p, "channel id": i, "custom epg id": c };
         epgEdits.push(j);
+        updateEpgSourceHintForInput(ele);
+    }
+
+    let epgSuggestTimer = null;
+    const epgSuggestCache = new Map();
+
+    function renderEpgSuggestions(items) {
+        const list = document.getElementById('epg-suggestions');
+        if (!list) return;
+        list.innerHTML = '';
+        items.forEach(function(item) {
+            const opt = document.createElement('option');
+            opt.value = item.id;
+            const labelParts = [];
+            if (item.name) labelParts.push(item.name);
+            if (item.source) labelParts.push(item.source);
+            if (labelParts.length) {
+                opt.label = labelParts.join(' — ');
+            }
+            list.appendChild(opt);
+        });
+    }
+
+    function fetchEpgSuggestions(query, input) {
+        if (!query) return;
+        if (epgSuggestCache.has(query)) {
+            renderEpgSuggestions(epgSuggestCache.get(query));
+            return;
+        }
+
+        fetch(`/api/editor/epg/suggestions?q=${encodeURIComponent(query)}&limit=20`)
+            .then(resp => resp.json())
+            .then(data => {
+                if (!data || !data.ok) return;
+                const items = data.items || [];
+                epgSuggestCache.set(query, items);
+                renderEpgSuggestions(items);
+            })
+            .catch(() => {});
+    }
+
+    document.addEventListener('focusin', function(e) {
+        if (!e.target.classList.contains('epg-suggest-input')) return;
+        const query = e.target.value.trim() || e.target.dataset.channelId || '';
+        fetchEpgSuggestions(query, e.target);
+        updateEpgSourceHintForInput(e.target);
+    });
+
+    document.addEventListener('input', function(e) {
+        if (!e.target.classList.contains('epg-suggest-input')) return;
+        const query = e.target.value.trim() || e.target.dataset.channelId || '';
+        clearTimeout(epgSuggestTimer);
+        epgSuggestTimer = setTimeout(() => fetchEpgSuggestions(query, e.target), 200);
+    });
+
+    function updateEpgSourceHintForInput(input) {
+        if (!input) return;
+        const wrapper = input.closest('.subline-epg');
+        if (!wrapper) return;
+        const hint = wrapper.querySelector('.epg-source-hint');
+        if (!hint) return;
+        const epgId = (input.value || '').trim();
+        if (!epgId) {
+            hint.textContent = 'Quelle: -';
+            return;
+        }
+        fetch(`/api/editor/epg/source?id=${encodeURIComponent(epgId)}`)
+            .then(resp => resp.json())
+            .then(data => {
+                if (!data || !data.ok) {
+                    hint.textContent = 'Quelle: -';
+                    return;
+                }
+                const sourceText = data.source ? `Quelle: ${data.source}` : 'Quelle: -';
+                hint.textContent = sourceText;
+            })
+            .catch(() => {
+                hint.textContent = 'Quelle: -';
+            });
+    }
+
+    function updateEpgSourceHintForRow(row) {
+        if (!row) return;
+        if (typeof row.child !== 'function') return;
+        const child = row.child();
+        if (!child) return;
+        let node = null;
+        if (child instanceof HTMLElement) {
+            node = child;
+        } else if (child.get && child.get(0)) {
+            node = child.get(0);
+        } else if (child[0]) {
+            node = child[0];
+        }
+        if (!node) return;
+        const input = node.querySelector('.epg-suggest-input');
+        if (input) {
+            updateEpgSourceHintForInput(input);
+        }
+    }
+
+    function refreshEpgForIds(epgIds, opts = {}) {
+        if (!Array.isArray(epgIds) || !epgIds.length) return;
+        const payload = { epg_ids: epgIds };
+        return fetch('/api/editor/epg/refresh', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+        .then(resp => resp.json())
+        .then(data => {
+            if (data && data.ok) {
+                if (opts.successMessage) {
+                    if (typeof showToast === 'function') {
+                        showToast(opts.successMessage, 'success');
+                    } else {
+                        showNotification(opts.successMessage, 'success');
+                    }
+                }
+            } else if (opts.errorMessage) {
+                if (typeof showToast === 'function') {
+                    showToast(opts.errorMessage + ': ' + (data.error || 'Unknown error'), 'error');
+                } else {
+                    showNotification(opts.errorMessage + ': ' + (data.error || 'Unknown error'), 'error', 5000);
+                }
+            }
+        })
+        .catch(err => {
+            if (opts.errorMessage) {
+                if (typeof showToast === 'function') {
+                    showToast(opts.errorMessage + ': ' + err, 'error');
+                } else {
+                    showNotification(opts.errorMessage + ': ' + err, 'error', 5000);
+                }
+            }
+        });
+    }
+
+    function refreshEpgForChannel(button) {
+        const wrapper = button.closest('.subline-epg');
+        if (!wrapper) return;
+        const input = wrapper.querySelector('.epg-suggest-input');
+        if (!input) return;
+        const epgId = (input.value || '').trim();
+        if (!epgId) {
+            if (typeof showToast === 'function') {
+                showToast('Bitte zuerst eine EPG-ID setzen.', 'warning');
+            } else {
+                showNotification('Bitte zuerst eine EPG-ID setzen.', 'warning', 4000);
+            }
+            return;
+        }
+        const original = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        refreshEpgForIds([epgId], {
+            successMessage: 'EPG wurde aktualisiert.',
+            errorMessage: 'EPG-Refresh fehlgeschlagen'
+        }).finally(() => {
+            button.disabled = false;
+            button.innerHTML = original;
+        });
     }
 
 
@@ -434,12 +640,22 @@
                 } else {
                     showNotification(data.message || 'Playlist config saved!', 'success');
                 }
+                const pendingEpgEdits = epgEdits.slice();
                 // Clear edit arrays
                 enabledEdits = [];
                 numberEdits = [];
                 nameEdits = [];
                 groupEdits = [];
                 epgEdits = [];
+                if (pendingEpgEdits.length) {
+                    const epgIds = [...new Set(pendingEpgEdits.map(e => (e["custom epg id"] || "").trim()).filter(Boolean))];
+                    if (epgIds.length) {
+                        refreshEpgForIds(epgIds, {
+                            successMessage: 'EPG wurde aktualisiert.',
+                            errorMessage: 'EPG-Refresh fehlgeschlagen'
+                        });
+                    }
+                }
                 // Reload table data without losing filters
                 dataTable.ajax.reload(null, false);
             } else {
@@ -843,7 +1059,8 @@
                 { targets: 2, className: "align-middle", width: "56px" },
                 { targets: 3, className: "align-middle", type: 'string', width: "45%" },
                 { targets: 4, className: "align-middle", type: 'string' },
-                { targets: 5, className: "align-middle", width: "140px" }
+                { targets: 5, className: "align-middle", width: "140px" },
+                { targets: 6, className: "align-middle text-end", orderable: false, searchable: false, width: "40px" }
             ],
             language: {
                 search: "",
@@ -1060,6 +1277,31 @@
                                (data || 'Unknown') + '</span>';
                     }
                 },
+                {
+                    data: "channelId",
+                    render: function (data, type, row, meta) {
+                        const rowDataJson = JSON.stringify(row).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                        return `
+                            <div class="dropdown editor-row-menu">
+                                <button class="btn btn-sm btn-outline-secondary editor-row-menu-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Actions">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li>
+                                        <button class="dropdown-item" type="button" onclick="openManualMatch(this)" data-row="${rowDataJson}">
+                                            <i class="fas fa-magic me-2"></i> Manual match
+                                        </button>
+                                    </li>
+                                    <li>
+                                        <button class="dropdown-item text-danger" type="button" onclick="resetManualMatch(this)" data-row="${rowDataJson}">
+                                            <i class="fas fa-eraser me-2"></i> Reset match
+                                        </button>
+                                    </li>
+                                </ul>
+                            </div>
+                        `;
+                    }
+                },
             ],
         });
 
@@ -1079,6 +1321,7 @@
                 row.child(renderChannelDetails(row.data())).show();
                 tr.addClass('shown');
                 $(this).find('i').css('transform', 'rotate(90deg)');
+                updateEpgSourceHintForRow(row);
             }
         });
 
@@ -1098,6 +1341,7 @@
             const logo = row.matchedName ? (row.matchedLogo || '') : '';
             const epgValue = row.customEpgId || '';
             const epgPlaceholder = row.portal + row.channelId;
+            const epgEffective = row.customEpgId || row.effectiveEpgId || '';
             return `
             <div class="channel-subline">
                 <div class="subline-item subline-logo">
@@ -1110,15 +1354,23 @@
                 <div class="subline-item"><span class="subline-label">Score</span><span class="subline-value">${matchedScore}</span></div>
                 <div class="subline-item subline-epg">
                     <span class="subline-label">EPG ID</span>
-                    <input
-                        type="text"
-                        class="form-control table-input subline-input"
-                        onchange="editCustomEpgId(this)"
-                        data-portal="${row.portal}"
-                        data-channelId="${row.channelId}"
-                        placeholder="${epgPlaceholder}"
-                        title="${epgPlaceholder}"
-                        value="${epgValue}">
+                    <div class="epg-input-row">
+                        <input
+                            type="text"
+                            class="form-control table-input subline-input epg-suggest-input"
+                            onchange="editCustomEpgId(this)"
+                            data-portal="${row.portal}"
+                            data-channelId="${row.channelId}"
+                            data-channelName="${(row.effectiveDisplayName || row.channelName || row.name || '').replace(/"/g, '&quot;')}"
+                            list="epg-suggestions"
+                            placeholder="${epgPlaceholder}"
+                            title="${epgPlaceholder}"
+                            value="${epgValue}">
+                        <button type="button" class="btn btn-outline-secondary btn-sm epg-refresh-btn" onclick="refreshEpgForChannel(this)" title="EPG aktualisieren">
+                            <i class="fas fa-sync"></i>
+                        </button>
+                    </div>
+                    <div class="epg-source-hint" data-epg-id="${epgEffective}">Quelle: -</div>
                 </div>
             </div>
             `;
@@ -1434,6 +1686,149 @@
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-object-group"></i> Merge';
         });
+    });
+
+    // Manual match helpers
+    let manualMatchContext = null;
+    let manualMatchSearchTimeout = null;
+
+    function parseRowDataFromElement(element) {
+        const rowDataStr = element.getAttribute('data-row').replace(/&quot;/g, '"');
+        return JSON.parse(rowDataStr);
+    }
+
+    function openManualMatch(element) {
+        const row = parseRowDataFromElement(element);
+        manualMatchContext = {
+            portal: row.portal,
+            channelId: row.channelId,
+            name: row.customChannelName || row.effectiveDisplayName || row.autoChannelName || row.channelName || ''
+        };
+        document.getElementById('manualMatchChannel').textContent = manualMatchContext.name || '-';
+        const searchInput = document.getElementById('manualMatchSearch');
+        searchInput.value = '';
+        loadManualMatchSuggestions('');
+
+        const modal = new bootstrap.Modal(document.getElementById('manualMatchModal'));
+        modal.show();
+    }
+
+    function resetManualMatch(element) {
+        const row = parseRowDataFromElement(element);
+        showConfirmDialog({
+            title: 'Reset match',
+            message: 'Remove the current match for this channel?',
+            type: 'warning',
+            okText: 'Reset'
+        }).then((confirmed) => {
+            if (!confirmed) return;
+            fetch('/api/editor/match/reset', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ portal: row.portal, channelId: row.channelId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.ok) {
+                    showNotification('Match reset.', 'success');
+                    dataTable.ajax.reload(null, false);
+                } else {
+                    showNotification(data.error || 'Reset failed', 'error');
+                }
+            })
+            .catch(error => showNotification('Reset failed: ' + error, 'error'));
+        });
+    }
+
+    function loadManualMatchSuggestions(query) {
+        if (!manualMatchContext) return;
+        const results = document.getElementById('manualMatchResults');
+        results.innerHTML = '<div class="text-muted"><i class="fas fa-spinner fa-spin me-2"></i>Loading matches...</div>';
+
+        const params = new URLSearchParams({
+            portal: manualMatchContext.portal,
+            channelId: manualMatchContext.channelId,
+            query: query || ''
+        });
+
+        fetch('/api/editor/match/suggestions?' + params.toString())
+            .then(response => response.json())
+            .then(data => {
+                if (!data.ok) {
+                    results.innerHTML = '<div class="text-danger">No suggestions available.</div>';
+                    return;
+                }
+                const matches = data.results || [];
+                if (matches.length === 0) {
+                    results.innerHTML = '<div class="text-muted">No matches found.</div>';
+                    return;
+                }
+                let html = '<div class="list-group">';
+                matches.forEach(match => {
+                    const score = match.score !== undefined ? Number(match.score).toFixed(2) : '-';
+                    const callSign = match.call_sign ? `<span class="badge bg-secondary ms-2">${match.call_sign}</span>` : '';
+                    const stationId = match.station_id ? `<small class="text-muted">ID ${match.station_id}</small>` : '';
+                    const payload = JSON.stringify(match).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                    html += `
+                        <div class="list-group-item d-flex align-items-center justify-content-between gap-2">
+                            <div>
+                                <div class="fw-semibold">${escapeHtml(match.name || '')}${callSign}</div>
+                                <div class="small text-muted">Score ${score} ${stationId}</div>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-success" onclick="applyManualMatch(this)" data-match="${payload}">
+                                Use
+                            </button>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                results.innerHTML = html;
+            })
+            .catch(error => {
+                results.innerHTML = '<div class="text-danger">Error loading suggestions.</div>';
+                console.error('Manual match error:', error);
+            });
+    }
+
+    function applyManualMatch(element) {
+        if (!manualMatchContext) return;
+        const matchStr = element.getAttribute('data-match').replace(/&quot;/g, '"');
+        const match = JSON.parse(matchStr);
+        fetch('/api/editor/match/set', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                portal: manualMatchContext.portal,
+                channelId: manualMatchContext.channelId,
+                match: {
+                    name: match.name || '',
+                    station_id: match.station_id || '',
+                    call_sign: match.call_sign || '',
+                    logo_uri: match.logo_uri || '',
+                    score: match.score || '',
+                    source: 'channelsdvr'
+                }
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.ok) {
+                showNotification('Match updated.', 'success');
+                bootstrap.Modal.getInstance(document.getElementById('manualMatchModal')).hide();
+                dataTable.ajax.reload(null, false);
+            } else {
+                showNotification(data.error || 'Match update failed', 'error');
+            }
+        })
+        .catch(error => showNotification('Match update failed: ' + error, 'error'));
+    }
+
+    document.getElementById('manualMatchSearch').addEventListener('input', function(e) {
+        const query = e.target.value.trim();
+        clearTimeout(manualMatchSearchTimeout);
+        manualMatchSearchTimeout = setTimeout(() => {
+            loadManualMatchSuggestions(query);
+        }, 300);
     });
 
 </script>

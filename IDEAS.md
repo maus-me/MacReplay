@@ -88,6 +88,9 @@ patterns = {
 - ✅ Editor: Aufklappbare Subline mit Match-Details + EPG-ID Edit
 - ✅ Editor: Logo aus Match in Subline (nur wenn gematched)
 - ✅ Editor: Nummer-Spalte vor Name, EPG-ID aus Hauptzeile entfernt
+- ✅ Editor: EPG-Quelle im Vorschlags-Dropdown + Hinweis neben EPG-ID
+- ✅ Editor: EPG-Refresh pro Channel (Button in der Subline)
+- ✅ Editor: EPG-Refresh für geänderte EPG-IDs nach Save
 - ⬜ Editor: Subline Inhalte konfigurierbar (ein-/ausblenden)
 
 ### Tagging & Name Normalisierung
@@ -99,6 +102,15 @@ patterns = {
 - ✅ Reset-Button für Tag-Patterns in den Settings
 - ⬜ Regeln/Regex pro Portal oder Portal-Gruppe
 - 🔄 Matching: Name vor Match leicht bereinigen (Country + Quality+Suffix abschneiden)
+
+### EPG & Quellen
+- ✅ Settings: EPG-Quellen verwalten (Add/Enable/Interval/Refresh/Remove)
+- ✅ XMLTV (.xml/.gz) Download + lokal cachen
+- ✅ Editor: EPG-ID Vorschläge per Channel-Map
+- ✅ Editor: EPG-Quelle anzeigen (Dropdown + Hinweis)
+- ✅ Editor: EPG-Refresh pro Channel
+- ✅ Editor: EPG-Refresh nach EPG-ID Änderung beim Speichern
+- ⬜ EPG-Refresh Queue/Retry statt "already running" Fehler
 
 ---
 

@@ -8,6 +8,8 @@ import unicodedata
 import json
 import gzip
 import hashlib
+from urllib.request import Request, urlopen
+from urllib.error import URLError, HTTPError
 from datetime import datetime, timedelta
 import xml.etree.ElementTree as ET
 import xml.dom.minidom as minidom
@@ -20,6 +22,7 @@ from macreplay.config import (
     CONFIG_PATH,
     DB_PATH,
     EPG_CACHE_PATH,
+    DATA_DIR,
     defaultPortal,
     loadConfig,
     getPortals,
@@ -170,6 +173,8 @@ cached_xmltv = None
 last_updated = 0
 epg_channel_ids = set()
 epg_channel_ids_lock = threading.Lock()
+epg_channel_map = {}
+epg_channel_map_lock = threading.Lock()
 
 
 def _set_cached_xmltv(value):
@@ -177,8 +182,11 @@ def _set_cached_xmltv(value):
     cached_xmltv = value
     if value is None:
         _set_epg_channel_ids(set())
+        _set_epg_channel_map({})
     else:
         _set_epg_channel_ids(_parse_epg_channel_ids(value))
+        epg_map = _apply_epg_source_map(_parse_epg_channel_map(value), default_source="portal")
+        _set_epg_channel_map(epg_map)
 
 
 def _set_epg_channel_ids(ids):
@@ -190,6 +198,17 @@ def _set_epg_channel_ids(ids):
 def _get_epg_channel_ids():
     with epg_channel_ids_lock:
         return set(epg_channel_ids)
+
+
+def _set_epg_channel_map(mapping):
+    global epg_channel_map
+    with epg_channel_map_lock:
+        epg_channel_map = dict(mapping or {})
+
+
+def _get_epg_channel_map():
+    with epg_channel_map_lock:
+        return dict(epg_channel_map)
 
 
 def _parse_epg_channel_ids(xmltv):
@@ -209,6 +228,319 @@ def _parse_epg_channel_ids(xmltv):
         if cid:
             ids.add(cid)
     return ids
+
+
+def _parse_epg_channel_map(xmltv):
+    if not xmltv:
+        return {}
+    try:
+        root = ET.fromstring(xmltv)
+    except Exception:
+        return {}
+    mapping = {}
+    for channel in root.findall("channel"):
+        cid = channel.get("id")
+        if not cid:
+            continue
+        display_name = channel.findtext("display-name") or cid
+        mapping[cid] = {"name": display_name}
+    return mapping
+
+
+def _normalize_epg_channel_map(mapping, default_source=None):
+    normalized = {}
+    for cid, value in (mapping or {}).items():
+        if isinstance(value, dict):
+            name = value.get("name") or value.get("display_name") or cid
+            source = value.get("source")
+        else:
+            name = value or cid
+            source = None
+        if default_source and not source:
+            source = default_source
+        normalized[cid] = {"name": name, "source": source}
+    return normalized
+
+
+def _apply_epg_source_map(mapping, source_map=None, default_source=None):
+    normalized = _normalize_epg_channel_map(mapping, default_source=default_source)
+    if source_map:
+        for cid, source in source_map.items():
+            if cid in normalized:
+                normalized[cid]["source"] = source
+    return normalized
+
+
+def _parse_custom_sources(settings):
+    raw = settings.get("epg custom sources", "[]")
+    if isinstance(raw, list):
+        sources = raw
+    else:
+        try:
+            sources = json.loads(raw) if raw else []
+        except Exception:
+            sources = []
+    return [s for s in sources if isinstance(s, dict)]
+
+
+def _get_epg_sources_dir():
+    cache_dir = os.path.join(DATA_DIR, "epg_sources")
+    os.makedirs(cache_dir, exist_ok=True)
+    return cache_dir
+
+
+def _fetch_custom_xmltv(source, logger):
+    url = (source.get("url") or "").strip()
+    if not url:
+        return None
+
+    source_id = (source.get("id") or "").strip()
+    if not source_id:
+        source_id = hashlib.sha1(url.encode("utf-8")).hexdigest()
+
+    cache_dir = _get_epg_sources_dir()
+    cache_path = os.path.join(cache_dir, f"{source_id}.xml")
+    meta_path = cache_path + ".meta"
+    try:
+        interval_hours = float(source.get("interval", source.get("interval_hours", 24)) or 24)
+    except (TypeError, ValueError):
+        interval_hours = 24
+
+    use_cache = False
+    if os.path.exists(cache_path) and interval_hours > 0:
+        try:
+            with open(meta_path, "r", encoding="utf-8") as f:
+                last_fetch = float(f.read().strip())
+            age_hours = (time.time() - last_fetch) / 3600
+            if age_hours < interval_hours:
+                use_cache = True
+        except Exception:
+            use_cache = False
+
+    if use_cache:
+        try:
+            with open(cache_path, "r", encoding="utf-8") as f:
+                return f.read()
+        except Exception:
+            return None
+
+    try:
+        req = Request(url, headers={"User-Agent": "MacReplay"})
+        with urlopen(req, timeout=20) as resp:
+            data = resp.read()
+        if url.endswith(".gz") or data[:2] == b"\x1f\x8b":
+            data = gzip.decompress(data)
+        xml_text = data.decode("utf-8", errors="replace")
+        with open(cache_path, "w", encoding="utf-8") as f:
+            f.write(xml_text)
+        with open(meta_path, "w", encoding="utf-8") as f:
+            f.write(str(time.time()))
+        return xml_text
+    except (HTTPError, URLError, OSError, ValueError) as e:
+        logger.warning(f"Failed to fetch custom EPG source {url}: {e}")
+        if os.path.exists(cache_path):
+            try:
+                with open(cache_path, "r", encoding="utf-8") as f:
+                    return f.read()
+            except Exception:
+                return None
+        return None
+
+
+def refresh_custom_sources(source_ids=None):
+    settings = getSettings()
+    sources = _parse_custom_sources(settings)
+    if source_ids:
+        source_ids = {s for s in source_ids if s}
+        sources = [s for s in sources if s.get("id") in source_ids]
+    sources = [s for s in sources if s.get("enabled") not in [False, "false"]]
+
+    if not sources:
+        return False
+
+    global cached_xmltv, last_updated
+    if cached_xmltv is None:
+        cached_xmltv, last_updated, _ = load_epg_cache(logger, EPG_CACHE_PATH)
+
+    if cached_xmltv:
+        try:
+            root = ET.fromstring(cached_xmltv)
+        except Exception:
+            root = ET.Element("tv")
+    else:
+        root = ET.Element("tv")
+
+    existing_channels = {ch.get("id") for ch in root.findall("channel") if ch.get("id")}
+
+    source_map = {}
+    for source in sources:
+        xml_text = _fetch_custom_xmltv(source, logger)
+        if not xml_text:
+            continue
+        try:
+            source_root = ET.fromstring(xml_text)
+        except Exception as e:
+            logger.warning(f"Invalid XMLTV content from custom source: {e}")
+            continue
+        source_label = source.get("name") or source.get("url") or source.get("id") or "custom"
+
+        for channel in source_root.findall("channel"):
+            cid = channel.get("id")
+            if not cid:
+                continue
+            source_map[cid] = source_label
+            if cid in existing_channels:
+                continue
+            existing_channels.add(cid)
+            channel_ele = ET.SubElement(root, "channel", id=cid)
+            display_name = channel.findtext("display-name") or cid
+            ET.SubElement(channel_ele, "display-name").text = display_name
+            icon = channel.find("icon")
+            if icon is not None and icon.get("src"):
+                ET.SubElement(channel_ele, "icon", src=icon.get("src"))
+
+    seen_programmes = set()
+    for programme in root.findall("programme"):
+        prog_key = (
+            programme.get("channel"),
+            programme.get("start"),
+            programme.get("stop"),
+        )
+        if prog_key not in seen_programmes:
+            seen_programmes.add(prog_key)
+
+    rough_string = ET.tostring(root, encoding="unicode")
+    reparsed = minidom.parseString(rough_string)
+    formatted_xmltv = "\n".join(
+        [line for line in reparsed.toprettyxml(indent="  ").splitlines() if line.strip()]
+    )
+
+    cached_xmltv = formatted_xmltv
+    last_updated = time.time()
+    epg_map = _apply_epg_source_map(
+        _parse_epg_channel_map(formatted_xmltv),
+        source_map=source_map,
+        default_source="portal",
+    )
+    _set_epg_channel_ids(set(epg_map.keys()))
+    _set_epg_channel_map(epg_map)
+    save_epg_cache(cached_xmltv, last_updated, logger, EPG_CACHE_PATH)
+    return True
+
+
+def refresh_xmltv_for_epg_ids(epg_ids):
+    if not epg_ids:
+        return False, "No EPG IDs provided"
+
+    if epg_refresh_status.get("is_refreshing"):
+        return False, "EPG refresh already running"
+
+    epg_refresh_status["is_refreshing"] = True
+    epg_refresh_status["started_at"] = datetime.utcnow().isoformat()
+    epg_refresh_status["last_error"] = None
+
+    try:
+        epg_ids = {str(cid).strip() for cid in epg_ids if str(cid).strip()}
+        if not epg_ids:
+            return False, "No valid EPG IDs provided"
+
+        logger.info("EPG refresh (custom sources) started for %d IDs", len(epg_ids))
+        settings = getSettings()
+        custom_sources = _parse_custom_sources(settings)
+        past_hours = int(settings.get("epg past hours", "2"))
+        past_cutoff = datetime.utcnow() - timedelta(hours=past_hours)
+
+        global cached_xmltv, last_updated
+        if cached_xmltv is None:
+            cached_xmltv, last_updated, _ = load_epg_cache(logger, EPG_CACHE_PATH)
+
+        if cached_xmltv:
+            try:
+                root = ET.fromstring(cached_xmltv)
+            except Exception:
+                root = ET.Element("tv")
+        else:
+            root = ET.Element("tv")
+
+        existing_channels = {ch.get("id") for ch in root.findall("channel") if ch.get("id")}
+        for programme in list(root.findall("programme")):
+            channel_attr = programme.get("channel")
+            if channel_attr in epg_ids:
+                root.remove(programme)
+
+        source_map = {}
+        added_programmes = 0
+        for source in custom_sources:
+            if source.get("enabled") in [False, "false"]:
+                continue
+            xml_text = _fetch_custom_xmltv(source, logger)
+            if not xml_text:
+                continue
+            try:
+                source_root = ET.fromstring(xml_text)
+            except Exception as e:
+                logger.warning(f"Invalid XMLTV content from custom source: {e}")
+                continue
+
+            source_label = source.get("name") or source.get("url") or source.get("id") or "custom"
+
+            for channel in source_root.findall("channel"):
+                cid = channel.get("id")
+                if not cid:
+                    continue
+                if cid in epg_ids:
+                    source_map[cid] = source_label
+                if cid in existing_channels or cid not in epg_ids:
+                    continue
+                existing_channels.add(cid)
+                channel_ele = ET.SubElement(root, "channel", id=cid)
+                display_name = channel.findtext("display-name") or cid
+                ET.SubElement(channel_ele, "display-name").text = display_name
+                icon = channel.find("icon")
+                if icon is not None and icon.get("src"):
+                    ET.SubElement(channel_ele, "icon", src=icon.get("src"))
+
+            for programme in source_root.findall("programme"):
+                channel_attr = programme.get("channel")
+                if channel_attr not in epg_ids:
+                    continue
+                stop_attr = programme.get("stop")
+                if stop_attr:
+                    try:
+                        stop_time = datetime.strptime(stop_attr.split(" ")[0], "%Y%m%d%H%M%S")
+                        if stop_time < past_cutoff:
+                            continue
+                    except ValueError:
+                        pass
+                root.append(ET.fromstring(ET.tostring(programme, encoding="unicode")))
+                added_programmes += 1
+
+        rough_string = ET.tostring(root, encoding="unicode")
+        reparsed = minidom.parseString(rough_string)
+        formatted_xmltv = "\n".join(
+            [line for line in reparsed.toprettyxml(indent="  ").splitlines() if line.strip()]
+        )
+
+        cached_xmltv = formatted_xmltv
+        last_updated = time.time()
+        epg_map = _apply_epg_source_map(
+            _parse_epg_channel_map(formatted_xmltv),
+            source_map=source_map,
+            default_source="portal",
+        )
+        _set_epg_channel_ids(set(epg_map.keys()))
+        _set_epg_channel_map(epg_map)
+        save_epg_cache(cached_xmltv, last_updated, logger, EPG_CACHE_PATH)
+
+        logger.info("EPG refresh (custom sources) completed: %d programmes added", added_programmes)
+        return True, f"Updated {added_programmes} programmes"
+    except Exception as e:
+        epg_refresh_status["last_error"] = str(e)
+        logger.error(f"Error refreshing EPG for IDs: {e}")
+        return False, str(e)
+    finally:
+        epg_refresh_status["is_refreshing"] = False
+        epg_refresh_status["completed_at"] = datetime.utcnow().isoformat()
 
 
 def _set_last_playlist_host(value):
@@ -737,6 +1069,74 @@ def match_channelsdvr_name(raw_name, country, settings):
             f"ChannelsDVR no match ({best_score:.2f}): {raw_name} (country {country} -> {country_iso3})"
         )
     return {}
+
+
+def suggest_channelsdvr_matches(raw_name, country, settings, limit=8):
+    if not raw_name or not country:
+        return []
+    if settings.get("channelsdvr enabled", "false") != "true":
+        return []
+    db_path = settings.get("channelsdvr db path", "").strip()
+    if not db_path or not os.path.exists(db_path):
+        return []
+    try:
+        threshold = float(settings.get("channelsdvr match threshold", "0.72"))
+    except ValueError:
+        threshold = 0.72
+    include_lineup_channels = settings.get("channelsdvr include lineup channels", "false") == "true"
+
+    norm = normalize_match_name(raw_name)
+    if not norm:
+        return []
+
+    country_iso3 = normalize_market_country(country)
+    norm_tokens = [t for t in norm.split() if t not in {country.upper(), country_iso3}]
+    norm = " ".join(norm_tokens).strip()
+    if not norm:
+        return []
+
+    cache_entry = get_channelsdvr_cache_for_country(country, db_path, include_lineup_channels)
+    exact = cache_entry["exact"]
+    results = []
+
+    if norm in exact:
+        record = dict(exact[norm])
+        record["score"] = 1.0
+        results.append(record)
+
+    tokens = norm.split()
+    if len(tokens) < 2:
+        return results[:limit]
+
+    candidate_indices = set()
+    for token in tokens:
+        candidate_indices.update(cache_entry["token_index"].get(token, set()))
+
+    token_set = set(tokens)
+    scored = []
+    for idx in candidate_indices:
+        record = cache_entry["normalized"][idx]
+        cand_norm = record.get("norm", "")
+        cand_tokens = set(cand_norm.split())
+        if not cand_tokens:
+            continue
+        score = len(token_set & cand_tokens) / max(len(token_set), len(cand_tokens))
+        scored.append((score, record))
+
+    scored.sort(key=lambda item: item[0], reverse=True)
+    min_score = max(0.2, threshold * 0.5)
+    for score, record in scored:
+        if score < min_score:
+            break
+        if results and record.get("station_id") == results[0].get("station_id") and results[0].get("score") == 1.0:
+            continue
+        entry = dict(record)
+        entry["score"] = score
+        results.append(entry)
+        if len(results) >= limit:
+            break
+
+    return results[:limit]
 
 
 def parse_event_patterns(value, defaults):
@@ -2117,6 +2517,7 @@ def refresh_xmltv():
 
     epg_future_hours = int(settings.get("epg future hours", "24"))
     epg_past_hours = int(settings.get("epg past hours", "2"))
+    custom_sources = _parse_custom_sources(settings)
 
     user_dir = os.path.expanduser("~")
     cache_dir = os.path.join(user_dir, "Evilvir.us")
@@ -2151,6 +2552,7 @@ def refresh_xmltv():
     channels_xml = ET.Element("tv")
     programmes = ET.Element("tv")
     portals = getPortals()
+    source_map = {}
 
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -2166,6 +2568,7 @@ def refresh_xmltv():
     )
 
     enabled_by_portal = {}
+    enabled_epg_ids = set()
     for row in cursor.fetchall():
         portal_id = row["portal"]
         if portal_id not in enabled_by_portal:
@@ -2183,6 +2586,11 @@ def refresh_xmltv():
                 "custom_epg_id": row["custom_epg_id"],
             }
         )
+        epg_id = row["custom_epg_id"] if row["custom_epg_id"] else effective_epg_name(
+            row["custom_name"], row["auto_name"], row["name"]
+        )
+        if epg_id:
+            enabled_epg_ids.add(epg_id)
     conn.close()
 
     logger.info(
@@ -2190,7 +2598,6 @@ def refresh_xmltv():
     )
 
     seen_channel_ids = set()
-
     for portal_id in enabled_by_portal:
         if portal_id not in portals:
             logger.warning(f"Portal {portal_id} not found in config, skipping")
@@ -2311,6 +2718,48 @@ def refresh_xmltv():
             except Exception as e:
                 logger.error(f"Error processing channel {ch}: {e}")
 
+    for source in custom_sources:
+        if source.get("enabled") in [False, "false"]:
+            continue
+        xml_text = _fetch_custom_xmltv(source, logger)
+        if not xml_text:
+            continue
+        try:
+            root = ET.fromstring(xml_text)
+        except Exception as e:
+            logger.warning(f"Invalid XMLTV content from custom source: {e}")
+            continue
+        source_label = source.get("name") or source.get("url") or source.get("id") or "custom"
+
+        for channel in root.findall("channel"):
+            cid = channel.get("id")
+            if not cid or cid in seen_channel_ids:
+                if cid:
+                    source_map[cid] = source_label
+                continue
+            seen_channel_ids.add(cid)
+            source_map[cid] = source_label
+            channel_ele = ET.SubElement(channels_xml, "channel", id=cid)
+            display_name = channel.findtext("display-name") or cid
+            ET.SubElement(channel_ele, "display-name").text = display_name
+            icon = channel.find("icon")
+            if icon is not None and icon.get("src"):
+                ET.SubElement(channel_ele, "icon", src=icon.get("src"))
+
+        for programme in root.findall("programme"):
+            channel_attr = programme.get("channel")
+            if channel_attr and channel_attr not in enabled_epg_ids:
+                continue
+            stop_attr = programme.get("stop")
+            if stop_attr:
+                try:
+                    stop_time = datetime.strptime(stop_attr.split(" ")[0], "%Y%m%d%H%M%S")
+                    if stop_time < past_cutoff:
+                        continue
+                except ValueError:
+                    pass
+            programmes.append(ET.fromstring(ET.tostring(programme, encoding="unicode")))
+
     xmltv = channels_xml
     seen_programmes = set()
 
@@ -2355,7 +2804,15 @@ def refresh_xmltv():
     cached_xmltv = formatted_xmltv
     last_updated = time.time()
     logger.debug(f"Generated XMLTV: {formatted_xmltv}")
+    epg_map = {}
+    for channel in channels_xml.findall("channel"):
+        cid = channel.get("id")
+        if not cid:
+            continue
+        epg_map[cid] = {"name": channel.findtext("display-name") or cid}
     _set_epg_channel_ids(seen_channel_ids)
+    epg_map = _apply_epg_source_map(epg_map, source_map=source_map, default_source="portal")
+    _set_epg_channel_map(epg_map)
 
     save_epg_cache(cached_xmltv, last_updated, logger, EPG_CACHE_PATH)
 
@@ -2474,15 +2931,25 @@ app.register_blueprint(
         ACTIVE_GROUP_CONDITION=ACTIVE_GROUP_CONDITION,
         get_cached_xmltv=lambda: cached_xmltv,
         get_epg_channel_ids=_get_epg_channel_ids,
+        get_epg_channel_map=_get_epg_channel_map,
+        getSettings=getSettings,
+        suggest_channelsdvr_matches=suggest_channelsdvr_matches,
         host=host,
         enqueue_epg_refresh=job_manager.enqueue_epg_refresh,
+        refresh_epg_for_ids=refresh_xmltv_for_epg_ids,
         refresh_lineup=refresh_lineup,
         enqueue_refresh_all=job_manager.enqueue_refresh_all,
         set_last_playlist_host=_set_last_playlist_host,
         filter_cache=filter_cache,
     )
 )
-app.register_blueprint(create_misc_blueprint(LOG_DIR=LOG_DIR, occupied=occupied))
+app.register_blueprint(
+    create_misc_blueprint(
+        LOG_DIR=LOG_DIR,
+        occupied=occupied,
+        refresh_custom_sources=refresh_custom_sources,
+    )
+)
 
 app.register_blueprint(
     create_hdhr_blueprint(
@@ -2605,7 +3072,7 @@ def start_refresh():
         # Try to load EPG from persistent cache first
         global cached_xmltv, last_updated
         cached_xmltv, last_updated, cache_loaded = load_epg_cache(logger, EPG_CACHE_PATH)
-        _set_epg_channel_ids(_parse_epg_channel_ids(cached_xmltv))
+        _set_cached_xmltv(cached_xmltv)
 
         if cache_loaded and is_epg_cache_valid(cached_xmltv, last_updated, get_epg_refresh_interval):
             interval = get_epg_refresh_interval()

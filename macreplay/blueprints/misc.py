@@ -3,11 +3,12 @@ import os
 import flask
 from flask import Blueprint, jsonify, redirect, render_template, request
 
+from ..config import DATA_DIR
 from ..db import cleanup_db
 from ..security import authorise
 
 
-def create_misc_blueprint(*, LOG_DIR, occupied):
+def create_misc_blueprint(*, LOG_DIR, occupied, refresh_custom_sources=None):
     bp = Blueprint("misc", __name__)
 
     @bp.route("/api/dashboard")
@@ -68,6 +69,31 @@ def create_misc_blueprint(*, LOG_DIR, occupied):
         vacuum = bool(payload.get("vacuum"))
         result = cleanup_db(vacuum=vacuum)
         return jsonify({"ok": True, "result": result})
+
+    @bp.route("/api/epg/source/refresh", methods=["POST"])
+    @authorise
+    def epg_source_refresh():
+        payload = request.get_json(silent=True) or {}
+        source_id = (payload.get("id") or "").strip()
+        if not source_id:
+            return jsonify({"ok": False, "error": "missing id"}), 400
+        if not all(ch.isalnum() or ch in ("-", "_") for ch in source_id):
+            return jsonify({"ok": False, "error": "invalid id"}), 400
+
+        cache_dir = os.path.join(DATA_DIR, "epg_sources")
+        cache_path = os.path.join(cache_dir, f"{source_id}.xml")
+        meta_path = cache_path + ".meta"
+        for path in (cache_path, meta_path):
+            try:
+                if os.path.exists(path):
+                    os.remove(path)
+            except Exception:
+                pass
+
+        if refresh_custom_sources:
+            refresh_custom_sources([source_id])
+
+        return jsonify({"ok": True})
 
     @bp.route("/", methods=["GET"])
     def home():

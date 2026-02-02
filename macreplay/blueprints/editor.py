@@ -15,8 +15,12 @@ def create_editor_blueprint(
     ACTIVE_GROUP_CONDITION,
     get_cached_xmltv,
     get_epg_channel_ids,
+    get_epg_channel_map,
+    getSettings,
+    suggest_channelsdvr_matches,
     host,
     enqueue_epg_refresh,
+    refresh_epg_for_ids,
     refresh_lineup,
     enqueue_refresh_all,
     set_last_playlist_host,
@@ -492,6 +496,177 @@ def create_editor_blueprint(
         except Exception as e:
             logger.error(f"Error in editor_portals: {e}")
             return flask.jsonify({"portals": [], "error": str(e)}), 500
+
+    @bp.route("/api/editor/epg/suggestions", methods=["GET"])
+    @authorise
+    def editor_epg_suggestions():
+        query = (request.args.get("q", "") or "").strip().lower()
+        limit = request.args.get("limit", type=int, default=20)
+
+        channel_map = get_epg_channel_map()
+        results = []
+        for cid, info in channel_map.items():
+            if isinstance(info, dict):
+                name_value = info.get("name") or ""
+                source_value = info.get("source") or ""
+            else:
+                name_value = info or ""
+                source_value = ""
+            if query and query not in cid.lower() and query not in name_value.lower():
+                continue
+            results.append({"id": cid, "name": name_value, "source": source_value})
+
+        if query:
+            def sort_key(item):
+                cid = item["id"].lower()
+                name_value = item["name"].lower()
+                return (
+                    0 if cid.startswith(query) else 1,
+                    0 if name_value.startswith(query) else 1,
+                    len(cid),
+                )
+            results.sort(key=sort_key)
+
+        return jsonify({"ok": True, "items": results[:max(1, limit)]})
+
+    @bp.route("/api/editor/epg/source", methods=["GET"])
+    @authorise
+    def editor_epg_source():
+        epg_id = (request.args.get("id", "") or "").strip()
+        if not epg_id:
+            return jsonify({"ok": False, "error": "Missing id"}), 400
+
+        channel_map = get_epg_channel_map()
+        info = channel_map.get(epg_id)
+        if isinstance(info, dict):
+            name_value = info.get("name") or ""
+            source_value = info.get("source") or ""
+        else:
+            name_value = info or ""
+            source_value = ""
+
+        if info is None:
+            return jsonify({"ok": False, "error": "Not found"}), 404
+
+        return jsonify({"ok": True, "id": epg_id, "name": name_value, "source": source_value})
+
+    @bp.route("/api/editor/epg/refresh", methods=["POST"])
+    @authorise
+    def editor_epg_refresh():
+        payload = request.get_json(silent=True) or {}
+        epg_ids = payload.get("epg_ids") or payload.get("epgIds") or []
+        if isinstance(epg_ids, str):
+            epg_ids = [epg_ids]
+
+        logger.info("Editor EPG refresh requested for %d IDs", len(epg_ids))
+        ok, message = refresh_epg_for_ids(epg_ids)
+        if not ok:
+            logger.warning("Editor EPG refresh failed: %s", message)
+            return jsonify({"ok": False, "error": message}), 400
+        logger.info("Editor EPG refresh completed: %s", message)
+        return jsonify({"ok": True, "message": message})
+
+    @bp.route("/api/editor/match/suggestions", methods=["GET"])
+    @authorise
+    def editor_match_suggestions():
+        portal = request.args.get("portal", "").strip()
+        channel_id = request.args.get("channelId", "").strip()
+        query = request.args.get("query", "").strip()
+
+        if not portal or not channel_id:
+            return jsonify({"ok": False, "error": "Missing portal or channelId"}), 400
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            SELECT name, custom_name, auto_name, display_name, country
+            FROM channels
+            WHERE portal = ? AND channel_id = ?
+            """,
+            (portal, channel_id),
+        )
+        row = cursor.fetchone()
+        conn.close()
+
+        if not row:
+            return jsonify({"ok": False, "error": "Channel not found"}), 404
+
+        settings = getSettings()
+        base_name = query or row["display_name"] or row["custom_name"] or row["auto_name"] or row["name"] or ""
+        country = row["country"] or ""
+        results = suggest_channelsdvr_matches(base_name, country, settings)
+        return jsonify({"ok": True, "query": base_name, "results": results})
+
+    @bp.route("/api/editor/match/set", methods=["POST"])
+    @authorise
+    def editor_match_set():
+        payload = request.get_json(silent=True) or {}
+        portal = payload.get("portal", "").strip()
+        channel_id = payload.get("channelId", "").strip()
+        match = payload.get("match") or {}
+
+        if not portal or not channel_id:
+            return jsonify({"ok": False, "error": "Missing portal or channelId"}), 400
+
+        matched_name = match.get("name", "") or ""
+        matched_source = match.get("source", "channelsdvr") or ""
+        matched_station_id = match.get("station_id", "") or ""
+        matched_call_sign = match.get("call_sign", "") or ""
+        matched_logo = match.get("logo_uri", "") or ""
+        matched_score = match.get("score", "") or ""
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            UPDATE channels
+            SET matched_name = ?, matched_source = ?, matched_station_id = ?,
+                matched_call_sign = ?, matched_logo = ?, matched_score = ?,
+                display_name = COALESCE(NULLIF(custom_name, ''), NULLIF(?, ''), NULLIF(auto_name, ''), name)
+            WHERE portal = ? AND channel_id = ?
+            """,
+            (
+                matched_name,
+                matched_source,
+                matched_station_id,
+                matched_call_sign,
+                matched_logo,
+                matched_score,
+                matched_name,
+                portal,
+                channel_id,
+            ),
+        )
+        conn.commit()
+        conn.close()
+        return jsonify({"ok": True})
+
+    @bp.route("/api/editor/match/reset", methods=["POST"])
+    @authorise
+    def editor_match_reset():
+        payload = request.get_json(silent=True) or {}
+        portal = payload.get("portal", "").strip()
+        channel_id = payload.get("channelId", "").strip()
+
+        if not portal or not channel_id:
+            return jsonify({"ok": False, "error": "Missing portal or channelId"}), 400
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            UPDATE channels
+            SET matched_name = '', matched_source = '', matched_station_id = '',
+                matched_call_sign = '', matched_logo = '', matched_score = NULL,
+                display_name = COALESCE(NULLIF(custom_name, ''), NULLIF(auto_name, ''), name)
+            WHERE portal = ? AND channel_id = ?
+            """,
+            (portal, channel_id),
+        )
+        conn.commit()
+        conn.close()
+        return jsonify({"ok": True})
 
     @bp.route("/api/editor/genres", methods=["GET"])
     @bp.route("/editor/genres", methods=["GET"])

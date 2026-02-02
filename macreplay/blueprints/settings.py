@@ -40,4 +40,14 @@ def create_settings_blueprint(enqueue_epg_refresh):
         flash("Settings saved!", "success")
         return redirect("/settings", code=302)
 
+    @bp.route("/api/settings/epg_sources", methods=["POST"])
+    @authorise
+    def save_epg_sources():
+        payload = request.get_json(silent=True) or {}
+        sources = payload.get("sources", "[]")
+        settings = getSettings()
+        settings["epg custom sources"] = sources
+        saveSettings(settings)
+        return jsonify({"ok": True})
+
     return bp
