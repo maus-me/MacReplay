@@ -184,9 +184,15 @@ def _set_cached_xmltv(value):
         _set_epg_channel_ids(set())
         _set_epg_channel_map({})
     else:
-        _set_epg_channel_ids(_parse_epg_channel_ids(value))
-        epg_map = _apply_epg_source_map(_parse_epg_channel_map(value), default_source="portal")
-        _set_epg_channel_map(epg_map)
+        parsed_ids = _parse_epg_channel_ids(value)
+        epg_map, epg_ids = _rebuild_epg_channel_map_from_db()
+        if epg_map:
+            _set_epg_channel_ids(epg_ids if epg_ids else parsed_ids)
+            _set_epg_channel_map(epg_map)
+        else:
+            _set_epg_channel_ids(parsed_ids)
+            epg_map = _apply_epg_source_map(_parse_epg_channel_map(value), default_source="portal")
+            _set_epg_channel_map(epg_map)
 
 
 def _set_epg_channel_ids(ids):
@@ -3044,6 +3050,7 @@ def refresh_channels_cache(target_portal_id=None):
                                 WHEN excluded.matched_name != '' THEN excluded.matched_score
                                 ELSE channels.matched_score
                             END,
+                            custom_epg_id = channels.custom_epg_id,
                             is_header = excluded.is_header,
                             is_event = excluded.is_event,
                             is_raw = excluded.is_raw,

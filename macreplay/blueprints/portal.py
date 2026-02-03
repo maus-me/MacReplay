@@ -598,4 +598,67 @@ def create_portal_blueprint(
             return jsonify({"status": "idle"})
         return jsonify(status)
 
+    @bp.route("/api/portal/macs/refresh", methods=["POST"])
+    @authorise
+    def portal_refresh_macs():
+        try:
+            data = request.get_json(silent=True) or {}
+            portal_id = data.get("portal_id") or data.get("portalId")
+            if not portal_id:
+                return jsonify({"success": False, "message": "Portal ID required"}), 400
+
+            portals = getPortals()
+            if portal_id not in portals:
+                return jsonify({"success": False, "message": "Portal not found"}), 404
+
+            portal = portals[portal_id]
+            url = portal.get("url", "")
+            proxy = portal.get("proxy", "")
+            macs = portal.get("macs", {}) or {}
+            if not macs:
+                return jsonify({"success": False, "message": "No MACs configured"}), 400
+
+            tested_total = 0
+            tested_success = 0
+            tested_failed = 0
+            macsout = {}
+
+            for mac, old_data in macs.items():
+                tested_total += 1
+                logger.info("Refreshing MAC(%s) for Portal(%s)...", mac, portal.get("name", portal_id))
+                token = stb.getToken(url, mac, proxy)
+                if token:
+                    profile = stb.getProfile(url, mac, token, proxy)
+                    expiry = stb.getExpires(url, mac, token, proxy)
+                    if expiry:
+                        macsout[mac] = {
+                            "expiry": expiry,
+                            "watchdog_timeout": profile.get("watchdog_timeout", 0)
+                            if profile
+                            else 0,
+                            "playback_limit": profile.get("playback_limit", 0)
+                            if profile
+                            else 0,
+                        }
+                        tested_success += 1
+                    else:
+                        tested_failed += 1
+                        macsout[mac] = old_data
+                else:
+                    tested_failed += 1
+                    macsout[mac] = old_data
+
+            portals[portal_id]["macs"] = macsout
+            savePortals(portals)
+            filter_cache.clear()
+
+            message = f"{tested_success}/{tested_total} MACs refreshed"
+            if tested_failed:
+                message += f", {tested_failed} failed"
+
+            return jsonify({"success": True, "message": message, "macs": macsout})
+        except Exception as e:
+            logger.error(f"Error refreshing MACs: {e}")
+            return jsonify({"success": False, "message": str(e)}), 500
+
     return bp

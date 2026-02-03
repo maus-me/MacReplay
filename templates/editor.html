@@ -490,18 +490,73 @@
             .catch(() => {});
     }
 
+    function fetchEpgSuggestionsByQueries(queries, input) {
+        const cleaned = (queries || [])
+            .map(q => (q || '').toString().trim())
+            .filter(Boolean);
+        if (!cleaned.length) return;
+        const seen = new Set();
+        const merged = [];
+        const fetches = cleaned.map(query => {
+            if (epgSuggestCache.has(query)) {
+                epgSuggestCache.get(query).forEach(item => {
+                    if (!seen.has(item.id)) {
+                        seen.add(item.id);
+                        merged.push(item);
+                    }
+                });
+                return Promise.resolve();
+            }
+            return fetch(`/api/editor/epg/suggestions?q=${encodeURIComponent(query)}&limit=20`)
+                .then(resp => resp.json())
+                .then(data => {
+                    if (!data || !data.ok) return;
+                    const items = data.items || [];
+                    epgSuggestCache.set(query, items);
+                    items.forEach(item => {
+                        if (!seen.has(item.id)) {
+                            seen.add(item.id);
+                            merged.push(item);
+                        }
+                    });
+                })
+                .catch(() => {});
+        });
+        Promise.all(fetches).then(() => {
+            if (merged.length) {
+                renderEpgSuggestions(merged);
+            }
+        });
+    }
+
     document.addEventListener('focusin', function(e) {
         if (!e.target.classList.contains('epg-suggest-input')) return;
-        const query = e.target.value.trim() || e.target.dataset.channelId || '';
-        fetchEpgSuggestions(query, e.target);
+        const stationId = e.target.dataset.stationId || '';
+        const callSign = e.target.dataset.callSign || '';
+        const channelId = e.target.dataset.channelId || '';
+        const query = e.target.value.trim();
+        if (query) {
+            fetchEpgSuggestions(query, e.target);
+        } else {
+            fetchEpgSuggestionsByQueries([stationId, callSign, channelId], e.target);
+        }
         updateEpgSourceHintForInput(e.target);
     });
 
     document.addEventListener('input', function(e) {
         if (!e.target.classList.contains('epg-suggest-input')) return;
-        const query = e.target.value.trim() || e.target.dataset.channelId || '';
+        const query = e.target.value.trim();
+        const stationId = e.target.dataset.stationId || '';
+        const callSign = e.target.dataset.callSign || '';
+        const channelId = e.target.dataset.channelId || '';
         clearTimeout(epgSuggestTimer);
-        epgSuggestTimer = setTimeout(() => fetchEpgSuggestions(query, e.target), 200);
+        epgSuggestTimer = setTimeout(() => {
+            if (query) {
+                fetchEpgSuggestions(query, e.target);
+            } else {
+                fetchEpgSuggestionsByQueries([stationId, callSign, channelId], e.target);
+            }
+        }, 200);
     });
 
     function updateEpgSourceHintForInput(input) {
@@ -1363,6 +1418,8 @@
                             onchange="editCustomEpgId(this)"
                             data-portal="${row.portal}"
                             data-channelId="${row.channelId}"
+                            data-stationId="${(row.matchedStationId || '').replace(/"/g, '&quot;')}"
+                            data-callSign="${(row.matchedCallSign || '').replace(/"/g, '&quot;')}"
                             data-channelName="${(row.effectiveDisplayName || row.channelName || row.name || '').replace(/"/g, '&quot;')}"
                             list="epg-suggestions"
                             placeholder="${epgPlaceholder}"
