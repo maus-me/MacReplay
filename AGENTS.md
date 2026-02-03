@@ -37,3 +37,6 @@ Guidance for AI coding agents working in this repository.
 ## Docker
 - Start: `docker-compose up -d --build`
 - Logs: `docker-compose logs -f`
+
+## QA / Smoke Tests
+- After significant refactors or infrastructure changes, run a quick Docker smoke test.
