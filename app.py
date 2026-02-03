@@ -17,6 +17,7 @@ import threading
 from collections import deque
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import logging
+from logging.handlers import RotatingFileHandler
 from macreplay.config import (
     LOG_DIR,
     CONFIG_PATH,
@@ -104,8 +105,10 @@ CHANNEL_REFRESH_INTERVAL_ENV = os.getenv("CHANNEL_REFRESH_INTERVAL", None)
 
 log_file_path = os.path.join(LOG_DIR, "MacReplay.log")
 
-# File logging
-fileHandler = logging.FileHandler(log_file_path)
+# File logging with rotation
+fileHandler = RotatingFileHandler(
+    log_file_path, maxBytes=5 * 1024 * 1024, backupCount=5
+)
 fileHandler.setFormatter(logFormat)
 logger.addHandler(fileHandler)
 

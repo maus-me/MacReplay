@@ -1,193 +1,58 @@
-# **MacReplay**
+# MacReplay
 
-MacReplay is an improved version of [STB-Proxy](https://github.com/Chris230291/STB-Proxy), designed for seamless connectivity between MAC address portals and media platforms like Plex or M3U-based software.  
+MacReplay is an improved version of STB-Proxy that connects MAC address portals with Plex or M3U-based software and generates M3U/XMLTV outputs.
 
-This cross-platform solution works on Windows, Linux, and macOS, with both standalone executable and Python script options for maximum flexibility.
+## Features
+- Cross-platform via Docker
+- MAC portal integration for Plex or M3U clients
+- Multiple MACs per portal
+- Multiple portals in one playlist
+- Fallback channels for reliability
+- Duplicate detection and cleanup
+- Portal/genre filters and fast search
+- Autocomplete for fallback setup
 
----
+## Requirements
+- Docker and Docker Compose
+- Plex Pass if connecting to Plex (may no longer be required with recent Plex updates)
 
-## **Features**
-- 🛠️ **Cross-Platform**: Works on Windows, Linux, and macOS  
-- 🎯 **Enhanced Playlist Editor**: Advanced filtering, duplicate management, and smart autocomplete
-- 🔗 **MAC Portal Integration**: Connect MAC address portals directly with Plex or M3U software  
-- 🐦‍🔥 **Multiple MACs**: Rotate between MAC addresses across a single portal, allowing for multiple connections simultaneously  
-- 🦕 **Multiple Portals**: Add multiple portal URLs to get channels from different providers in the same playlist
-- 🚀 **Smart Fallback System**: Automatic failover to backup channels when primary streams fail
-- 📊 **Intelligent Duplicate Detection**: Only considers enabled channels as duplicates for cleaner management
-- 🎮 **One-Click Duplicate Cleanup**: Remove duplicate enabled channels while preserving the first occurrence
-- 🔍 **Multi-Level Filtering**: Portal, Genre, and Duplicate filters work together for precise channel selection
-- ✨ **Autocomplete Fallbacks**: Smart suggestions for setting up channel failover systems
+## Quick Start (Docker)
+1. Clone or download this repository.
+2. Build and run: `docker-compose up -d --build`.
+3. Open `http://localhost:8001` in your browser.
 
----
+For more Docker details, see `README-Docker.md`.
 
-## **Enhanced Playlist Editor**
+## Additional Docs
+- `docs/README-Docker.md`
+- `docs/DB_SCHEMA.md`
+- `docs/IDEAS.md`
+- `docs/TAGS_IDEAS.md`
 
-The playlist editor features a completely redesigned interface with powerful management tools:
+## Configuration Workflow
+1. Add portals on the Portals page with portal URLs and MAC addresses.
+2. Configure channels in the Playlist Editor. Use filters, enable or disable channels, set custom names or numbers, and configure fallbacks.
+3. Set up Plex. Go to Live TV and DVR, choose XMLTV, and use:
+   - `http://YOUR_SERVER_IP:8001/xmltv`
+   - `http://YOUR_SERVER_IP:8001/playlist.m3u`
 
-### 🎯 **Advanced Filtering System**
-- **Portal Filter**: Isolate channels from specific portals for focused management
-- **Genre Filter**: Filter by Sports, Movies, News, Entertainment, and more
-- **Enabled Duplicates Filter**: Show only channels with multiple enabled instances
-- **Combined Filtering**: All filters work together for laser-focused channel selection
-- **Real-time Search**: Built-in text search across all channel names
+## Playlist Editor Tips
+- Use the Portal and Genre filters to reduce large lists.
+- Use the Enabled Duplicates filter to find duplicates and deactivate extras.
+- Use the Fallback For field to assign backups for critical channels.
 
-### 🔄 **Smart Duplicate Management**
-- **Enabled-Only Detection**: Only counts active channels as duplicates (ignores disabled channels)
-- **Visual Highlighting**: Duplicate enabled channels highlighted in yellow for easy identification
-- **Count Badges**: Shows "3x enabled" indicators next to channel names with multiple instances
-- **One-Click Cleanup**: "Deactivate Enabled Duplicates" button keeps first occurrence, removes the rest
-- **Intelligent Logic**: Focuses on channels you're actually using, not all available channels
+## Troubleshooting
+- TV guide not populated: check `http://localhost:13681/xmltv`. If channels show without listings, the provider likely does not supply a guide.
+- Plex does not update after changes: delete the DVR in Plex and re-add it.
+- Error getting channel data or XMLTV: retest the portal and verify MAC validity.
+- Channels not loading: verify portal settings and check dashboard logs.
+- Duplicate detection not working: only enabled channels are considered duplicates.
 
-### 🎮 **Fallback Channel System**
-- **Autocomplete Dropdown**: Type or click to see all available channel names for easy selection
-- **Cross-Portal Fallbacks**: Set backup channels from any portal to cover for any other channel
-- **Smart Suggestions**: Dropdown populated with all channel names (including custom names)
-- **Seamless Failover**: When primary channel fails, automatically switches to designated backup
-- **Example Use**: Set "ESPN SD" as fallback for "ESPN HD" - viewers get uninterrupted content
+## Known Issues
+Channel logos may not display in a browser due to HTTPS mixed-content restrictions. This does not affect Plex apps and most clients. If logos are still missing, the provider likely does not supply them.
 
-### ⚡ **Enhanced User Experience**
-- **Auto-Loading Data**: Channels load automatically when page opens (no manual refresh needed)
-- **DataTables Integration**: Professional table with sorting, pagination, and bulk actions
-- **Real-Time Updates**: All filters and changes apply instantly without page reloads
-- **Bulk Operations**: Select All checkbox for mass enable/disable operations
-- **Persistent Settings**: All configurations saved automatically for future sessions
+## Credits
+MacReplay is based on the original STB-Proxy by Chris230291.
 
----
-
-## **Requirements**
-- **Python 3.7+** (for Python script) or download pre-built executable
-- **FFmpeg** installed on your system  
-- **Plex Pass** (if connecting to Plex) - *may no longer be required with recent Plex updates*
-
-### **Platform-Specific Setup**
-- **Windows**: Download `.exe` or install Python + FFmpeg
-- **Linux**: Install Python, pip, and FFmpeg via package manager
-- **macOS**: Install via Homebrew or download pre-built executable
-
----
-
-## **Getting Started**
-
-### **Option 1: Docker (Recommended)**
-1. **Clone** or download this repository
-2. **Build and run**: `docker-compose up -d --build`
-3. **Open** your browser to `http://localhost:8001`
-
-For detailed Docker setup instructions, see [README-Docker.md](README-Docker.md)
-
-### **Option 2: Pre-built Executable**
-1. **Download** the latest release for your platform from the [Releases page](https://github.com/Evilvir-us/MacReplay/releases)
-2. **Run** the executable
-3. **Open** your browser to the server URL shown in console
-
-### **Configuration Workflow**
-1. **Add Portals**: Go to Portals page and add your portal URLs and MAC addresses
-2. **Configure Channels**: Use the enhanced Playlist Editor to:
-   - Filter channels by portal or genre
-   - Enable/disable channels with checkboxes
-   - Set up custom channel names and numbers
-   - Configure fallback channels for reliability
-   - Remove duplicate channels with one click
-3. **Setup Plex**:
-   - In Plex settings, go to *Live TV and DVR*
-   - Click *Set Up Plex Tuner*
-   - Select *Have an XMLTV guide*
-   - Enter: `http://YOUR_SERVER_IP:8001/xmltv`
-   - Use playlist: `http://YOUR_SERVER_IP:8001/playlist.m3u`
-
----
-
-## **Testing**
-
-MacReplay includes a test suite to ensure code quality and prevent regressions.
-
-### **Running Tests**
-
-1. **Install test dependencies** (if not already installed):
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-2. **Run all tests**:
-   ```bash
-   pytest
-   ```
-
-3. **Run tests with verbose output**:
-   ```bash
-   pytest -v
-   ```
-
-### **Test Coverage**
-
-The test suite includes:
-- **App Initialization**: Verifies basic routes and redirects work correctly
-- **Channel Streaming**: Tests successful channel lookup and streaming functionality
-- **Fallback Logic**: Ensures fallback channels work when primary streams fail
-- **Error Handling**: Regression tests to prevent crashes (e.g., `UnboundLocalError` fixes)
-
-Tests use mocking to avoid dependencies on external services or filesystem configuration, making them fast and reliable.
-
----
-
-## **Playlist Editor Guide**
-
-### **Managing Large Channel Lists**
-1. **Filter by Portal**: Select specific portal to focus on its channels
-2. **Filter by Genre**: Show only Sports, Movies, News, etc.
-3. **Search**: Type channel names to find specific channels quickly
-4. **Bulk Actions**: Use "Select All" checkbox for mass enable/disable
-
-### **Setting Up Fallbacks**
-1. **Find backup channel**: Use filters to locate a reliable backup (e.g., "ESPN SD")
-2. **Configure fallback**: In the backup channel's "Fallback For" field, type or select the primary channel name (e.g., "ESPN HD")
-3. **Automatic failover**: If "ESPN HD" fails, viewers automatically get "ESPN SD"
-
-### **Duplicate Channel Cleanup**
-1. **View duplicates**: Select "Enabled Duplicates Only" filter
-2. **Review highlighted channels**: Yellow rows show duplicate enabled channels
-3. **One-click cleanup**: Click "Deactivate Enabled Duplicates" to keep only the first occurrence
-4. **Manual selection**: Or manually uncheck unwanted duplicates
-
----
-
-## **Troubleshooting**
-**The TV guide is not being populated:**\
-Check the [XMLTV guide](http://localhost:13681/xmltv).
-If it just shows the list of channels with nothing below them, the provider likely does not supply a guide.
-Try switching to a different provider.
-
-**I've modified the channels, but Plex isn't changing:**\
-You must delete the DVR from Plex and re-add it to see changes.
-
-**Error getting channel data for [Portal], skipping** or **Error making XMLTV for [Portal], skipping:**\
-Go to the Portals page, select the malfunctioning portal and click "Retest". You likely have an expired MAC address.
-
-**Channels not loading in editor:**\
-Ensure your portals are configured correctly and MAC addresses are valid. Check the Dashboard logs for specific errors.
-
-**Duplicate detection not working:**\
-The system only considers enabled channels as duplicates. Disable a channel to remove it from duplicate detection.
-
----
-
-## **Known Issues**
-
-Channel logos may not display when viewed in a browser. This is likely due to your browser's security settings related to HTTP files being served on an HTTPS domain.\
-![Chrome](https://evilvir.us/application/files/2917/3318/2580/chrome_https_issue.png)
-![Firefox](https://evilvir.us/application/files/9217/3318/2583/firefox_https_issue.png)
-
-This issue does not occur with [PLEX HTPC](https://apps.microsoft.com/store/detail/XPFFFF6NN1LZDQ?ocid=pdpshare), the mobile apps, or the TV app. To watch from a PC, use [PLEX HTPC](https://apps.microsoft.com/store/detail/XPFFFF6NN1LZDQ?ocid=pdpshare). If any logos are still missing, it means the provider isn't supplying them.
-
-For Plex HTPC, you must enable **Force Direct Play** in the settings.
-![HTPC Settings](https://evilvir.us/application/files/5117/3368/8848/htpcsettings.png)
-
----
-
-## **Credits**
-MacReplay is based on the incredible work done by [Chris230291](https://github.com/Chris230291) with the original [STB-Proxy](https://github.com/Chris230291/STB-Proxy).  
-
----
-
-## **Disclaimer**
+## Disclaimer
 This tool is provided as-is and is intended for educational purposes only. Use responsibly and in compliance with applicable laws and terms of service.

@@ -1,56 +1,7 @@
-# Git files
-.git
-.gitignore
-.gitattributes
-
-# Build artifacts
-build.bat
-dist/
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-*.so
-.pytest_cache/
-.mypy_cache/
-
-# IDE files
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-.env
-.env.*
-
-# OS files
-.DS_Store
-Thumbs.db
-
-# Local data directories (these will be mounted as volumes)
 data/
 logs/
-*.log
-
-# Documentation
-README.md
-README-Docker.md
-DB_SCHEMA.md
-IDEAS.md
-TAGS_IDEAS.md
-codex.md
-CLAUDE.md
-
-# Windows specific files
-*.exe
-*.ico
-replay.ico
-
-# Python virtual environments
-.venv/
-venv/
-ENV/
-
-# FFmpeg Windows binaries (we'll use system ffmpeg in container)
-ffmpeg/ 
+.git/
+.pytest_cache/
+__pycache__/
+*.pyc
+.DS_Store

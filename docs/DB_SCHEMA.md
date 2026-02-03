@@ -1,7 +1,7 @@
 # Database Schema (SQLite)
 
-Source: live schema from `/host_opt/stb-proxy/data/channels.db` and `init_db()` in `app.py`.
-Per-source EPG programmes are stored in separate SQLite files under `/host_opt/stb-proxy/data/epg_sources/*.sqlite`.
+Source: `macreplay/db.py` and the runtime database at `/app/data/channels.db`.
+Per-source EPG programmes are stored in separate SQLite files under `/app/data/epg_sources/`.
 
 ## Table: `channels`
 
@@ -147,7 +147,7 @@ Index:
 
 ## Per-source DB: `epg_programmes`
 
-Location: `/host_opt/stb-proxy/data/epg_sources/<source_id>.sqlite`
+Location: `/app/data/epg_sources/<source_id>.sqlite`
 
 | Field | Type | Purpose |
 |---|---|---|
