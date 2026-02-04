@@ -1,0 +1,97 @@
+{% extends "settings/layout.html" %}
+
+{% block settings_content %}
+<form method="POST" action="/settings/save">
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5><i class="fas fa-database"></i> Database Maintenance</h5>
+        </div>
+        <div class="card-body">
+            <p class="text-muted mb-3">
+                Schedule and run database maintenance tasks for Channels and EPG databases.
+            </p>
+            <div class="row g-2 mb-3">
+                <div class="col-md-6">
+                    <label for="vacuum_channels_interval" class="form-label">Vacuum Channels DB Interval (hours, 0=disabled)</label>
+                    <input type="number" class="form-control" id="vacuum_channels_interval" name="vacuum channels interval hours"
+                           value="{{ settings['vacuum channels interval hours'] }}" min="0" step="0.5">
+                </div>
+                <div class="col-md-6">
+                    <label for="vacuum_epg_interval" class="form-label">Vacuum EPG DB Interval (hours, 0=disabled)</label>
+                    <input type="number" class="form-control" id="vacuum_epg_interval" name="vacuum epg interval hours"
+                           value="{{ settings['vacuum epg interval hours'] }}" min="0" step="0.5">
+                </div>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                <button type="button" class="btn btn-outline-primary btn-sm" id="vacuumChannelsNow">
+                    <i class="fas fa-database"></i> Vacuum Channels DB
+                </button>
+                <button type="button" class="btn btn-outline-primary btn-sm" id="vacuumEpgNow">
+                    <i class="fas fa-database"></i> Vacuum EPG DBs
+                </button>
+            </div>
+            <div class="form-text mt-2" id="dbCleanupStatus"></div>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-end">
+        <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save"></i> Save Settings
+        </button>
+    </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    (function() {
+        function runVacuumNow(endpoint, label) {
+            const status = document.getElementById('dbCleanupStatus');
+            status.textContent = `${label} running...`;
+            fetch(endpoint, { method: 'POST' })
+                .then(function(resp) { return resp.json(); })
+                .then(function(data) {
+                    if (!data || data.ok === false) {
+                        status.textContent = `${label} failed.`;
+                        return;
+                    }
+                    const extra = data.count !== undefined ? ` (${data.count} dbs)` : '';
+                    status.textContent = `${label} completed${extra}.`;
+                })
+                .catch(function() {
+                    status.textContent = `${label} failed.`;
+                });
+        }
+
+        const vacuumChannelsBtn = document.getElementById('vacuumChannelsNow');
+        const vacuumEpgBtn = document.getElementById('vacuumEpgNow');
+        if (vacuumChannelsBtn) {
+            vacuumChannelsBtn.addEventListener('click', async function() {
+                const confirmed = await showConfirmDialog({
+                    title: 'Vacuum Channels DB',
+                    message: 'Run VACUUM on channels.db now?',
+                    okText: 'Vacuum',
+                    type: 'info'
+                });
+                if (confirmed) {
+                    runVacuumNow('/api/settings/vacuum/channels', 'Vacuum channels.db');
+                }
+            });
+        }
+        if (vacuumEpgBtn) {
+            vacuumEpgBtn.addEventListener('click', async function() {
+                const confirmed = await showConfirmDialog({
+                    title: 'Vacuum EPG DBs',
+                    message: 'Run VACUUM on all EPG DBs now?',
+                    okText: 'Vacuum',
+                    type: 'info'
+                });
+                if (confirmed) {
+                    runVacuumNow('/api/settings/vacuum/epg', 'Vacuum EPG DBs');
+                }
+            });
+        }
+    })();
+</script>
+{% endblock %}

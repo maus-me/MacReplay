@@ -1,0 +1,338 @@
+{% extends "settings/layout.html" %}
+
+{% block settings_content %}
+<form method="POST" action="/settings/save">
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5><i class="fas fa-calendar"></i> EPG Scheduling</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="epg_refresh_interval" class="form-label">EPG Refresh Interval (hours)</label>
+                        <input type="number" class="form-control" id="epg_refresh_interval" name="epg refresh interval"
+                               value="{{ settings['epg refresh interval'] }}" min="0.25" max="24" step="0.25">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="channel_refresh_interval" class="form-label">Channel Refresh Interval (hours)</label>
+                        <input type="number" class="form-control" id="channel_refresh_interval" name="channel refresh interval"
+                               value="{{ settings['channel refresh interval'] }}" min="0" max="168" step="1">
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="epg_future_hours" class="form-label">EPG Future Hours</label>
+                        <input type="number" class="form-control" id="epg_future_hours" name="epg future hours"
+                               value="{{ settings['epg future hours'] }}" min="1" max="168" step="1">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="epg_past_hours" class="form-label">EPG Past Hours</label>
+                        <input type="number" class="form-control" id="epg_past_hours" name="epg past hours"
+                               value="{{ settings['epg past hours'] }}" min="0" max="48" step="1">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="fas fa-database"></i> EPG Sources</h5>
+            <button type="button" class="btn btn-sm btn-outline-primary" id="addEpgSourceBtn">
+                <i class="fas fa-plus"></i> Add Source
+            </button>
+        </div>
+        <div class="card-body">
+            <input type="hidden" id="epgSourcesInput" name="epg custom sources" value='{{ settings["epg custom sources"] | tojson }}'>
+            <div id="epgSourcesList" class="epg-source-list"></div>
+            <div class="form-text mt-2">
+                Configure XMLTV sources used to enrich EPG data. Sources can be enabled/disabled individually.
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-end">
+        <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save"></i> Save Settings
+        </button>
+    </div>
+</form>
+
+<div class="modal fade" id="epgSourceModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">EPG Source</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="epgSourceId" name="epgSourceId">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label" for="epgSourceName">Name</label>
+                        <input type="text" class="form-control" id="epgSourceName" name="epgSourceName" placeholder="e.g. XMLTV Provider">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="epgSourceInterval">Update Interval (hours)</label>
+                        <input type="number" class="form-control" id="epgSourceInterval" name="epgSourceInterval" min="0.25" step="0.25" value="24">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label" for="epgSourceUrl">XMLTV URL</label>
+                        <input type="url" class="form-control" id="epgSourceUrl" name="epgSourceUrl" placeholder="https://example.com/xmltv.xml">
+                    </div>
+                    <div class="col-12">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="epgSourceEnabled" name="epgSourceEnabled" checked>
+                            <label class="form-check-label" for="epgSourceEnabled">
+                                Enabled
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveEpgSourceBtn">Save Source</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    (function() {
+        const input = document.getElementById('epgSourcesInput');
+        const list = document.getElementById('epgSourcesList');
+        const addBtn = document.getElementById('addEpgSourceBtn');
+        const saveBtn = document.getElementById('saveEpgSourceBtn');
+        const modalEl = document.getElementById('epgSourceModal');
+
+        if (!input || !list || !addBtn || !saveBtn || !modalEl) return;
+
+        let epgSources = [];
+        let modal = null;
+
+        function loadSources() {
+            try {
+                const raw = input.value || '[]';
+                let parsed = JSON.parse(raw);
+                if (typeof parsed === 'string') {
+                    parsed = JSON.parse(parsed);
+                }
+                epgSources = Array.isArray(parsed) ? parsed : [];
+            } catch (e) {
+                epgSources = [];
+            }
+        }
+
+        function saveSources() {
+            input.value = JSON.stringify(epgSources);
+        }
+
+        function persistSources() {
+            return fetch('/api/settings/epg_sources', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sources: input.value })
+            }).then(function(resp) { return resp.json(); }).catch(function() { return null; });
+        }
+
+        function normalizeSource(source) {
+            const url = (source.url || '').trim();
+            const computedId = url
+                ? btoa(unescape(encodeURIComponent(url)))
+                    .replace(/\+/g, '-')
+                    .replace(/\//g, '_')
+                    .replace(/=+$/g, '')
+                : '';
+            return {
+                id: source.id || computedId || String(Date.now()),
+                name: (source.name || '').trim(),
+                url: url,
+                interval: Number(source.interval || source.interval_hours || 24),
+                enabled: source.enabled !== false && source.enabled !== 'false'
+            };
+        }
+
+        function renderSources() {
+            list.innerHTML = '';
+            if (!epgSources.length) {
+                const empty = document.createElement('div');
+                empty.className = 'text-muted small';
+                empty.textContent = 'No EPG sources configured yet.';
+                list.appendChild(empty);
+                return;
+            }
+
+            epgSources.forEach(function(source) {
+                const row = document.createElement('div');
+                row.className = 'epg-source-row';
+                row.innerHTML = `
+                    <div class="epg-source-main">
+                        <div class="epg-source-title">${source.name || 'Unnamed Source'}</div>
+                        <div class="epg-source-meta">
+                            <span>${source.url || 'No URL'}</span>
+                            <span>· ${source.interval || 24}h</span>
+                        </div>
+                    </div>
+                    <div class="epg-source-actions">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" ${source.enabled ? 'checked' : ''} data-action="toggle">
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-primary" data-action="refresh" title="Refresh">
+                            <i class="fas fa-sync"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-action="edit">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-danger" data-action="delete">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+
+                row.querySelector('[data-action="toggle"]').addEventListener('change', function(e) {
+                    source.enabled = e.target.checked;
+                    saveSources();
+                    persistSources();
+                });
+                row.querySelector('[data-action="refresh"]').addEventListener('click', function() {
+                    refreshSource(source.id);
+                });
+                row.querySelector('[data-action="edit"]').addEventListener('click', function() {
+                    openModal(source);
+                });
+                row.querySelector('[data-action="delete"]').addEventListener('click', async function() {
+                    const confirmed = await showConfirmDialog({
+                        title: 'Remove EPG Source',
+                        message: 'Remove this EPG source?',
+                        okText: 'Remove',
+                        type: 'danger'
+                    });
+                    if (!confirmed) return;
+                    epgSources = epgSources.filter(function(item) { return item.id !== source.id; });
+                    saveSources();
+                    persistSources();
+                    renderSources();
+                });
+
+                list.appendChild(row);
+            });
+        }
+
+        function openModal(source) {
+            const data = source ? normalizeSource(source) : { id: '', name: '', url: '', interval: 24, enabled: true };
+            document.getElementById('epgSourceId').value = data.id || '';
+            document.getElementById('epgSourceName').value = data.name || '';
+            document.getElementById('epgSourceUrl').value = data.url || '';
+            document.getElementById('epgSourceInterval').value = data.interval || 24;
+            document.getElementById('epgSourceEnabled').checked = data.enabled !== false;
+            if (!modal && window.bootstrap) {
+                modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            }
+            if (modal) modal.show();
+        }
+
+        function saveModal() {
+            const id = document.getElementById('epgSourceId').value || String(Date.now());
+            const source = {
+                id: id,
+                name: document.getElementById('epgSourceName').value.trim(),
+                url: document.getElementById('epgSourceUrl').value.trim(),
+                interval: Number(document.getElementById('epgSourceInterval').value || 24),
+                enabled: document.getElementById('epgSourceEnabled').checked
+            };
+
+            if (!source.url) {
+                alert('Please enter a valid XMLTV URL.');
+                return;
+            }
+
+            const existing = epgSources.find(function(item) { return item.id === id; });
+            if (existing) {
+                Object.assign(existing, source);
+            } else {
+                epgSources.push(source);
+            }
+
+            saveSources();
+            persistSources();
+            renderSources();
+            if (!modal && window.bootstrap) {
+                modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            }
+            if (modal) modal.hide();
+            refreshSource(source.id);
+        }
+
+        function refreshSource(id) {
+            if (!id) return;
+            fetch('/api/epg/source/refresh', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: id })
+            })
+                .then(function(resp) { return resp.json(); })
+                .then(function(data) {
+                    if (data && data.ok) {
+                        if (typeof showToast === 'function') {
+                            showToast('EPG source refresh started.', 'info');
+                        }
+                    } else {
+                        if (typeof showToast === 'function') {
+                            showToast('EPG source refresh failed.', 'error');
+                        }
+                    }
+                })
+                .catch(function() {
+                    if (typeof showToast === 'function') {
+                        showToast('EPG source refresh failed.', 'error');
+                    }
+                });
+        }
+
+        loadSources();
+        epgSources = epgSources.map(normalizeSource);
+        saveSources();
+        persistSources();
+        renderSources();
+
+        if (!epgSources.length) {
+            fetch('/api/settings/data')
+                .then(function(resp) { return resp.json(); })
+                .then(function(data) {
+                    if (!data || !data['epg custom sources']) return;
+                    const rawSources = data['epg custom sources'];
+                    let parsed = rawSources;
+                    if (typeof parsed === 'string') {
+                        try {
+                            parsed = JSON.parse(parsed);
+                        } catch (e) {
+                            parsed = [];
+                        }
+                    }
+                    if (!Array.isArray(parsed)) return;
+                    epgSources = parsed.map(normalizeSource);
+                    saveSources();
+                    renderSources();
+                })
+                .catch(function() {});
+        }
+
+        addBtn.addEventListener('click', function() {
+            openModal();
+        });
+        saveBtn.addEventListener('click', saveModal);
+    })();
+</script>
+{% endblock %}

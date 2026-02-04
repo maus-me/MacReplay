@@ -68,7 +68,7 @@ class JobManager:
         portals = self.getPortals()
         enqueued = 0
         for portal_id, portal in portals.items():
-            if portal.get("enabled") == "true":
+            if portal.get("enabled", True):
                 status = self.enqueue_refresh_portal(portal_id, reason=reason)
                 if status in ("queued", "running"):
                     enqueued += 1
@@ -220,7 +220,7 @@ class JobManager:
             self.logger.info("Skipping EPG refresh for portal %s (not configured).", portal_id)
             return
         portal = self.getPortals().get(portal_id, {})
-        if portal and portal.get("fetch epg", "true") != "true":
+        if portal and not portal.get("fetch epg", True):
             self.logger.info("Skipping EPG refresh for portal %s (disabled).", portal_id)
             return
         conn = self.get_db_connection()
@@ -279,10 +279,10 @@ class JobManager:
 
     def _should_match_portal(self, portal_id):
         settings = self.getSettings()
-        if settings.get("channelsdvr enabled", "false") != "true":
+        if not settings.get("channelsdvr enabled", False):
             return False
         portal = self.getPortals().get(portal_id, {})
-        return portal.get("auto match", "false") == "true"
+        return portal.get("auto match", False)
 
     def _mark_match_queued_if_needed(self, portal_id):
         if not self._should_match_portal(portal_id):

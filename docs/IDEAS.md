@@ -85,6 +85,8 @@ patterns = {
 - ⬜ Responsive Design für Mobile verbessern
 - ⬜ Tastatur-Shortcuts (z.B. `/` für Suche)
 - ⬜ Sortierung der Portale per Drag & Drop
+- ⬜ Settings neu strukturieren (Side-Nav + mehrere Seiten, klare Sektionen)
+- ⬜ Settings: Globale Portal-Defaults in Settings, Portal-Verwaltung bleibt in `/portals`
 - ✅ Kompakte Ansicht für Channel-Liste
 - ✅ Editor: Aufklappbare Subline mit Match-Details + EPG-ID Edit
 - ✅ Editor: Logo aus Match in Subline (nur wenn gematched)
@@ -351,6 +353,29 @@ EPG-Eintrag:      "Live BL: Werder Bremen - TSG Hoffenheim" @ 15:30
 - ⬜ Entwickler-Setup Guide
 - ⬜ FAQ / Troubleshooting
 - ⬜ Video-Tutorials
+
+---
+
+## Settings UX
+
+- ⬜ Settings in klare Sektionen gliedern (z. B. Allgemein, Portale, EPG, Datenbank, Sicherheit, Debug)
+- ⬜ Linke Navigation oder Tabs für schnelle Orientierung
+- ⬜ Suchfeld für Settings (Filterung nach Label/Keyword)
+- ⬜ Zusammenfassung oben (z. B. aktive Scheduler, letzter Refresh, DB-Status)
+- ⬜ „Danger Zone“ klar getrennt (Reset, Delete, Vacuum, etc.)
+- ⬜ Einheitliche Bestätigungs-Modal-UX für alle Aktionen
+- ⬜ Kontext-Hilfen/Tooltips für komplexe Felder
+- ⬜ Inline-Validierung und bessere Fehlermeldungen
+
+---
+
+## Portal Types
+
+- ⬜ Xtream Codes Portale integrieren (zusätzlicher Portal-Typ neben Stalker/MAC)
+  - Login via `player_api.php`
+  - Kategorien/Streams/EPG mappen ins bestehende Schema
+  - UI um Xtream-Felder (Host/Username/Password) erweitern
+  - EPG-IDs und Channel-IDs sauber auflösen
 
 ---
 

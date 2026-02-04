@@ -1,0 +1,379 @@
+{% extends "settings/layout.html" %}
+
+{% block settings_content %}
+<form method="POST" action="/settings/save">
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="fas fa-tags"></i> Tag Extraction</h5>
+            <button type="button" class="btn btn-outline-secondary btn-sm" id="resetTagDefaults">
+                <i class="fas fa-undo"></i> Reset to Defaults
+            </button>
+        </div>
+        <div class="card-body">
+            <div class="mb-3">
+                <label for="tag_country_codes" class="form-label">Country Codes (CSV)</label>
+                <textarea class="form-control" id="tag_country_codes" name="tag country codes" rows="2">{{ settings['tag country codes'] }}</textarea>
+            </div>
+            <div class="mb-3 tag-rule-group" data-textarea="tag_resolution_patterns" data-format="label">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                    <span class="form-label mb-0">Resolution Patterns</span>
+                    <div class="tag-rule-actions">
+                        <button type="button" class="btn btn-sm btn-outline-success tag-rule-add">
+                            <i class="fas fa-plus"></i> Add Rule
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary tag-rule-toggle-raw">
+                            Raw
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-danger tag-rule-clear">
+                            Clear
+                        </button>
+                    </div>
+                </div>
+                <div class="form-text">Format: LABEL = REGEX</div>
+                <div class="tag-rule-list"></div>
+                <div class="tag-rule-raw d-none">
+                    <textarea class="form-control tag-rule-textarea" id="tag_resolution_patterns" name="tag resolution patterns" rows="5">{{ settings['tag resolution patterns'] }}</textarea>
+                </div>
+            </div>
+            <div class="mb-3 tag-rule-group" data-textarea="tag_event_patterns" data-format="line">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                    <span class="form-label mb-0">Event Patterns</span>
+                    <div class="tag-rule-actions">
+                        <button type="button" class="btn btn-sm btn-outline-success tag-rule-add">
+                            <i class="fas fa-plus"></i> Add Rule
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary tag-rule-toggle-raw">
+                            Raw
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-danger tag-rule-clear">
+                            Clear
+                        </button>
+                    </div>
+                </div>
+                <div class="form-text">One regex per line.</div>
+                <div class="tag-rule-list"></div>
+                <div class="tag-rule-raw d-none">
+                    <textarea class="form-control tag-rule-textarea" id="tag_event_patterns" name="tag event patterns" rows="4">{{ settings['tag event patterns'] }}</textarea>
+                </div>
+            </div>
+            <div class="mb-3 tag-rule-group" data-textarea="tag_misc_patterns" data-format="line">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                    <span class="form-label mb-0">Misc Patterns</span>
+                    <div class="tag-rule-actions">
+                        <button type="button" class="btn btn-sm btn-outline-success tag-rule-add">
+                            <i class="fas fa-plus"></i> Add Rule
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary tag-rule-toggle-raw">
+                            Raw
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-danger tag-rule-clear">
+                            Clear
+                        </button>
+                    </div>
+                </div>
+                <div class="form-text">One regex per line.</div>
+                <div class="tag-rule-list"></div>
+                <div class="tag-rule-raw d-none">
+                    <textarea class="form-control tag-rule-textarea" id="tag_misc_patterns" name="tag misc patterns" rows="3">{{ settings['tag misc patterns'] }}</textarea>
+                </div>
+            </div>
+            <div class="mb-3 tag-rule-group" data-textarea="tag_header_patterns" data-format="line">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                    <span class="form-label mb-0">Header Patterns</span>
+                    <div class="tag-rule-actions">
+                        <button type="button" class="btn btn-sm btn-outline-success tag-rule-add">
+                            <i class="fas fa-plus"></i> Add Rule
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary tag-rule-toggle-raw">
+                            Raw
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-danger tag-rule-clear">
+                            Clear
+                        </button>
+                    </div>
+                </div>
+                <div class="form-text">Applied before the decoration heuristic.</div>
+                <div class="tag-rule-list"></div>
+                <div class="tag-rule-raw d-none">
+                    <textarea class="form-control tag-rule-textarea" id="tag_header_patterns" name="tag header patterns" rows="3">{{ settings['tag header patterns'] }}</textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5><i class="fas fa-database"></i> ChannelsDVR Matching</h5>
+        </div>
+        <div class="card-body">
+            <input type="hidden" name="channelsdvr enabled" value="false">
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="channelsdvr_enabled" name="channelsdvr enabled"
+                       value="true" {{ 'checked' if settings['channelsdvr enabled'] }}>
+                <label class="form-check-label" for="channelsdvr_enabled">
+                    Use ChannelsDVR DB to protect channel names
+                </label>
+            </div>
+            <div class="mb-3">
+                <label for="channelsdvr_db_path" class="form-label">ChannelsDVR DB Path</label>
+                <input type="text" class="form-control" id="channelsdvr_db_path" name="channelsdvr db path"
+                       value="{{ settings['channelsdvr db path'] }}">
+            </div>
+            <div class="mb-3">
+                <label for="channelsdvr_match_threshold" class="form-label">Match Threshold (0-1)</label>
+                <input type="number" step="0.01" min="0.5" max="0.99" class="form-control" id="channelsdvr_match_threshold"
+                       name="channelsdvr match threshold" value="{{ settings['channelsdvr match threshold'] }}">
+            </div>
+            <input type="hidden" name="channelsdvr debug" value="false">
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="channelsdvr_debug" name="channelsdvr debug"
+                       value="true" {{ 'checked' if settings['channelsdvr debug'] }}>
+                <label class="form-check-label" for="channelsdvr_debug">
+                    Enable debug logging for ChannelsDVR matching
+                </label>
+            </div>
+            <input type="hidden" name="channelsdvr include lineup channels" value="false">
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="channelsdvr_include_lineup_channels" name="channelsdvr include lineup channels"
+                       value="true" {{ 'checked' if settings['channelsdvr include lineup channels'] }}>
+                <label class="form-check-label" for="channelsdvr_include_lineup_channels">
+                    Include lineup channel names (slower, broader matches)
+                </label>
+            </div>
+            <input type="hidden" name="channelsdvr cache enabled" value="false">
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="channelsdvr_cache_enabled" name="channelsdvr cache enabled"
+                       value="true" {{ 'checked' if settings['channelsdvr cache enabled'] }}>
+                <label class="form-check-label" for="channelsdvr_cache_enabled">
+                    Cache ChannelsDVR names on disk
+                </label>
+            </div>
+            <div class="mb-3">
+                <label for="channelsdvr_cache_dir" class="form-label">Cache Directory</label>
+                <input type="text" class="form-control" id="channelsdvr_cache_dir" name="channelsdvr cache dir"
+                       value="{{ settings['channelsdvr cache dir'] }}">
+            </div>
+            <div class="form-text">
+                Uses country code from channel name to narrow ChannelsDVR lookup.
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5><i class="fas fa-filter"></i> Auto Group Selection</h5>
+        </div>
+        <div class="card-body">
+            <input type="hidden" name="auto group selection enabled" value="false">
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="auto_group_selection_enabled" name="auto group selection enabled"
+                       value="true" {{ 'checked' if settings['auto group selection enabled'] }}>
+                <label class="form-check-label" for="auto_group_selection_enabled">
+                    Auto-select groups when none are selected yet
+                </label>
+            </div>
+            <div class="mb-3">
+                <label for="auto_group_selection_patterns" class="form-label">Group Match Patterns (one per line)</label>
+                <textarea class="form-control" id="auto_group_selection_patterns" name="auto group selection patterns" rows="4">{{ settings['auto group selection patterns'] }}</textarea>
+                <div class="form-text">Examples: ^DE\\b, ^US\\b, Bundesliga, NFL, NHL. Regex supported.</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-end">
+        <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save"></i> Save Settings
+        </button>
+    </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    (function() {
+        const defaults = {
+            countryCodes: {{ defaultSettings['tag country codes'] | tojson }},
+            resolutionPatterns: {{ defaultSettings['tag resolution patterns'] | tojson }},
+            eventPatterns: {{ defaultSettings['tag event patterns'] | tojson }},
+            miscPatterns: {{ defaultSettings['tag misc patterns'] | tojson }},
+            headerPatterns: {{ defaultSettings['tag header patterns'] | tojson }},
+        };
+
+        const resetBtn = document.getElementById('resetTagDefaults');
+        if (!resetBtn) return;
+
+        function syncEditorsFromTextareas() {
+            if (!window.TagRuleEditors) return;
+            window.TagRuleEditors.forEach(function(editor) {
+                editor.refreshFromTextarea();
+            });
+        }
+
+        resetBtn.addEventListener('click', async function() {
+            const confirmed = await showConfirmDialog({
+                title: 'Reset Tag Extraction',
+                message: 'Reset Tag Extraction patterns to defaults?',
+                okText: 'Reset',
+                type: 'warning'
+            });
+            if (!confirmed) return;
+            document.getElementById('tag_country_codes').value = defaults.countryCodes || '';
+            document.getElementById('tag_resolution_patterns').value = defaults.resolutionPatterns || '';
+            document.getElementById('tag_event_patterns').value = defaults.eventPatterns || '';
+            document.getElementById('tag_misc_patterns').value = defaults.miscPatterns || '';
+            document.getElementById('tag_header_patterns').value = defaults.headerPatterns || '';
+            syncEditorsFromTextareas();
+        });
+
+        function createRuleRow(format, value) {
+            const row = document.createElement('div');
+            row.className = 'tag-rule-row';
+            if (format === 'label') {
+                row.classList.add('tag-rule-row-label');
+                const labelInput = document.createElement('input');
+                labelInput.type = 'text';
+                labelInput.className = 'form-control form-control-sm tag-rule-label';
+                labelInput.placeholder = 'LABEL';
+                const regexInput = document.createElement('input');
+                regexInput.type = 'text';
+                regexInput.className = 'form-control form-control-sm tag-rule-regex';
+                regexInput.placeholder = 'REGEX';
+                if (value) {
+                    labelInput.value = value.label || '';
+                    regexInput.value = value.regex || '';
+                }
+                row.appendChild(labelInput);
+                row.appendChild(regexInput);
+            } else {
+                row.classList.add('tag-rule-row-line');
+                const lineInput = document.createElement('input');
+                lineInput.type = 'text';
+                lineInput.className = 'form-control form-control-sm tag-rule-value';
+                lineInput.placeholder = 'REGEX';
+                if (value && value.line) {
+                    lineInput.value = value.line;
+                }
+                row.appendChild(lineInput);
+            }
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.type = 'button';
+            deleteBtn.className = 'btn btn-sm btn-outline-danger tag-rule-delete';
+            deleteBtn.innerHTML = '<i class="fas fa-times"></i>';
+            row.appendChild(deleteBtn);
+
+            return row;
+        }
+
+        function initRuleEditor(group) {
+            const textareaId = group.dataset.textarea;
+            const format = group.dataset.format;
+            const textarea = document.getElementById(textareaId);
+            const list = group.querySelector('.tag-rule-list');
+            const addBtn = group.querySelector('.tag-rule-add');
+            const clearBtn = group.querySelector('.tag-rule-clear');
+            const toggleRawBtn = group.querySelector('.tag-rule-toggle-raw');
+            const rawWrap = group.querySelector('.tag-rule-raw');
+
+            if (!textarea || !list || !addBtn || !clearBtn || !toggleRawBtn || !rawWrap) {
+                return { refreshFromTextarea: function() {} };
+            }
+
+            function parseLines() {
+                const raw = textarea.value || '';
+                return raw.split('\n').map(line => line.trim()).filter(Boolean);
+            }
+
+            function serialize() {
+                const values = [];
+                list.querySelectorAll('.tag-rule-row').forEach(function(row) {
+                    if (format === 'label') {
+                        const label = row.querySelector('.tag-rule-label')?.value.trim() || '';
+                        const regex = row.querySelector('.tag-rule-regex')?.value.trim() || '';
+                        if (label && regex) {
+                            values.push(`${label}=${regex}`);
+                        }
+                    } else {
+                        const value = row.querySelector('.tag-rule-value')?.value.trim() || '';
+                        if (value) values.push(value);
+                    }
+                });
+                textarea.value = values.join('\n');
+            }
+
+            function renderEmptyState() {
+                if (list.children.length === 0) {
+                    const empty = document.createElement('div');
+                    empty.className = 'text-muted small';
+                    empty.textContent = 'No rules yet.';
+                    list.appendChild(empty);
+                }
+            }
+
+            function wireRow(row) {
+                row.querySelectorAll('input').forEach(function(input) {
+                    input.addEventListener('input', serialize);
+                });
+                const deleteBtn = row.querySelector('.tag-rule-delete');
+                deleteBtn.addEventListener('click', function() {
+                    row.remove();
+                    serialize();
+                    renderEmptyState();
+                });
+            }
+
+            function refreshFromTextarea() {
+                list.innerHTML = '';
+                const lines = parseLines();
+                lines.forEach(function(line) {
+                    let row;
+                    if (format === 'label') {
+                        const index = line.indexOf('=');
+                        const label = index === -1 ? line : line.slice(0, index);
+                        const regex = index === -1 ? '' : line.slice(index + 1);
+                        row = createRuleRow(format, { label: label, regex: regex });
+                    } else {
+                        row = createRuleRow(format, { line: line });
+                    }
+                    list.appendChild(row);
+                    wireRow(row);
+                });
+                renderEmptyState();
+            }
+
+            addBtn.addEventListener('click', function() {
+                const row = createRuleRow(format);
+                list.appendChild(row);
+                wireRow(row);
+                renderEmptyState();
+                serialize();
+            });
+
+            clearBtn.addEventListener('click', function() {
+                list.innerHTML = '';
+                serialize();
+                renderEmptyState();
+            });
+
+            toggleRawBtn.addEventListener('click', function() {
+                const showingRaw = !rawWrap.classList.contains('d-none');
+                if (showingRaw) {
+                    rawWrap.classList.add('d-none');
+                    list.classList.remove('d-none');
+                    refreshFromTextarea();
+                } else {
+                    rawWrap.classList.remove('d-none');
+                    list.classList.add('d-none');
+                }
+            });
+
+            refreshFromTextarea();
+
+            return { refreshFromTextarea: refreshFromTextarea };
+        }
+
+        window.TagRuleEditors = Array.from(document.querySelectorAll('.tag-rule-group')).map(initRuleEditor);
+    })();
+</script>
+{% endblock %}

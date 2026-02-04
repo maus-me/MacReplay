@@ -1,3 +1,4 @@
+import json
 import os
 from datetime import datetime, timezone, timedelta
 
@@ -62,6 +63,16 @@ def create_epg_blueprint(
             cursor = conn.cursor()
             cursor.execute(
                 """
+                SELECT source_id, name
+                FROM epg_sources
+                """
+            )
+            source_name_map = {
+                row["source_id"]: (row["name"] or row["source_id"])
+                for row in cursor.fetchall()
+            }
+            cursor.execute(
+                """
                 SELECT
                     portal_id as portal,
                     name,
@@ -69,7 +80,9 @@ def create_epg_blueprint(
                     custom_name,
                     auto_name,
                     matched_name,
-                    custom_epg_id
+                    custom_epg_id,
+                    number,
+                    custom_number
                 FROM channels WHERE enabled = 1
                 """
             )
@@ -98,11 +111,16 @@ def create_epg_blueprint(
                         chunk,
                     )
                     for row in cursor.fetchall():
-                        epg_meta[row["channel_id"]] = {
-                            "source_id": row["source_id"],
-                            "display_name": row["display_name"],
-                            "icon": row["icon"],
-                        }
+                        epg_meta.setdefault(row["channel_id"], []).append(
+                            {
+                                "source_id": row["source_id"],
+                                "display_name": row["display_name"],
+                                "icon": row["icon"],
+                            }
+                        )
+
+            for channel_id in epg_meta:
+                epg_meta[channel_id].sort(key=lambda entry: entry["source_id"] or "")
             conn.close()
 
             channel_portal_map = {}
@@ -118,6 +136,15 @@ def create_epg_blueprint(
                     or row["name"]
                 )
 
+            def select_epg_meta(epg_id, portal_id):
+                entries = epg_meta.get(epg_id)
+                if not entries:
+                    return None
+                for entry in entries:
+                    if entry["source_id"] == portal_id:
+                        return entry
+                return entries[0]
+
             for row in rows:
                 portal_id = row["portal"]
                 portal_name = portals.get(portal_id, {}).get("name", portal_id)
@@ -125,34 +152,46 @@ def create_epg_blueprint(
                 custom_id = row["custom_epg_id"] or ""
 
                 if custom_id:
-                    if custom_id in epg_meta:
-                        epg_id = custom_id
-                        source_id = epg_meta[custom_id]["source_id"]
-                    else:
-                        epg_id = custom_id
-                        source_id = None
+                    epg_id = custom_id
+                    epg_entry = select_epg_meta(custom_id, portal_id)
+                    source_id = epg_entry["source_id"] if epg_entry else None
                 else:
                     epg_id = default_id
-                    source_id = epg_meta.get(epg_id, {}).get("source_id") if epg_id else None
-                    if not source_id:
+                    epg_entry = select_epg_meta(epg_id, portal_id) if epg_id else None
+                    source_id = epg_entry["source_id"] if epg_entry else None
+                    if not source_id and epg_id:
                         source_id = portal_id
 
                 if not epg_id or epg_id in seen_channel_ids:
                     continue
                 seen_channel_ids.add(epg_id)
 
-                display_name = epg_meta.get(epg_id, {}).get("display_name") or resolve_display_name(row)
-                icon = epg_meta.get(epg_id, {}).get("icon") or row["logo"]
+                display_name = (
+                    (epg_entry["display_name"] if epg_entry else None)
+                    or resolve_display_name(row)
+                )
+                icon = (epg_entry["icon"] if epg_entry else None) or row["logo"]
+                channel_number = row["custom_number"] or row["number"]
 
                 channel_portal_map[epg_id] = portal_name
+                source_name = None
+                if source_id:
+                    source_name = (
+                        source_name_map.get(source_id)
+                        or portals.get(source_id, {}).get("name")
+                        or source_id
+                    )
                 if source_id:
                     channel_sources.setdefault(source_id, set()).add(epg_id)
                 channels.append(
                     {
                         "id": epg_id,
                         "name": display_name or epg_id,
+                        "number": channel_number,
                         "logo": icon,
                         "portal": portal_name,
+                        "source_id": source_id,
+                        "source_name": source_name,
                     }
                 )
 
@@ -170,7 +209,10 @@ def create_epg_blueprint(
                     placeholders = ",".join(["?"] * len(chunk))
                     cursor.execute(
                         f"""
-                        SELECT channel_id, start, stop, start_ts, stop_ts, title, description
+                        SELECT
+                            channel_id, start, stop, start_ts, stop_ts, title, description,
+                            sub_title, categories, episode_num, episode_system, rating,
+                            programme_icon, air_date, previously_shown, series_id
                         FROM epg_programmes
                         WHERE channel_id IN ({placeholders})
                           AND stop_ts >= ?
@@ -195,6 +237,17 @@ def create_epg_blueprint(
                                 "stop_timestamp": stop_ts,
                                 "title": row["title"] or "Unknown",
                                 "description": row["description"] or "",
+                                "sub_title": row["sub_title"] or "",
+                                "categories": json.loads(row["categories"])
+                                if row["categories"]
+                                else [],
+                                "episode_num": row["episode_num"] or "",
+                                "episode_system": row["episode_system"] or "",
+                                "rating": row["rating"] or "",
+                                "programme_icon": row["programme_icon"] or "",
+                                "air_date": row["air_date"] or "",
+                                "previously_shown": row["previously_shown"],
+                                "series_id": row["series_id"] or "",
                                 "is_current": start_dt <= now <= stop_dt,
                                 "is_past": stop_dt < now,
                             }

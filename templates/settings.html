@@ -87,7 +87,7 @@
                     
                     <div class="form-check mb-3">
                         <input class="form-check-input" type="checkbox" id="test_streams" name="test streams" 
-                               value="true" {{ 'checked' if settings['test streams'] == 'true' }}>
+                               value="true" {{ 'checked' if settings['test streams'] }}>
                         <label class="form-check-label" for="test_streams">
                             Test streams before serving
                         </label>
@@ -95,7 +95,7 @@
                     
                     <div class="form-check mb-3">
                         <input class="form-check-input" type="checkbox" id="try_all_macs" name="try all macs"
-                               value="true" {{ 'checked' if settings['try all macs'] == 'true' }}>
+                               value="true" {{ 'checked' if settings['try all macs'] }}>
                         <label class="form-check-label" for="try_all_macs">
                             Try all MAC addresses on failure
                         </label>
@@ -103,7 +103,7 @@
 
                     <div class="form-check mb-3">
                         <input class="form-check-input" type="checkbox" id="parallel_mac_probing" name="parallel mac probing"
-                               value="true" {{ 'checked' if settings['parallel mac probing'] == 'true' }}>
+                               value="true" {{ 'checked' if settings['parallel mac probing'] }}>
                         <label class="form-check-label" for="parallel_mac_probing">
                             Parallel MAC probing
                         </label>
@@ -132,7 +132,7 @@
                 <div class="card-body">
                     <div class="form-check mb-3">
                         <input class="form-check-input" type="checkbox" id="use_channel_genres" name="use channel genres" 
-                               value="true" {{ 'checked' if settings['use channel genres'] == 'true' }}>
+                               value="true" {{ 'checked' if settings['use channel genres'] }}>
                         <label class="form-check-label" for="use_channel_genres">
                             Include channel genres in playlist
                         </label>
@@ -140,7 +140,7 @@
                     
                     <div class="form-check mb-3">
                         <input class="form-check-input" type="checkbox" id="use_channel_numbers" name="use channel numbers" 
-                               value="true" {{ 'checked' if settings['use channel numbers'] == 'true' }}>
+                               value="true" {{ 'checked' if settings['use channel numbers'] }}>
                         <label class="form-check-label" for="use_channel_numbers">
                             Include channel numbers in playlist
                         </label>
@@ -148,7 +148,7 @@
                     
                     <div class="form-check mb-3">
                         <input class="form-check-input" type="checkbox" id="sort_by_genre" name="sort playlist by channel genre" 
-                               value="true" {{ 'checked' if settings['sort playlist by channel genre'] == 'true' }}>
+                               value="true" {{ 'checked' if settings['sort playlist by channel genre'] }}>
                         <label class="form-check-label" for="sort_by_genre">
                             Sort playlist by genre
                         </label>
@@ -156,7 +156,7 @@
                     
                     <div class="form-check mb-3">
                         <input class="form-check-input" type="checkbox" id="sort_by_number" name="sort playlist by channel number" 
-                               value="true" {{ 'checked' if settings['sort playlist by channel number'] == 'true' }}>
+                               value="true" {{ 'checked' if settings['sort playlist by channel number'] }}>
                         <label class="form-check-label" for="sort_by_number">
                             Sort playlist by channel number
                         </label>
@@ -164,7 +164,7 @@
                     
                     <div class="form-check mb-3">
                         <input class="form-check-input" type="checkbox" id="sort_by_name" name="sort playlist by channel name"
-                               value="true" {{ 'checked' if settings['sort playlist by channel name'] == 'true' }}>
+                               value="true" {{ 'checked' if settings['sort playlist by channel name'] }}>
                         <label class="form-check-label" for="sort_by_name">
                             Sort playlist by channel name
                         </label>
@@ -237,7 +237,7 @@
                         Add external XMLTV sources. These are merged into the generated EPG and can be assigned manually per channel.
                     </p>
                     <div id="epgSourcesList" class="epg-sources-list"></div>
-                    <input type="hidden" id="epgSourcesInput" name="epg custom sources" value="{{ settings['epg custom sources'] | e }}">
+                    <input type="hidden" id="epgSourcesInput" name="epg custom sources" value='{{ settings["epg custom sources"] | tojson }}'>
                 </div>
             </div>
 
@@ -342,7 +342,7 @@
                         <h6 class="mb-3"><i class="fas fa-database"></i> ChannelsDVR Matching</h6>
                         <div class="form-check mb-3">
                             <input class="form-check-input" type="checkbox" id="channelsdvr_enabled" name="channelsdvr enabled"
-                                   value="true" {{ 'checked' if settings['channelsdvr enabled'] == 'true' }}>
+                                   value="true" {{ 'checked' if settings['channelsdvr enabled'] }}>
                             <label class="form-check-label" for="channelsdvr_enabled">
                                 Use ChannelsDVR DB to protect channel names
                             </label>
@@ -359,21 +359,21 @@
                         </div>
                         <div class="form-check mb-3">
                             <input class="form-check-input" type="checkbox" id="channelsdvr_debug" name="channelsdvr debug"
-                                   value="true" {{ 'checked' if settings['channelsdvr debug'] == 'true' }}>
+                                   value="true" {{ 'checked' if settings['channelsdvr debug'] }}>
                             <label class="form-check-label" for="channelsdvr_debug">
                                 Enable debug logging for ChannelsDVR matching
                             </label>
                         </div>
                         <div class="form-check mb-3">
                             <input class="form-check-input" type="checkbox" id="channelsdvr_include_lineup_channels" name="channelsdvr include lineup channels"
-                                   value="true" {{ 'checked' if settings['channelsdvr include lineup channels'] == 'true' }}>
+                                   value="true" {{ 'checked' if settings['channelsdvr include lineup channels'] }}>
                             <label class="form-check-label" for="channelsdvr_include_lineup_channels">
                                 Include lineup channel names (slower, broader matches)
                             </label>
                         </div>
                         <div class="form-check mb-3">
                             <input class="form-check-input" type="checkbox" id="channelsdvr_cache_enabled" name="channelsdvr cache enabled"
-                                   value="true" {{ 'checked' if settings['channelsdvr cache enabled'] == 'true' }}>
+                                   value="true" {{ 'checked' if settings['channelsdvr cache enabled'] }}>
                             <label class="form-check-label" for="channelsdvr_cache_enabled">
                                 Cache ChannelsDVR names on disk
                             </label>
@@ -392,7 +392,7 @@
                         <h6 class="mb-3"><i class="fas fa-filter"></i> Auto Group Selection</h6>
                         <div class="form-check mb-3">
                             <input class="form-check-input" type="checkbox" id="auto_group_selection_enabled" name="auto group selection enabled"
-                                   value="true" {{ 'checked' if settings['auto group selection enabled'] == 'true' }}>
+                                   value="true" {{ 'checked' if settings['auto group selection enabled'] }}>
                             <label class="form-check-label" for="auto_group_selection_enabled">
                                 Auto-select groups when none are selected yet
                             </label>
@@ -407,14 +407,26 @@
                     <div class="border-top pt-3 mt-3">
                         <h6 class="mb-3"><i class="fas fa-broom"></i> Database Maintenance</h6>
                         <p class="text-muted mb-3">
-                            Cleanup derived codec tags that are no longer used. Optionally VACUUM the database.
+                            Schedule and run database maintenance tasks for Channels and EPG databases.
                         </p>
+                        <div class="row g-2 mb-3">
+                            <div class="col-md-6">
+                                <label for="vacuum_channels_interval" class="form-label">Vacuum Channels DB Interval (hours, 0=disabled)</label>
+                                <input type="number" class="form-control" id="vacuum_channels_interval" name="vacuum channels interval hours"
+                                       value="{{ settings['vacuum channels interval hours'] }}" min="0" step="0.5">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="vacuum_epg_interval" class="form-label">Vacuum EPG DB Interval (hours, 0=disabled)</label>
+                                <input type="number" class="form-control" id="vacuum_epg_interval" name="vacuum epg interval hours"
+                                       value="{{ settings['vacuum epg interval hours'] }}" min="0" step="0.5">
+                            </div>
+                        </div>
                         <div class="d-flex flex-wrap gap-2">
-                            <button type="button" class="btn btn-outline-success btn-sm" id="dbCleanupTags">
-                                <i class="fas fa-eraser"></i> Cleanup Codec Tags
+                            <button type="button" class="btn btn-outline-primary btn-sm" id="vacuumChannelsNow">
+                                <i class="fas fa-database"></i> Vacuum Channels DB
                             </button>
-                            <button type="button" class="btn btn-outline-secondary btn-sm" id="dbCleanupVacuum">
-                                <i class="fas fa-database"></i> Cleanup + Vacuum
+                            <button type="button" class="btn btn-outline-primary btn-sm" id="vacuumEpgNow">
+                                <i class="fas fa-database"></i> Vacuum EPG DBs
                             </button>
                         </div>
                         <div class="form-text mt-2" id="dbCleanupStatus"></div>
@@ -433,7 +445,7 @@
                 <div class="card-body">
                     <div class="form-check mb-3">
                         <input class="form-check-input" type="checkbox" id="enable_security" name="enable security" 
-                               value="true" {{ 'checked' if settings['enable security'] == 'true' }}>
+                               value="true" {{ 'checked' if settings['enable security'] }}>
                         <label class="form-check-label" for="enable_security">
                             Enable HTTP authentication
                         </label>
@@ -462,7 +474,7 @@
                 <div class="card-body">
                     <div class="form-check mb-3">
                         <input class="form-check-input" type="checkbox" id="enable_hdhr" name="enable hdhr" 
-                               value="true" {{ 'checked' if settings['enable hdhr'] == 'true' }}>
+                               value="true" {{ 'checked' if settings['enable hdhr'] }}>
                         <label class="form-check-label" for="enable_hdhr">
                             Enable HD HomeRun emulation
                         </label>
@@ -540,8 +552,83 @@
     </div>
 </div>
 
+<!-- Confirmation Modal -->
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="confirmModalTitle">Confirm</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex align-items-start">
+                    <div class="confirm-icon me-3" id="confirmModalIcon">
+                        <i class="fas fa-question-circle fa-2x text-warning"></i>
+                    </div>
+                    <div>
+                        <p class="mb-0" id="confirmModalMessage">Are you sure?</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+                <button type="button" class="btn btn-primary" id="confirmModalOk">
+                    <i class="fas fa-check"></i> <span id="confirmModalOkText">OK</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
     (function() {
+        function showConfirmDialog(options) {
+            return new Promise((resolve) => {
+                const modal = document.getElementById('confirmModal');
+                const titleEl = document.getElementById('confirmModalTitle');
+                const messageEl = document.getElementById('confirmModalMessage');
+                const iconEl = document.getElementById('confirmModalIcon');
+                const okBtn = document.getElementById('confirmModalOk');
+                const okTextEl = document.getElementById('confirmModalOkText');
+
+                titleEl.textContent = options.title || 'Confirm';
+                messageEl.textContent = options.message || 'Are you sure?';
+                okTextEl.textContent = options.okText || 'OK';
+
+                const type = options.type || 'warning';
+                if (type === 'danger') {
+                    iconEl.innerHTML = '<i class="fas fa-exclamation-triangle fa-2x text-danger"></i>';
+                    okBtn.className = 'btn btn-danger';
+                } else if (type === 'info') {
+                    iconEl.innerHTML = '<i class="fas fa-info-circle fa-2x text-info"></i>';
+                    okBtn.className = 'btn btn-primary';
+                } else {
+                    iconEl.innerHTML = '<i class="fas fa-question-circle fa-2x text-warning"></i>';
+                    okBtn.className = 'btn btn-warning';
+                }
+
+                const bsModal = new bootstrap.Modal(modal);
+
+                const handleOk = () => {
+                    okBtn.removeEventListener('click', handleOk);
+                    modal.removeEventListener('hidden.bs.modal', handleCancel);
+                    bsModal.hide();
+                    resolve(true);
+                };
+
+                const handleCancel = () => {
+                    okBtn.removeEventListener('click', handleOk);
+                    resolve(false);
+                };
+
+                okBtn.addEventListener('click', handleOk);
+                modal.addEventListener('hidden.bs.modal', handleCancel, { once: true });
+                bsModal.show();
+            });
+        }
+
         const defaults = {
             countryCodes: {{ defaultSettings['tag country codes'] | tojson }},
             resolutionPatterns: {{ defaultSettings['tag resolution patterns'] | tojson }},
@@ -560,8 +647,13 @@
             });
         }
 
-        resetBtn.addEventListener('click', function() {
-            const confirmed = confirm('Reset Tag Extraction patterns to defaults?');
+        resetBtn.addEventListener('click', async function() {
+            const confirmed = await showConfirmDialog({
+                title: 'Reset Tag Extraction',
+                message: 'Reset Tag Extraction patterns to defaults?',
+                okText: 'Reset',
+                type: 'warning'
+            });
             if (!confirmed) return;
             document.getElementById('tag_country_codes').value = defaults.countryCodes || '';
             document.getElementById('tag_resolution_patterns').value = defaults.resolutionPatterns || '';
@@ -819,8 +911,14 @@
                     row.querySelector('[data-action="edit"]').addEventListener('click', function() {
                         openModal(source);
                     });
-                    row.querySelector('[data-action="delete"]').addEventListener('click', function() {
-                        if (!confirm('Remove this EPG source?')) return;
+                    row.querySelector('[data-action="delete"]').addEventListener('click', async function() {
+                        const confirmed = await showConfirmDialog({
+                            title: 'Remove EPG Source',
+                            message: 'Remove this EPG source?',
+                            okText: 'Remove',
+                            type: 'danger'
+                        });
+                        if (!confirmed) return;
                         epgSources = epgSources.filter(function(item) { return item.id !== source.id; });
                         saveSources();
                         persistSources();
@@ -914,41 +1012,50 @@
             renderSources();
         })();
 
-        function runDbCleanup(vacuum) {
+        function runVacuumNow(endpoint, label) {
             const status = document.getElementById('dbCleanupStatus');
-            status.textContent = 'Running cleanup...';
-            fetch('/api/db/cleanup', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ vacuum: vacuum })
-            })
+            status.textContent = `${label} running...`;
+            fetch(endpoint, { method: 'POST' })
                 .then(function(resp) { return resp.json(); })
                 .then(function(data) {
-                    if (!data || !data.ok) {
-                        status.textContent = 'Cleanup failed.';
+                    if (!data || data.ok === false) {
+                        status.textContent = `${label} failed.`;
                         return;
                     }
-                    const result = data.result || {};
-                    const updated = result.updated ?? 0;
-                    status.textContent = vacuum
-                        ? `Cleanup done. Rows updated: ${updated}. VACUUM completed.`
-                        : `Cleanup done. Rows updated: ${updated}.`;
+                    const extra = data.count !== undefined ? ` (${data.count} dbs)` : '';
+                    status.textContent = `${label} completed${extra}.`;
                 })
                 .catch(function() {
-                    status.textContent = 'Cleanup failed.';
+                    status.textContent = `${label} failed.`;
                 });
         }
 
-        const cleanupBtn = document.getElementById('dbCleanupTags');
-        const cleanupVacBtn = document.getElementById('dbCleanupVacuum');
-        if (cleanupBtn) {
-            cleanupBtn.addEventListener('click', function() {
-                if (confirm('Cleanup codec tags now?')) runDbCleanup(false);
+        const vacuumChannelsBtn = document.getElementById('vacuumChannelsNow');
+        const vacuumEpgBtn = document.getElementById('vacuumEpgNow');
+        if (vacuumChannelsBtn) {
+            vacuumChannelsBtn.addEventListener('click', async function() {
+                const confirmed = await showConfirmDialog({
+                    title: 'Vacuum Channels DB',
+                    message: 'Run VACUUM on channels.db now?',
+                    okText: 'Vacuum',
+                    type: 'info'
+                });
+                if (confirmed) {
+                    runVacuumNow('/api/settings/vacuum/channels', 'Vacuum channels.db');
+                }
             });
         }
-        if (cleanupVacBtn) {
-            cleanupVacBtn.addEventListener('click', function() {
-                if (confirm('Cleanup codec tags and VACUUM the database?')) runDbCleanup(true);
+        if (vacuumEpgBtn) {
+            vacuumEpgBtn.addEventListener('click', async function() {
+                const confirmed = await showConfirmDialog({
+                    title: 'Vacuum EPG DBs',
+                    message: 'Run VACUUM on all EPG DBs now?',
+                    okText: 'Vacuum',
+                    type: 'info'
+                });
+                if (confirmed) {
+                    runVacuumNow('/api/settings/vacuum/epg', 'Vacuum EPG DBs');
+                }
             });
         }
     })();

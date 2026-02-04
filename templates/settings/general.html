@@ -1,0 +1,176 @@
+{% extends "settings/layout.html" %}
+
+{% block settings_content %}
+<form method="POST" action="/settings/save">
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5><i class="fas fa-video"></i> Streaming Settings</h5>
+        </div>
+        <div class="card-body">
+            <div class="mb-3">
+                <label for="stream_method" class="form-label">Stream Method</label>
+                <select class="form-select" id="stream_method" name="stream method">
+                    <option value="ffmpeg" {{ 'selected' if settings['stream method'] == 'ffmpeg' }}>FFmpeg</option>
+                    <option value="redirect" {{ 'selected' if settings['stream method'] == 'redirect' }}>Direct Redirect</option>
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label for="output_format" class="form-label">Output Format</label>
+                <select class="form-select" id="output_format" name="output format">
+                    <option value="mpegts" {{ 'selected' if settings['output format'] == 'mpegts' }}>MPEG-TS (pipe) - Current behavior</option>
+                    <option value="hls" {{ 'selected' if settings['output format'] == 'hls' }}>HLS (segmented) - Instant start on Plex/Apple TV</option>
+                </select>
+                <div class="form-text">
+                    HLS is recommended for Plex/Apple TV (faster start, consumes disk space for segments).
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="hls_segment_type" class="form-label">HLS Segment Type</label>
+                <select class="form-select" id="hls_segment_type" name="hls segment type">
+                    <option value="fmp4" {{ 'selected' if settings['hls segment type'] == 'fmp4' }}>fMP4 - Best for Plex (recommended)</option>
+                    <option value="mpegts" {{ 'selected' if settings['hls segment type'] == 'mpegts' }}>MPEG-TS - Better compatibility</option>
+                </select>
+                <div class="form-text">
+                    fMP4 provides better Plex compatibility and faster startup. Only applies when Output Format is HLS.
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="hls_segment_duration" class="form-label">HLS Segment Duration (seconds)</label>
+                        <input type="number" class="form-control" id="hls_segment_duration" name="hls segment duration"
+                               value="{{ settings['hls segment duration'] }}" min="2" max="10">
+                        <div class="form-text">
+                            Lower = faster start, more CPU. Recommended: 4 seconds.
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="hls_playlist_size" class="form-label">HLS Playlist Size (segments)</label>
+                        <input type="number" class="form-control" id="hls_playlist_size" name="hls playlist size"
+                               value="{{ settings['hls playlist size'] }}" min="3" max="20">
+                        <div class="form-text">
+                            Number of segments to keep. Recommended: 6.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="ffmpeg_command" class="form-label">FFmpeg Command (MPEG-TS only)</label>
+                <textarea class="form-control" id="ffmpeg_command" name="ffmpeg command" rows="3">{{ settings['ffmpeg command'] }}</textarea>
+                <div class="form-text">
+                    Use placeholders: &lt;url&gt;, &lt;proxy&gt;, &lt;timeout&gt;. Only used when Output Format is MPEG-TS.
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="ffmpeg_timeout" class="form-label">FFmpeg Timeout (seconds)</label>
+                <input type="number" class="form-control" id="ffmpeg_timeout" name="ffmpeg timeout"
+                       value="{{ settings['ffmpeg timeout'] }}" min="1" max="60">
+            </div>
+
+            <input type="hidden" name="test streams" value="false">
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="test_streams" name="test streams"
+                       value="true" {{ 'checked' if settings['test streams'] }}>
+                <label class="form-check-label" for="test_streams">
+                    Test streams before serving
+                </label>
+            </div>
+
+            <input type="hidden" name="try all macs" value="false">
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="try_all_macs" name="try all macs"
+                       value="true" {{ 'checked' if settings['try all macs'] }}>
+                <label class="form-check-label" for="try_all_macs">
+                    Try all MAC addresses on failure
+                </label>
+            </div>
+
+            <input type="hidden" name="parallel mac probing" value="false">
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="parallel_mac_probing" name="parallel mac probing"
+                       value="true" {{ 'checked' if settings['parallel mac probing'] }}>
+                <label class="form-check-label" for="parallel_mac_probing">
+                    Parallel MAC probing
+                </label>
+                <div class="form-text">
+                    Test multiple MAC addresses simultaneously for faster channel lookup.
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="parallel_mac_workers" class="form-label">Parallel Workers</label>
+                <input type="number" class="form-control" id="parallel_mac_workers" name="parallel mac workers"
+                       value="{{ settings['parallel mac workers'] }}" min="2" max="10">
+                <div class="form-text">
+                    Number of MACs to test in parallel. Higher = faster but more server load.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5><i class="fas fa-list"></i> Playlist Settings</h5>
+        </div>
+        <div class="card-body">
+            <input type="hidden" name="use channel genres" value="false">
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="use_channel_genres" name="use channel genres"
+                       value="true" {{ 'checked' if settings['use channel genres'] }}>
+                <label class="form-check-label" for="use_channel_genres">
+                    Use channel genres (if available)
+                </label>
+            </div>
+
+            <input type="hidden" name="use channel numbers" value="false">
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="use_channel_numbers" name="use channel numbers"
+                       value="true" {{ 'checked' if settings['use channel numbers'] }}>
+                <label class="form-check-label" for="use_channel_numbers">
+                    Use channel numbers (if available)
+                </label>
+            </div>
+
+            <input type="hidden" name="sort playlist by channel genre" value="false">
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="sort_playlist_by_channel_genre" name="sort playlist by channel genre"
+                       value="true" {{ 'checked' if settings['sort playlist by channel genre'] }}>
+                <label class="form-check-label" for="sort_playlist_by_channel_genre">
+                    Sort playlist by channel genre
+                </label>
+            </div>
+
+            <input type="hidden" name="sort playlist by channel number" value="false">
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="sort_playlist_by_channel_number" name="sort playlist by channel number"
+                       value="true" {{ 'checked' if settings['sort playlist by channel number'] }}>
+                <label class="form-check-label" for="sort_playlist_by_channel_number">
+                    Sort playlist by channel number
+                </label>
+            </div>
+
+            <input type="hidden" name="sort playlist by channel name" value="false">
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="sort_playlist_by_channel_name" name="sort playlist by channel name"
+                       value="true" {{ 'checked' if settings['sort playlist by channel name'] }}>
+                <label class="form-check-label" for="sort_playlist_by_channel_name">
+                    Sort playlist by channel name
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-end">
+        <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save"></i> Save Settings
+        </button>
+    </div>
+</form>
+{% endblock %}

@@ -68,3 +68,47 @@ def start_channel_scheduler(state):
     scheduler_thread = threading.Thread(target=channel_refresh_loop, daemon=True)
     scheduler_thread.start()
     state.scheduler.logger.info("Channel background scheduler started!")
+
+
+def start_vacuum_channels_scheduler(*, getSettings, logger):
+    def vacuum_loop():
+        while True:
+            try:
+                interval_hours = float(getSettings().get("vacuum channels interval hours", 0) or 0)
+                if interval_hours <= 0:
+                    time.sleep(3600)
+                    continue
+                logger.info("Channels DB vacuum scheduler: next run in %s hours", interval_hours)
+                time.sleep(max(60, int(interval_hours * 3600)))
+                logger.info("Channels DB vacuum scheduler: running VACUUM...")
+                from macreplay.db import vacuum_channels_db
+                vacuum_channels_db()
+                logger.info("Channels DB vacuum scheduler: completed.")
+            except Exception as exc:
+                logger.error("Channels DB vacuum scheduler error: %s", exc)
+                time.sleep(300)
+
+    threading.Thread(target=vacuum_loop, daemon=True).start()
+    logger.info("Channels DB vacuum scheduler started!")
+
+
+def start_vacuum_epg_scheduler(*, getSettings, logger):
+    def vacuum_loop():
+        while True:
+            try:
+                interval_hours = float(getSettings().get("vacuum epg interval hours", 0) or 0)
+                if interval_hours <= 0:
+                    time.sleep(3600)
+                    continue
+                logger.info("EPG DB vacuum scheduler: next run in %s hours", interval_hours)
+                time.sleep(max(60, int(interval_hours * 3600)))
+                logger.info("EPG DB vacuum scheduler: running VACUUM...")
+                from macreplay.db import vacuum_epg_dbs
+                count = vacuum_epg_dbs()
+                logger.info("EPG DB vacuum scheduler: completed (%s dbs).", count)
+            except Exception as exc:
+                logger.error("EPG DB vacuum scheduler error: %s", exc)
+                time.sleep(300)
+
+    threading.Thread(target=vacuum_loop, daemon=True).start()
+    logger.info("EPG DB vacuum scheduler started!")

@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - MacReplay{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-3 col-md-4 mb-3 settings-sidebar-col">
+        <div class="settings-sidebar" id="settingsSidebar">
+            <div class="settings-sidebar-header mb-3">
+                <h2 class="mb-1"><i class="fas fa-cog"></i> Settings</h2>
+                <p class="text-muted mb-0">Configure MacReplay application settings</p>
+            </div>
+            <div class="list-group settings-nav" data-hx-boost="false">
+                <a href="/settings/general"
+                   class="list-group-item list-group-item-action {{ 'active' if active_section == 'general' }}">
+                    <i class="fas fa-sliders-h me-2"></i> General
+                </a>
+                <a href="/settings/epg"
+                   class="list-group-item list-group-item-action {{ 'active' if active_section == 'epg' }}">
+                    <i class="fas fa-calendar me-2"></i> EPG
+                </a>
+                <a href="/settings/channels"
+                   class="list-group-item list-group-item-action {{ 'active' if active_section == 'channels' }}">
+                    <i class="fas fa-list me-2"></i> Channels & Editor
+                </a>
+                <a href="/settings/database"
+                   class="list-group-item list-group-item-action {{ 'active' if active_section == 'database' }}">
+                    <i class="fas fa-database me-2"></i> Database
+                </a>
+                <a href="/settings/security"
+                   class="list-group-item list-group-item-action {{ 'active' if active_section == 'security' }}">
+                    <i class="fas fa-shield-alt me-2"></i> Security
+                </a>
+                <a href="/settings/hdhr"
+                   class="list-group-item list-group-item-action {{ 'active' if active_section == 'hdhr' }}">
+                    <i class="fas fa-tv me-2"></i> HDHomeRun
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-9 col-md-8 settings-content">
+        {% block settings_content %}{% endblock %}
+    </div>
+</div>
+
+<!-- Confirmation Modal -->
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="confirmModalTitle">Confirm</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex align-items-start">
+                    <div class="confirm-icon me-3" id="confirmModalIcon">
+                        <i class="fas fa-question-circle fa-2x text-warning"></i>
+                    </div>
+                    <div>
+                        <p class="mb-0" id="confirmModalMessage">Are you sure?</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+                <button type="button" class="btn btn-primary" id="confirmModalOk">
+                    <i class="fas fa-check"></i> <span id="confirmModalOkText">OK</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    function showConfirmDialog(options) {
+        return new Promise((resolve) => {
+            const modal = document.getElementById('confirmModal');
+            const titleEl = document.getElementById('confirmModalTitle');
+            const messageEl = document.getElementById('confirmModalMessage');
+            const iconEl = document.getElementById('confirmModalIcon');
+            const okBtn = document.getElementById('confirmModalOk');
+            const okTextEl = document.getElementById('confirmModalOkText');
+
+            titleEl.textContent = options.title || 'Confirm';
+            messageEl.textContent = options.message || 'Are you sure?';
+            okTextEl.textContent = options.okText || 'OK';
+
+            const type = options.type || 'warning';
+            if (type === 'danger') {
+                iconEl.innerHTML = '<i class="fas fa-exclamation-triangle fa-2x text-danger"></i>';
+                okBtn.className = 'btn btn-danger';
+            } else if (type === 'info') {
+                iconEl.innerHTML = '<i class="fas fa-info-circle fa-2x text-info"></i>';
+                okBtn.className = 'btn btn-primary';
+            } else {
+                iconEl.innerHTML = '<i class="fas fa-question-circle fa-2x text-warning"></i>';
+                okBtn.className = 'btn btn-warning';
+            }
+
+            const bsModal = new bootstrap.Modal(modal);
+
+            const handleOk = () => {
+                okBtn.removeEventListener('click', handleOk);
+                modal.removeEventListener('hidden.bs.modal', handleCancel);
+                bsModal.hide();
+                resolve(true);
+            };
+
+            const handleCancel = () => {
+                okBtn.removeEventListener('click', handleOk);
+                resolve(false);
+            };
+
+            okBtn.addEventListener('click', handleOk);
+            modal.addEventListener('hidden.bs.modal', handleCancel, { once: true });
+            bsModal.show();
+        });
+    }
+
+    (function() {
+        const sidebar = document.getElementById('settingsSidebar');
+        const col = sidebar ? sidebar.closest('.settings-sidebar-col') : null;
+        if (!sidebar || !col) return;
+
+        function updateSidebarPosition() {
+            if (window.matchMedia('(max-width: 991.98px)').matches) {
+                sidebar.style.position = 'static';
+                sidebar.style.width = '';
+                sidebar.style.left = '';
+                sidebar.style.top = '';
+                return;
+            }
+            const rect = col.getBoundingClientRect();
+            const nav = document.querySelector('.navbar.sticky-top');
+            const navHeight = nav ? nav.getBoundingClientRect().height : 0;
+            sidebar.style.position = 'fixed';
+            sidebar.style.left = `${rect.left}px`;
+            sidebar.style.width = `${rect.width}px`;
+            sidebar.style.top = `${Math.ceil(navHeight)}px`;
+        }
+
+        updateSidebarPosition();
+        window.addEventListener('resize', updateSidebarPosition);
+        document.body.addEventListener('htmx:afterSettle', updateSidebarPosition);
+        document.body.addEventListener('htmx:afterSettle', function(evt) {
+            if (evt && evt.target && evt.target.id === 'app-content') {
+                updateSidebarPosition();
+            }
+        });
+    })();
+
+    (function() {
+        const nav = document.querySelector('.settings-nav');
+        if (!nav) return;
+        nav.addEventListener('click', function(event) {
+            const link = event.target.closest('a[href]');
+            if (!link) return;
+            const href = link.getAttribute('href');
+            if (!href || href === '#') return;
+            if (!window.htmx) return;
+            const target = document.querySelector('#app-content');
+            if (!target) return;
+            event.preventDefault();
+            event.stopPropagation();
+            event.stopImmediatePropagation();
+            let url;
+            try {
+                url = new URL(href, window.location.origin);
+                url.protocol = window.location.protocol;
+                url.host = window.location.host;
+            } catch (e) {
+                url = href;
+            }
+            try {
+                window.htmx.ajax('GET', url.toString ? url.toString() : url, {
+                    target: '#app-content',
+                    swap: 'outerHTML',
+                    pushUrl: true
+                });
+            } catch (e) {
+                window.location.href = href;
+            }
+        });
+    })();
+</script>
+{% endblock %}

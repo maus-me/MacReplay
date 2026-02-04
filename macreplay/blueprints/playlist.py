@@ -28,17 +28,17 @@ def create_playlist_blueprint(
         cursor = conn.cursor()
 
         order_clause = ""
-        if getSettings().get("sort playlist by channel name", "true") == "true":
+        if getSettings().get("sort playlist by channel name", True):
             order_clause = (
                 "ORDER BY COALESCE(NULLIF(c.custom_name, ''), NULLIF(c.auto_name, ''), c.name)"
             )
-        elif getSettings().get("use channel numbers", "true") == "true":
-            if getSettings().get("sort playlist by channel number", "false") == "true":
+        elif getSettings().get("use channel numbers", True):
+            if getSettings().get("sort playlist by channel number", False):
                 order_clause = (
                     "ORDER BY CAST(COALESCE(NULLIF(c.custom_number, ''), c.number) AS INTEGER)"
                 )
-        elif getSettings().get("use channel genres", "true") == "true":
-            if getSettings().get("sort playlist by channel genre", "false") == "true":
+        elif getSettings().get("use channel genres", True):
+            if getSettings().get("sort playlist by channel genre", False):
                 order_clause = (
                     "ORDER BY COALESCE(NULLIF(c.custom_genre, ''), c.genre)"
                 )

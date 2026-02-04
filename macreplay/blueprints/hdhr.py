@@ -20,7 +20,7 @@ def create_hdhr_blueprint(
             username = settings["username"]
             password = settings["password"]
             hdhrenabled = settings["enable hdhr"]
-            if security == "false" or (
+            if not security or (
                 auth and auth.username == username and auth.password == password
             ):
                 if hdhrenabled:

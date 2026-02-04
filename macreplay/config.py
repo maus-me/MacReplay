@@ -36,6 +36,64 @@ _config_lock = threading.Lock()
 _lock_path = CONFIG_PATH + ".lock"
 
 
+def is_true(value):
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return False
+    if isinstance(value, (int, float)):
+        return value != 0
+    return str(value).lower() == "true"
+
+
+def _coerce_value(default, value):
+    if value is None:
+        return default
+    if isinstance(default, bool):
+        return is_true(value)
+    if isinstance(default, int) and not isinstance(default, bool):
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return default
+    if isinstance(default, float):
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return default
+    if isinstance(default, list):
+        if isinstance(value, list):
+            return value
+        if isinstance(value, str):
+            try:
+                parsed = json.loads(value)
+                return parsed if isinstance(parsed, list) else default
+            except Exception:
+                return default
+        return default
+    if isinstance(default, str):
+        return str(value)
+    return value
+
+
+def _coerce_settings(settings):
+    settings_out = {}
+    for setting, default in defaultSettings.items():
+        settings_out[setting] = _coerce_value(default, settings.get(setting))
+    return settings_out
+
+
+def _coerce_portals(portals):
+    portals_out = {}
+    for portal_id, pdata in portals.items():
+        portals_out[portal_id] = {}
+        for setting, default in defaultPortal.items():
+            portals_out[portal_id][setting] = _coerce_value(
+                default, pdata.get(setting)
+            )
+    return portals_out
+
+
 @contextmanager
 def _file_lock():
     """Best-effort cross-process lock using fcntl on Unix."""
@@ -58,28 +116,28 @@ defaultSettings = {
     "hls segment type": "mpegts",
     "hls segment duration": "4",
     "hls playlist size": "6",
-    "ffmpeg timeout": "5",
-    "epg refresh interval": "0.5",
-    "channel refresh interval": "24",
-    "epg future hours": "24",
-    "epg past hours": "2",
-    "epg custom sources": "[]",
-    "test streams": "true",
-    "try all macs": "true",
-    "parallel mac probing": "false",
-    "parallel mac workers": "3",
-    "use channel genres": "true",
-    "use channel numbers": "true",
-    "sort playlist by channel genre": "false",
-    "sort playlist by channel number": "true",
-    "sort playlist by channel name": "false",
-    "enable security": "false",
+    "ffmpeg timeout": 5,
+    "epg refresh interval": 0.5,
+    "channel refresh interval": 24,
+    "epg future hours": 24,
+    "epg past hours": 2,
+    "epg custom sources": [],
+    "test streams": True,
+    "try all macs": True,
+    "parallel mac probing": False,
+    "parallel mac workers": 3,
+    "use channel genres": True,
+    "use channel numbers": True,
+    "sort playlist by channel genre": False,
+    "sort playlist by channel number": True,
+    "sort playlist by channel name": False,
+    "enable security": False,
     "username": "admin",
     "password": "12345",
-    "enable hdhr": "true",
+    "enable hdhr": True,
     "hdhr name": "MacReplay",
     "hdhr id": str(uuid.uuid4().hex),
-    "hdhr tuners": "10",
+    "hdhr tuners": 10,
     "tag country codes": "AF,AL,ALB,AR,AT,AU,BE,BG,BR,CA,CH,CN,CZ,DE,DK,EE,ES,FI,FR,GR,HK,HR,HU,IE,IL,IN,IR,IS,IT,JO,JP,KR,KW,LAT,LB,LT,LU,LV,MA,MK,MO,MX,MXC,NL,NO,NZ,PL,PT,RO,RS,RU,SA,SE,SG,SI,SK,TR,UA,UK,US,USA",
     "tag resolution patterns": "8K=\\b(8K|4320P)\\b\nUHD=\\b(UHD|ULTRA|4K\\+?|2160P)\\b\nFHD=\\b(FHD|1080P)\\b\nHD=\\b(HD|720P)\\b\nSD=\\b(SD|576P|480P)\\b",
     "tag video codec patterns": "AV1=\\bAV1\\b\nVP9=\\bVP9\\b\nHEVC=\\b(HEVC|H\\.?265|H265)\\b\nH264=\\b(H\\.?264|H264|AVC)\\b\nMPEG2=\\bMPEG[- ]?2\\b",
@@ -87,29 +145,31 @@ defaultSettings = {
     "tag event patterns": "\\bPPV\\b\n\\bEVENT\\b\n\\bLIVE EVENT\\b\n\\bLIVE-EVENT\\b\n\\bNO EVENT\\b\n\\bNO EVENT STREAMING\\b\n\\bMATCH TIME\\b",
     "tag misc patterns": "(?<!\\b\\d\\s)\\bSAT(?![.\\s]*\\d)\\b\n\\bBAR\\b",
     "tag header patterns": "^\\s*([#*✦┃★]{2,})\\s*(.+?)\\s*\\1\\s*$",
-    "channelsdvr enabled": "false",
+    "channelsdvr enabled": False,
     "channelsdvr db path": "/app/data/channelidentifiarr.db",
-    "channelsdvr match threshold": "0.72",
-    "channelsdvr debug": "false",
-    "channelsdvr include lineup channels": "false",
-    "channelsdvr cache enabled": "true",
+    "channelsdvr match threshold": 0.72,
+    "channelsdvr debug": False,
+    "channelsdvr include lineup channels": False,
+    "channelsdvr cache enabled": True,
     "channelsdvr cache dir": "/app/data/channelsdvr_cache",
-    "auto group selection enabled": "false",
+    "auto group selection enabled": False,
     "auto group selection patterns": "",
+    "vacuum channels interval hours": 0,
+    "vacuum epg interval hours": 0,
 }
 
 defaultPortal = {
-    "enabled": "true",
+    "enabled": True,
     "name": "",
     "url": "",
     "macs": {},
-    "streams per mac": "1",
-    "epg offset": "0",
+    "streams per mac": 1,
+    "epg offset": 0,
     "proxy": "",
-    "fetch epg": "true",
+    "fetch epg": True,
     "selected_genres": [],  # Liste der Genre-IDs zum Importieren (leer = alle)
-    "auto normalize names": "false",
-    "auto match": "false",
+    "auto normalize names": False,
+    "auto match": False,
 }
 
 
@@ -145,28 +205,10 @@ def loadConfig():
     data.setdefault("settings", {})
 
     settings = data["settings"]
-    settingsOut = {}
-
-    for setting, default in defaultSettings.items():
-        value = settings.get(setting)
-        if value is None or type(default) != type(value):
-            value = default
-        settingsOut[setting] = value
-
-    data["settings"] = settingsOut
+    data["settings"] = _coerce_settings(settings)
 
     portals = data["portals"]
-    portalsOut = {}
-
-    for portal in portals:
-        portalsOut[portal] = {}
-        for setting, default in defaultPortal.items():
-            value = portals[portal].get(setting)
-            if value is None or type(default) != type(value):
-                value = default
-            portalsOut[portal][setting] = value
-
-    data["portals"] = portalsOut
+    data["portals"] = _coerce_portals(portals)
 
     with _file_lock():
         _write_config(data)
@@ -180,7 +222,7 @@ def getPortals():
 
 
 def savePortals(portals):
-    config["portals"] = portals
+    config["portals"] = _coerce_portals(portals)
     with _config_lock, _file_lock():
         _write_config(config)
 
@@ -190,6 +232,6 @@ def getSettings():
 
 
 def saveSettings(settings):
-    config["settings"] = settings
+    config["settings"] = _coerce_settings(settings)
     with _config_lock, _file_lock():
         _write_config(config)

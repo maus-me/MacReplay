@@ -232,23 +232,6 @@ def create_streaming_blueprint(
                 if not link:
                     return None
 
-                if getSettings().get("test streams", "true") != "false":
-                    timeout = int(getSettings()["ffmpeg timeout"]) * int(1000000)
-                    ffprobecmd = ["ffprobe", "-timeout", str(timeout), "-i", link]
-                    if proxy:
-                        ffprobecmd.insert(1, "-http_proxy")
-                        ffprobecmd.insert(2, proxy)
-
-                    with subprocess.Popen(
-                        ffprobecmd,
-                        stdin=subprocess.DEVNULL,
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.PIPE,
-                    ) as ffprobe_sb:
-                        ffprobe_sb.communicate()
-                        if ffprobe_sb.returncode != 0:
-                            return None
-
                 return {
                     "mac": mac_to_test,
                     "token": token,
@@ -263,7 +246,7 @@ def create_streaming_blueprint(
         result = None
         failed_macs = []
 
-        parallel_enabled = getSettings().get("parallel mac probing", "false") == "true"
+        parallel_enabled = getSettings().get("parallel mac probing", False)
         max_workers = int(getSettings().get("parallel mac workers", "3"))
 
         if parallel_enabled and len(macs) > 1:
@@ -298,7 +281,7 @@ def create_streaming_blueprint(
                     freeMac = True
                     break
                 failed_macs.append(mac)
-                if not getSettings().get("try all macs", "true") == "true":
+                if not getSettings().get("try all macs", True):
                     break
 
         for failed_mac in failed_macs:

@@ -14,7 +14,7 @@ def authorise(f):
         username = settings["username"]
         password = settings["password"]
         if (
-            security == "false"
+            not security
             or auth
             and auth.username == username
             and auth.password == password

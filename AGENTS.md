@@ -39,8 +39,20 @@ Guidance for AI coding agents working in this repository.
 - Logs: `docker-compose logs -f`
 
 ## QA / Smoke Tests
-- After significant refactors or infrastructure changes, run a quick Docker smoke test.
+- After significant refactors or infrastructure changes, run a quick Docker smoke test (app start only, no pytest).
 
 ## Testing Helpers
 - `create_app(test_config=...)` supports passing `TESTING=True`.
 - For in-memory SQLite in tests, set `DB_PATH` to `file:memdb1?mode=memory&cache=shared`.
+
+## UI Confirmations
+- Use the shared confirmation modal (like the editor `confirmModal` + `showConfirmDialog`) for all user confirmations.
+- Avoid browser-native `confirm(...)` dialogs in new or updated UI work.
+
+## HTMX Navigation
+- Prefer HTMX-powered navigation so pages do not fully reload.
+- When adding new navigation, ensure HTMX swaps `#app-content` and updates URL history.
+
+## Ideas Workflow
+- Capture improvement ideas in `docs/IDEAS.md`.
+- When implementing changes, check `docs/IDEAS.md` to see what can be integrated.

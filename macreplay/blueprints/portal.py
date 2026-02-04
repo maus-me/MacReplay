@@ -236,8 +236,8 @@ def create_portal_blueprint(
 
             match_started = False
             if (
-                getSettings().get("channelsdvr enabled", "false") == "true"
-                and portals.get(portal_id, {}).get("auto match", "false") == "true"
+                getSettings().get("channelsdvr enabled", False)
+                and portals.get(portal_id, {}).get("auto match", False)
             ):
                 match_started = True
 

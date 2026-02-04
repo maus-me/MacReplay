@@ -1,0 +1,45 @@
+{% extends "settings/layout.html" %}
+
+{% block settings_content %}
+<form method="POST" action="/settings/save">
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5><i class="fas fa-tv"></i> HDHomeRun Settings</h5>
+        </div>
+        <div class="card-body">
+            <input type="hidden" name="enable hdhr" value="false">
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="enable_hdhr" name="enable hdhr"
+                       value="true" {{ 'checked' if settings['enable hdhr'] }}>
+                <label class="form-check-label" for="enable_hdhr">
+                    Enable HDHomeRun emulation
+                </label>
+            </div>
+
+            <div class="mb-3">
+                <label for="hdhr_name" class="form-label">HDHomeRun Name</label>
+                <input type="text" class="form-control" id="hdhr_name" name="hdhr name"
+                       value="{{ settings['hdhr name'] }}" required>
+            </div>
+
+            <div class="mb-3">
+                <label for="hdhr_id" class="form-label">HDHomeRun Device ID</label>
+                <input type="text" class="form-control" id="hdhr_id" name="hdhr id"
+                       value="{{ settings['hdhr id'] }}" readonly>
+            </div>
+
+            <div class="mb-3">
+                <label for="hdhr_tuners" class="form-label">HDHomeRun Tuners</label>
+                <input type="number" class="form-control" id="hdhr_tuners" name="hdhr tuners"
+                       value="{{ settings['hdhr tuners'] }}" min="1" max="20">
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-end">
+        <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save"></i> Save Settings
+        </button>
+    </div>
+</form>
+{% endblock %}

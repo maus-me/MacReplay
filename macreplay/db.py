@@ -1,7 +1,7 @@
 import os
 import sqlite3
 
-from .config import DB_PATH
+from .config import DB_PATH, DATA_DIR
 
 
 def get_db_connection():
@@ -249,22 +249,28 @@ def init_db(get_portals, logger):
     conn.close()
 
 
-def cleanup_db(*, vacuum=False):
-    """Cleanup derived tag fields and optionally VACUUM/ANALYZE the DB."""
+def vacuum_channels_db():
+    """VACUUM the main channels database."""
     conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute(
-        """
-        UPDATE channels
-        SET video_codec = ''
-        """
-    )
-    updated = cursor.rowcount
-    conn.commit()
-
-    if vacuum:
-        conn.execute("ANALYZE")
-        conn.execute("VACUUM")
-
+    conn.execute("VACUUM")
     conn.close()
-    return {"updated": updated, "vacuumed": bool(vacuum)}
+
+
+def vacuum_epg_dbs():
+    """VACUUM all per-source EPG SQLite databases."""
+    epg_dir = os.path.join(DATA_DIR, "epg_sources")
+    if not os.path.isdir(epg_dir):
+        return 0
+    count = 0
+    for name in os.listdir(epg_dir):
+        if not name.endswith(".sqlite"):
+            continue
+        path = os.path.join(epg_dir, name)
+        try:
+            conn = sqlite3.connect(path)
+            conn.execute("VACUUM")
+            conn.close()
+            count += 1
+        except Exception:
+            continue
+    return count

@@ -1,10 +1,12 @@
 import os
+from urllib.parse import urlparse
+from urllib.request import Request, urlopen
+from urllib.error import URLError, HTTPError
 
 import flask
-from flask import Blueprint, jsonify, redirect, render_template, request
+from flask import Blueprint, Response, jsonify, redirect, render_template, request
 
 from ..config import DATA_DIR
-from ..db import cleanup_db
 from ..security import authorise
 
 
@@ -62,14 +64,6 @@ def create_misc_blueprint(*, LOG_DIR, occupied, refresh_custom_sources=None):
         except Exception as e:
             return flask.jsonify({"lines": [], "error": str(e)})
 
-    @bp.route("/api/db/cleanup", methods=["POST"])
-    @authorise
-    def db_cleanup():
-        payload = request.get_json(silent=True) or {}
-        vacuum = bool(payload.get("vacuum"))
-        result = cleanup_db(vacuum=vacuum)
-        return jsonify({"ok": True, "result": result})
-
     @bp.route("/api/epg/source/refresh", methods=["POST"])
     @authorise
     def epg_source_refresh():
@@ -95,6 +89,25 @@ def create_misc_blueprint(*, LOG_DIR, occupied, refresh_custom_sources=None):
 
         return jsonify({"ok": True})
 
+    @bp.route("/api/image-proxy")
+    @authorise
+    def image_proxy():
+        url = (request.args.get("url") or "").strip()
+        if not url:
+            return jsonify({"ok": False, "error": "missing url"}), 400
+        parsed = urlparse(url)
+        if parsed.scheme not in ("http", "https"):
+            return jsonify({"ok": False, "error": "invalid url"}), 400
+
+        try:
+            req = Request(url, headers={"User-Agent": "MacReplay"})
+            with urlopen(req, timeout=10) as resp:
+                content_type = resp.headers.get("Content-Type", "image/jpeg")
+                data = resp.read(2 * 1024 * 1024)
+            return Response(data, content_type=content_type)
+        except (HTTPError, URLError, OSError, ValueError):
+            return jsonify({"ok": False, "error": "fetch failed"}), 502
+
     @bp.route("/", methods=["GET"])
     def home():
         try:
@@ -109,7 +122,7 @@ def create_misc_blueprint(*, LOG_DIR, occupied, refresh_custom_sources=None):
         if path == "editor":
             return redirect("/api/editor", code=302)
         if path == "settings":
-            return redirect("/api/settings", code=302)
+            return redirect("/settings", code=302)
         if path == "dashboard":
             return redirect("/api/dashboard", code=302)
 

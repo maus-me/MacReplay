@@ -44,20 +44,13 @@ from macreplay.blueprints.playlist import create_playlist_blueprint
 from macreplay.blueprints.streaming import create_streaming_blueprint
 from macreplay.services.jobs import JobManager
 from macreplay.logging_setup import setup_logging
-from macreplay.bootstrap import start_runtime
-from macreplay.runtime_state import (
-    RuntimeState,
-    SchedulerState,
-    SettingsState,
-    EpgState,
-    PortalState,
-    EditorState,
-    MiscState,
-    HdhrState,
-    PlaylistState,
-    StreamingState,
+from macreplay.bootstrap import build_runtime_state, start_runtime
+from macreplay.services.scheduler import (
+    start_epg_scheduler,
+    start_channel_scheduler,
+    start_vacuum_channels_scheduler,
+    start_vacuum_epg_scheduler,
 )
-from macreplay.services.scheduler import start_epg_scheduler, start_channel_scheduler
 logger = setup_logging(LOG_DIR)
 
 # Group filter: include ungrouped channels only when no groups are active for a portal.
@@ -313,10 +306,36 @@ def _open_epg_source_db(source_id):
             start_ts INTEGER,
             stop_ts INTEGER,
             title TEXT,
-            description TEXT
+            description TEXT,
+            sub_title TEXT,
+            categories TEXT,
+            episode_num TEXT,
+            episode_system TEXT,
+            rating TEXT,
+            programme_icon TEXT,
+            air_date TEXT,
+            previously_shown INTEGER,
+            series_id TEXT,
+            extra_json TEXT
         )
         """
     )
+    for column, col_type in [
+        ("sub_title", "TEXT"),
+        ("categories", "TEXT"),
+        ("episode_num", "TEXT"),
+        ("episode_system", "TEXT"),
+        ("rating", "TEXT"),
+        ("programme_icon", "TEXT"),
+        ("air_date", "TEXT"),
+        ("previously_shown", "INTEGER"),
+        ("series_id", "TEXT"),
+        ("extra_json", "TEXT"),
+    ]:
+        try:
+            cursor.execute(f"ALTER TABLE epg_programmes ADD COLUMN {column} {col_type}")
+        except sqlite3.OperationalError:
+            pass
     cursor.execute(
         "CREATE INDEX IF NOT EXISTS idx_epg_programmes_channel ON epg_programmes(channel_id)"
     )
@@ -702,6 +721,16 @@ def _store_portal_epg_to_db(
                     stop_ts,
                     p.get("name") or display_name or "",
                     p.get("descr") or "",
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
                 )
             )
 
@@ -715,8 +744,12 @@ def _store_portal_epg_to_db(
     if programme_rows:
         cursor.executemany(
             """
-            INSERT INTO epg_programmes (channel_id, start, stop, start_ts, stop_ts, title, description)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO epg_programmes (
+                channel_id, start, stop, start_ts, stop_ts, title, description,
+                sub_title, categories, episode_num, episode_system, rating,
+                programme_icon, air_date, previously_shown, series_id, extra_json
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             programme_rows,
         )
@@ -811,7 +844,7 @@ def refresh_custom_sources(source_ids=None):
     if source_ids:
         source_ids = {s for s in source_ids if s}
         sources = [s for s in sources if s.get("id") in source_ids]
-    sources = [s for s in sources if s.get("enabled") not in [False, "false"]]
+    sources = [s for s in sources if s.get("enabled", True)]
 
     if not sources:
         return False
@@ -907,16 +940,89 @@ def refresh_custom_sources(source_ids=None):
                         elem.clear()
                         continue
                     title = elem.findtext("title") or ""
+                    sub_title = elem.findtext("sub-title") or ""
                     desc = elem.findtext("desc") or ""
+                    categories = [
+                        c.text.strip()
+                        for c in elem.findall("category")
+                        if c.text and c.text.strip()
+                    ]
+                    episode_num = ""
+                    episode_system = ""
+                    episode_elems = elem.findall("episode-num")
+                    if episode_elems:
+                        episode_elem = episode_elems[0]
+                        episode_num = (episode_elem.text or "").strip()
+                        episode_system = (episode_elem.get("system") or "").strip()
+                    rating = ""
+                    rating_elem = elem.find("rating/value")
+                    if rating_elem is None:
+                        rating_elem = elem.find("rating")
+                    if rating_elem is not None and rating_elem.text:
+                        rating = rating_elem.text.strip()
+                    icon_elem = elem.find("icon")
+                    programme_icon = icon_elem.get("src") if icon_elem is not None else ""
+                    air_date = (elem.findtext("date") or "").strip()
+                    previously_shown = None
+                    if elem.find("previously-shown") is not None:
+                        previously_shown = 1
+                    elif elem.find("new") is not None:
+                        previously_shown = 0
+                    series_id = (elem.findtext("series-id") or "").strip()
+                    extras = {}
+                    for child in list(elem):
+                        tag = child.tag
+                        entry = {
+                            "text": (child.text or "").strip(),
+                            "attrib": dict(child.attrib) if child.attrib else {},
+                        }
+                        if list(child):
+                            entry["children"] = [
+                                {
+                                    "tag": c.tag,
+                                    "text": (c.text or "").strip(),
+                                    "attrib": dict(c.attrib) if c.attrib else {},
+                                }
+                                for c in list(child)
+                            ]
+                        if tag in extras:
+                            if isinstance(extras[tag], list):
+                                extras[tag].append(entry)
+                            else:
+                                extras[tag] = [extras[tag], entry]
+                        else:
+                            extras[tag] = entry
                     programme_rows.append(
-                        (channel_attr, start_attr, stop_attr, start_ts, stop_ts, title, desc)
+                        (
+                            channel_attr,
+                            start_attr,
+                            stop_attr,
+                            start_ts,
+                            stop_ts,
+                            title,
+                            desc,
+                            sub_title or None,
+                            json.dumps(categories) if categories else None,
+                            episode_num or None,
+                            episode_system or None,
+                            rating or None,
+                            programme_icon or None,
+                            air_date or None,
+                            previously_shown,
+                            series_id or None,
+                            json.dumps(extras) if extras else None,
+                        )
                     )
                     if len(programme_rows) >= 500:
                         cursor.executemany(
                             """
                             INSERT INTO epg_programmes
-                            (channel_id, start, stop, start_ts, stop_ts, title, description)
-                            VALUES (?, ?, ?, ?, ?, ?, ?)
+                            (
+                                channel_id, start, stop, start_ts, stop_ts, title, description,
+                                sub_title, categories, episode_num, episode_system, rating,
+                                programme_icon, air_date, previously_shown, series_id, extra_json
+                            )
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                             """,
                             programme_rows,
                         )
@@ -928,8 +1034,12 @@ def refresh_custom_sources(source_ids=None):
                 cursor.executemany(
                     """
                     INSERT INTO epg_programmes
-                    (channel_id, start, stop, start_ts, stop_ts, title, description)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    (
+                        channel_id, start, stop, start_ts, stop_ts, title, description,
+                        sub_title, categories, episode_num, episode_system, rating,
+                        programme_icon, air_date, previously_shown, series_id, extra_json
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     programme_rows,
                 )
@@ -1085,7 +1195,7 @@ def _write_partial_epg_cache(
             out.write(_format_start_tag(root_tag, root_attrib))
 
         for source in custom_sources:
-            if source.get("enabled") in [False, "false"]:
+            if not source.get("enabled", True):
                 continue
 
             source_label = source.get("name") or source.get("url") or source.get("id") or "custom"
@@ -1668,7 +1778,7 @@ def get_channelsdvr_cache_for_country(country, db_path, include_lineup_channels=
             return channelsdvr_cache[cache_key]
 
     settings = getSettings()
-    cache_enabled = settings.get("channelsdvr cache enabled", "true") == "true"
+    cache_enabled = settings.get("channelsdvr cache enabled", True)
     cache_dir = settings.get("channelsdvr cache dir", "").strip()
     country_iso3 = normalize_market_country(country)
     if cache_enabled and cache_dir:
@@ -1712,7 +1822,7 @@ def get_channelsdvr_cache_for_country(country, db_path, include_lineup_channels=
 def match_channelsdvr_name(raw_name, country, settings):
     if not raw_name or not country:
         return {}
-    if settings.get("channelsdvr enabled", "false") != "true":
+    if not settings.get("channelsdvr enabled", False):
         return {}
     db_path = settings.get("channelsdvr db path", "").strip()
     if not db_path or not os.path.exists(db_path):
@@ -1721,7 +1831,7 @@ def match_channelsdvr_name(raw_name, country, settings):
         threshold = float(settings.get("channelsdvr match threshold", "0.72"))
     except ValueError:
         threshold = 0.72
-    include_lineup_channels = settings.get("channelsdvr include lineup channels", "false") == "true"
+    include_lineup_channels = settings.get("channelsdvr include lineup channels", False)
 
     norm = normalize_match_name(raw_name)
     if not norm:
@@ -1736,7 +1846,7 @@ def match_channelsdvr_name(raw_name, country, settings):
     cache_entry = get_channelsdvr_cache_for_country(country, db_path, include_lineup_channels)
     exact = cache_entry["exact"]
     if norm in exact:
-        if settings.get("channelsdvr debug", "false") == "true":
+        if settings.get("channelsdvr debug", False):
             logger.info(f"ChannelsDVR match (exact): {raw_name} -> {exact[norm].get('name')}")
         record = dict(exact[norm])
         record["score"] = 1.0
@@ -1765,12 +1875,12 @@ def match_channelsdvr_name(raw_name, country, settings):
             best_record = record
 
     if best_score >= threshold:
-        if settings.get("channelsdvr debug", "false") == "true":
+        if settings.get("channelsdvr debug", False):
             logger.info(f"ChannelsDVR match ({best_score:.2f}): {raw_name} -> {best_record.get('name')}")
         record = dict(best_record)
         record["score"] = best_score
         return record
-    if settings.get("channelsdvr debug", "false") == "true":
+    if settings.get("channelsdvr debug", False):
         logger.info(
             f"ChannelsDVR no match ({best_score:.2f}): {raw_name} (country {country} -> {country_iso3})"
         )
@@ -1780,7 +1890,7 @@ def match_channelsdvr_name(raw_name, country, settings):
 def suggest_channelsdvr_matches(raw_name, country, settings, limit=8):
     if not raw_name or not country:
         return []
-    if settings.get("channelsdvr enabled", "false") != "true":
+    if not settings.get("channelsdvr enabled", False):
         return []
     db_path = settings.get("channelsdvr db path", "").strip()
     if not db_path or not os.path.exists(db_path):
@@ -1789,7 +1899,7 @@ def suggest_channelsdvr_matches(raw_name, country, settings, limit=8):
         threshold = float(settings.get("channelsdvr match threshold", "0.72"))
     except ValueError:
         threshold = 0.72
-    include_lineup_channels = settings.get("channelsdvr include lineup channels", "false") == "true"
+    include_lineup_channels = settings.get("channelsdvr include lineup channels", False)
 
     norm = normalize_match_name(raw_name)
     if not norm:
@@ -1900,12 +2010,12 @@ def build_tag_config(settings):
 
 def run_portal_matching(portal_id):
     settings = getSettings()
-    if settings.get("channelsdvr enabled", "false") != "true":
+    if not settings.get("channelsdvr enabled", False):
         return 0
 
     portals = getPortals()
     portal = portals.get(portal_id)
-    if not portal or portal.get("auto match", "false") != "true":
+    if not portal or not portal.get("auto match", False):
         return 0
 
     tag_config = build_tag_config(settings)
@@ -2809,7 +2919,7 @@ def refresh_channels_cache(target_portal_id=None):
     for portal_id, portal in portals.items():
         if target_portal_id and portal_id != target_portal_id:
             continue
-        if portal["enabled"] == "true":
+        if portal.get("enabled", True):
             portal_ids.append(portal_id)
 
     results = []
@@ -2838,7 +2948,7 @@ def refresh_channels_cache(target_portal_id=None):
         portal_name = result["portal_name"]
         channels_by_id = result["channels_by_id"]
         all_genres = result["all_genres"]
-        portal_auto_normalize = portal.get("auto normalize names", "false") == "true"
+        portal_auto_normalize = portal.get("auto normalize names", False)
         active_genres = set()
         try:
             cursor.execute("SELECT genre_id FROM groups WHERE portal_id = ? AND active = 1", (portal_id,))
@@ -3115,7 +3225,7 @@ def refresh_channels_cache(target_portal_id=None):
 
             # Auto-select groups based on settings (only if no active groups set yet)
             settings = getSettings()
-            auto_group_enabled = settings.get("auto group selection enabled", "false") == "true"
+            auto_group_enabled = settings.get("auto group selection enabled", False)
             auto_group_patterns = parse_group_selection_patterns(settings.get("auto group selection patterns", ""))
             if auto_group_enabled and auto_group_patterns and not active_genres:
                 matched_genres = []
@@ -3261,11 +3371,11 @@ def refresh_xmltv():
             continue
 
         portal = portals[portal_id]
-        if portal["enabled"] != "true":
+        if not portal.get("enabled", True):
             continue
 
         portal_name = portal["name"]
-        fetch_epg = portal.get("fetch epg", "true") == "true"
+        fetch_epg = portal.get("fetch epg", True)
         portal_epg_offset = int(portal.get("epg offset", 0))
 
         logger.info(
@@ -3354,7 +3464,7 @@ def refresh_xmltv_for_portal(portal_id):
         return True
 
     portal_name = portal.get("name", portal_id)
-    fetch_epg = portal.get("fetch epg", "true") == "true"
+    fetch_epg = portal.get("fetch epg", True)
     portal_epg_offset = int(portal.get("epg offset", 0))
     url = portal.get("url", "")
     macs = list(portal.get("macs", {}).keys())
@@ -3480,107 +3590,56 @@ job_manager = JobManager(
     effective_epg_name=effective_epg_name,
 )
 
-runtime_state = RuntimeState(
+runtime_state = build_runtime_state(
     logger=logger,
     job_manager=job_manager,
-    scheduler=SchedulerState(
-        logger=logger,
-        job_manager=job_manager,
-        get_epg_refresh_interval=get_epg_refresh_interval,
-        get_channel_refresh_interval=get_channel_refresh_interval,
-    ),
-    settings=SettingsState(
-        create_settings_blueprint=create_settings_blueprint,
-        enqueue_epg_refresh=job_manager.enqueue_epg_refresh,
-    ),
-    epg=EpgState(
-        create_epg_blueprint=create_epg_blueprint,
-        refresh_xmltv=refresh_xmltv,
-        refresh_xmltv_for_epg_ids=refresh_xmltv_for_epg_ids,
-        enqueue_epg_refresh=job_manager.enqueue_epg_refresh,
-        get_cached_xmltv=lambda: cached_xmltv,
-        get_last_updated=lambda: last_updated,
-        get_epg_refresh_status=lambda: epg_refresh_status,
-        logger=logger,
-        getPortals=getPortals,
-        get_db_connection=get_db_connection,
-        effective_epg_name=effective_epg_name,
-        getSettings=getSettings,
-        open_epg_source_db=_open_epg_source_db,
-    ),
-    portal=PortalState(
-        create_portal_blueprint=create_portal_blueprint,
-        logger=logger,
-        getPortals=getPortals,
-        savePortals=savePortals,
-        getSettings=getSettings,
-        get_db_connection=get_db_connection,
-        ACTIVE_GROUP_CONDITION=ACTIVE_GROUP_CONDITION,
-        channelsdvr_match_status=channelsdvr_match_status,
-        channelsdvr_match_status_lock=channelsdvr_match_status_lock,
-        normalize_mac_data=normalize_mac_data,
-        job_manager=job_manager,
-        defaultPortal=defaultPortal,
-        DB_PATH=DB_PATH,
-        set_cached_xmltv=_set_cached_xmltv,
-        filter_cache=filter_cache,
-    ),
-    editor=EditorState(
-        create_editor_blueprint=create_editor_blueprint,
-        logger=logger,
-        get_db_connection=get_db_connection,
-        ACTIVE_GROUP_CONDITION=ACTIVE_GROUP_CONDITION,
-        get_cached_xmltv=lambda: cached_xmltv,
-        get_epg_channel_ids=_get_epg_channel_ids,
-        get_epg_channel_map=_get_epg_channel_map,
-        getSettings=getSettings,
-        suggest_channelsdvr_matches=suggest_channelsdvr_matches,
-        host=host,
-        refresh_epg_for_ids=refresh_xmltv_for_epg_ids,
-        refresh_lineup=refresh_lineup,
-        enqueue_refresh_all=job_manager.enqueue_refresh_all,
-        set_last_playlist_host=_set_last_playlist_host,
-        filter_cache=filter_cache,
-        effective_epg_name=effective_epg_name,
-    ),
-    misc=MiscState(
-        create_misc_blueprint=create_misc_blueprint,
-        LOG_DIR=LOG_DIR,
-        occupied=occupied,
-        refresh_custom_sources=refresh_custom_sources,
-    ),
-    hdhr=HdhrState(
-        create_hdhr_blueprint=create_hdhr_blueprint,
-        host=host,
-        getSettings=getSettings,
-        refresh_lineup=refresh_lineup,
-        get_cached_lineup=_get_cached_lineup,
-    ),
-    playlist=PlaylistState(
-        create_playlist_blueprint=create_playlist_blueprint,
-        logger=logger,
-        host=host,
-        getSettings=getSettings,
-        get_db_connection=get_db_connection,
-        ACTIVE_GROUP_CONDITION=ACTIVE_GROUP_CONDITION,
-        effective_display_name=effective_display_name,
-        effective_epg_name=effective_epg_name,
-        get_cached_playlist=_get_cached_playlist,
-        set_cached_playlist=_set_cached_playlist,
-        get_last_playlist_host=_get_last_playlist_host,
-        set_last_playlist_host=_set_last_playlist_host,
-    ),
-    streaming=StreamingState(
-        create_streaming_blueprint=create_streaming_blueprint,
-        logger=logger,
-        getPortals=getPortals,
-        getSettings=getSettings,
-        get_db_connection=get_db_connection,
-        moveMac=moveMac,
-        score_mac_for_selection=score_mac_for_selection,
-        occupied=occupied,
-        hls_manager=hls_manager,
-    ),
+    get_epg_refresh_interval=get_epg_refresh_interval,
+    get_channel_refresh_interval=get_channel_refresh_interval,
+    create_settings_blueprint=create_settings_blueprint,
+    create_epg_blueprint=create_epg_blueprint,
+    create_portal_blueprint=create_portal_blueprint,
+    create_editor_blueprint=create_editor_blueprint,
+    create_misc_blueprint=create_misc_blueprint,
+    create_hdhr_blueprint=create_hdhr_blueprint,
+    create_playlist_blueprint=create_playlist_blueprint,
+    create_streaming_blueprint=create_streaming_blueprint,
+    refresh_xmltv=refresh_xmltv,
+    refresh_xmltv_for_epg_ids=refresh_xmltv_for_epg_ids,
+    refresh_xmltv_for_portal=refresh_xmltv_for_portal,
+    get_cached_xmltv=lambda: cached_xmltv,
+    get_last_updated=lambda: last_updated,
+    get_epg_refresh_status=lambda: epg_refresh_status,
+    getPortals=getPortals,
+    get_db_connection=get_db_connection,
+    effective_epg_name=effective_epg_name,
+    getSettings=getSettings,
+    open_epg_source_db=_open_epg_source_db,
+    savePortals=savePortals,
+    ACTIVE_GROUP_CONDITION=ACTIVE_GROUP_CONDITION,
+    channelsdvr_match_status=channelsdvr_match_status,
+    channelsdvr_match_status_lock=channelsdvr_match_status_lock,
+    normalize_mac_data=normalize_mac_data,
+    defaultPortal=defaultPortal,
+    DB_PATH=DB_PATH,
+    set_cached_xmltv=_set_cached_xmltv,
+    filter_cache=filter_cache,
+    get_epg_channel_ids=_get_epg_channel_ids,
+    get_epg_channel_map=_get_epg_channel_map,
+    suggest_channelsdvr_matches=suggest_channelsdvr_matches,
+    host=host,
+    refresh_lineup=refresh_lineup,
+    set_last_playlist_host=_set_last_playlist_host,
+    refresh_custom_sources=refresh_custom_sources,
+    LOG_DIR=LOG_DIR,
+    occupied=occupied,
+    get_cached_lineup=_get_cached_lineup,
+    effective_display_name=effective_display_name,
+    get_cached_playlist=_get_cached_playlist,
+    set_cached_playlist=_set_cached_playlist,
+    get_last_playlist_host=_get_last_playlist_host,
+    moveMac=moveMac,
+    score_mac_for_selection=score_mac_for_selection,
+    hls_manager=hls_manager,
 )
 
 app = create_app(state=runtime_state)
@@ -3628,6 +3687,10 @@ def start_refresh():
 
     # Start the channel background scheduler
     start_channel_scheduler(runtime_state)
+
+    # Start vacuum schedulers
+    start_vacuum_channels_scheduler(getSettings=getSettings, logger=logger)
+    start_vacuum_epg_scheduler(getSettings=getSettings, logger=logger)
 
 
 if __name__ == "__main__":
