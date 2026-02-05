@@ -78,6 +78,7 @@ class MiscState:
     LOG_DIR: str
     occupied: Any
     refresh_custom_sources: Callable[..., Any]
+    get_epg_source_status: Callable[..., Any]
 
 
 @dataclass

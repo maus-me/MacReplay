@@ -121,6 +121,7 @@
 
         let epgSources = [];
         let modal = null;
+        const statusPollers = new Map();
 
         function loadSources() {
             try {
@@ -174,9 +175,15 @@
                 return;
             }
 
+            statusPollers.forEach(function(poller, id) {
+                clearInterval(poller.timer);
+                statusPollers.delete(id);
+            });
+
             epgSources.forEach(function(source) {
                 const row = document.createElement('div');
                 row.className = 'epg-source-row';
+                row.dataset.sourceId = source.id;
                 row.innerHTML = `
                     <div class="epg-source-main">
                         <div class="epg-source-title">${source.name || 'Unnamed Source'}</div>
@@ -184,6 +191,7 @@
                             <span>${source.url || 'No URL'}</span>
                             <span>· ${source.interval || 24}h</span>
                         </div>
+                        <div class="epg-source-status text-muted small" data-role="status">Ready</div>
                     </div>
                     <div class="epg-source-actions">
                         <div class="form-check form-switch">
@@ -227,6 +235,7 @@
                 });
 
                 list.appendChild(row);
+                pollSourceStatus(source.id);
             });
         }
 
@@ -277,6 +286,7 @@
 
         function refreshSource(id) {
             if (!id) return;
+            setSourceStatus(id, 'Starting...', 'working');
             fetch('/api/epg/source/refresh', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -285,20 +295,95 @@
                 .then(function(resp) { return resp.json(); })
                 .then(function(data) {
                     if (data && data.ok) {
+                        setSourceStatus(id, 'Queued...', 'working');
+                        pollSourceStatus(id);
                         if (typeof showToast === 'function') {
                             showToast('EPG source refresh started.', 'info');
                         }
                     } else {
+                        setSourceStatus(id, 'Failed', 'error');
                         if (typeof showToast === 'function') {
                             showToast('EPG source refresh failed.', 'error');
                         }
                     }
                 })
                 .catch(function() {
+                    setSourceStatus(id, 'Failed', 'error');
                     if (typeof showToast === 'function') {
                         showToast('EPG source refresh failed.', 'error');
                     }
                 });
+        }
+
+        function pollSourceStatus(id) {
+            if (!id) return;
+            if (statusPollers.has(id)) {
+                clearInterval(statusPollers.get(id).timer);
+                statusPollers.delete(id);
+            }
+            const startedAt = Date.now();
+            const poll = function() {
+                fetch('/api/epg/source/status?id=' + encodeURIComponent(id))
+                    .then(function(resp) { return resp.json(); })
+                    .then(function(data) {
+                        if (!data || !data.ok) return;
+                        const status = data.status || 'unknown';
+                        const detail = data.detail || '';
+                        let label = 'Working...';
+                        let state = 'working';
+                        if (status === 'downloading') {
+                            label = 'Downloading...';
+                        } else if (status === 'parsing') {
+                            label = 'Parsing...';
+                        } else if (status === 'ready') {
+                            label = 'Ready';
+                            state = 'ok';
+                        } else if (status === 'failed') {
+                            label = 'Failed';
+                            state = 'error';
+                        } else {
+                            label = 'Queued...';
+                        }
+                        if (detail && status !== 'ready') {
+                            label = label + ' · ' + detail;
+                        }
+                        setSourceStatus(id, label, state);
+                        if (status === 'ready' || status === 'failed') {
+                            stopPoller(id);
+                        }
+                    })
+                    .catch(function() {});
+                if (Date.now() - startedAt > 10 * 60 * 1000) {
+                    stopPoller(id);
+                }
+            };
+            poll();
+            const timer = setInterval(poll, 2000);
+            statusPollers.set(id, { timer: timer, startedAt: startedAt });
+        }
+
+        function stopPoller(id) {
+            if (!statusPollers.has(id)) return;
+            clearInterval(statusPollers.get(id).timer);
+            statusPollers.delete(id);
+        }
+
+        function setSourceStatus(id, text, state) {
+            const row = list.querySelector(`[data-source-id="${id}"]`);
+            if (!row) return;
+            const statusEl = row.querySelector('[data-role="status"]');
+            if (!statusEl) return;
+            statusEl.textContent = text;
+            statusEl.classList.remove('text-muted', 'text-success', 'text-danger', 'text-warning', 'text-info');
+            if (state === 'ok') {
+                statusEl.classList.add('text-success');
+            } else if (state === 'error') {
+                statusEl.classList.add('text-danger');
+            } else if (state === 'working') {
+                statusEl.classList.add('text-warning');
+            } else {
+                statusEl.classList.add('text-muted');
+            }
         }
 
         loadSources();

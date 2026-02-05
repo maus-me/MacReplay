@@ -12,7 +12,12 @@ import hashlib
 from urllib.request import Request, urlopen
 from urllib.error import URLError, HTTPError
 from datetime import datetime, timedelta, timezone
-import xml.etree.ElementTree as ET
+try:
+    import lxml.etree as ET
+    LXML_AVAILABLE = True
+except ImportError:
+    import xml.etree.ElementTree as ET
+    LXML_AVAILABLE = False
 import threading
 from collections import deque
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -135,6 +140,9 @@ epg_refresh_status = {
     "last_error": None
 }
 
+epg_source_status = {}
+epg_source_status_lock = threading.Lock()
+
 # Bind settings (container internal)
 BIND_HOST = os.getenv("BIND_HOST", "0.0.0.0")
 PORT = int(os.getenv("PORT", "8001"))
@@ -203,6 +211,28 @@ def _set_epg_channel_map(mapping):
 def _get_epg_channel_map():
     with epg_channel_map_lock:
         return dict(epg_channel_map)
+
+
+def _set_epg_source_status(source_id, status, detail=None):
+    if not source_id:
+        return
+    entry = {
+        "status": status,
+        "detail": detail,
+        "updated_at": datetime.utcnow().isoformat(),
+    }
+    with epg_source_status_lock:
+        epg_source_status[source_id] = entry
+
+
+def get_epg_source_status(source_id):
+    if not source_id:
+        return {"status": "unknown", "detail": None, "updated_at": None}
+    with epg_source_status_lock:
+        entry = epg_source_status.get(source_id)
+    if not entry:
+        return {"status": "unknown", "detail": None, "updated_at": None}
+    return dict(entry)
 
 
 def _parse_epg_channel_ids(xmltv):
@@ -789,7 +819,7 @@ def _read_custom_xmltv_from_cache(source):
         return None
 
 
-def _fetch_custom_xmltv(source, logger):
+def _fetch_custom_xmltv(source, logger, progress_cb=None):
     url = (source.get("url") or "").strip()
     if not url:
         return None
@@ -815,6 +845,8 @@ def _fetch_custom_xmltv(source, logger):
 
     if use_cache:
         try:
+            if progress_cb:
+                progress_cb(None)
             return _read_custom_xmltv_from_cache(source)
         except Exception:
             return None
@@ -822,7 +854,26 @@ def _fetch_custom_xmltv(source, logger):
     try:
         req = Request(url, headers={"User-Agent": "MacReplay"})
         with urlopen(req, timeout=20) as resp:
-            data = resp.read()
+            content_length = resp.headers.get("Content-Length")
+            total_size = None
+            if content_length:
+                try:
+                    total_size = int(content_length)
+                except ValueError:
+                    total_size = None
+            chunks = []
+            bytes_read = 0
+            while True:
+                chunk = resp.read(1024 * 64)
+                if not chunk:
+                    break
+                chunks.append(chunk)
+                bytes_read += len(chunk)
+                if progress_cb:
+                    progress_cb(
+                        int((bytes_read / total_size) * 100) if total_size else None
+                    )
+            data = b"".join(chunks)
         if url.endswith(".gz") or data[:2] == b"\x1f\x8b":
             data = gzip.decompress(data)
         xml_text = data.decode("utf-8", errors="replace")
@@ -865,9 +916,19 @@ def refresh_custom_sources(source_ids=None):
         source_label = source.get("name") or url or source_id or "custom"
         interval_hours = source.get("interval", source.get("interval_hours", 24))
 
-        xml_text = _fetch_custom_xmltv(source, logger)
+        _set_epg_source_status(source_id, "downloading", "Downloading...")
+
+        def _download_progress(pct):
+            if pct is None:
+                detail = "Downloading..."
+            else:
+                detail = f"Downloading {pct}%"
+            _set_epg_source_status(source_id, "downloading", detail)
+
+        xml_text = _fetch_custom_xmltv(source, logger, progress_cb=_download_progress)
         cache_path, meta_path = _resolve_custom_source_cache(source)
         if not xml_text or not cache_path:
+            _set_epg_source_status(source_id, "failed", "Download failed")
             continue
 
         last_fetch = None
@@ -893,142 +954,186 @@ def refresh_custom_sources(source_ids=None):
         programme_rows = []
         source_db = _open_epg_source_db(source_id)
         if not source_db:
+            _set_epg_source_status(source_id, "failed", "Source DB unavailable")
             continue
+        _set_epg_source_status(source_id, "parsing", "Parsing...")
+        parse_ok = False
         try:
             cursor = source_db.cursor()
+            cursor.execute("PRAGMA journal_mode=WAL")
+            cursor.execute("PRAGMA synchronous=NORMAL")
+            cursor.execute("PRAGMA temp_store=MEMORY")
             cursor.execute("DELETE FROM epg_programmes")
             source_db.commit()
 
-            for _, elem in ET.iterparse(cache_path, events=("end",)):
-                if elem.tag == "channel":
-                    cid = (elem.get("id") or "").strip()
-                    if not cid:
-                        elem.clear()
-                        continue
-                    display_names = [dn.text.strip() for dn in elem.findall("display-name") if dn.text]
-                    display_name = display_names[0] if display_names else cid
-                    icon = None
-                    icon_elem = elem.find("icon")
-                    if icon_elem is not None and icon_elem.get("src"):
-                        icon = icon_elem.get("src")
-                    lcn = elem.findtext("lcn")
-                    channels.append(
-                        {
-                            "channel_id": cid,
-                            "display_name": display_name,
-                            "icon": icon,
-                            "lcn": lcn,
-                            "names": display_names,
-                        }
-                    )
-                    elem.clear()
-                    continue
+            file_size = None
+            try:
+                file_size = os.path.getsize(cache_path)
+            except OSError:
+                file_size = None
 
-                if elem.tag == "programme":
-                    channel_attr = (elem.get("channel") or "").strip()
-                    if not channel_attr:
+            class _ProgressReader:
+                def __init__(self, fp):
+                    self.fp = fp
+                    self.bytes_read = 0
+
+                def read(self, size=-1):
+                    chunk = self.fp.read(size)
+                    if chunk:
+                        self.bytes_read += len(chunk)
+                    return chunk
+
+            last_update = 0.0
+            last_pct = -1
+
+            def _maybe_update_progress(reader):
+                nonlocal last_update, last_pct
+                if not file_size:
+                    return
+                pct = int((reader.bytes_read / file_size) * 100)
+                now = time.time()
+                if pct <= last_pct and now - last_update < 0.5:
+                    return
+                last_pct = pct
+                last_update = now
+                _set_epg_source_status(source_id, "parsing", f"Parsing {pct}%")
+
+            batch_size = 1000
+            if file_size and file_size > 50 * 1024 * 1024:
+                batch_size = 2000
+            with open(cache_path, "rb") as fp:
+                reader = _ProgressReader(fp)
+                for _, elem in ET.iterparse(reader, events=("end",)):
+                    _maybe_update_progress(reader)
+                    if elem.tag == "channel":
+                        cid = (elem.get("id") or "").strip()
+                        if not cid:
+                            elem.clear()
+                            continue
+                        display_names = [dn.text.strip() for dn in elem.findall("display-name") if dn.text]
+                        display_name = display_names[0] if display_names else cid
+                        icon = None
+                        icon_elem = elem.find("icon")
+                        if icon_elem is not None and icon_elem.get("src"):
+                            icon = icon_elem.get("src")
+                        lcn = elem.findtext("lcn")
+                        channels.append(
+                            {
+                                "channel_id": cid,
+                                "display_name": display_name,
+                                "icon": icon,
+                                "lcn": lcn,
+                                "names": display_names,
+                            }
+                        )
                         elem.clear()
                         continue
-                    start_attr = elem.get("start")
-                    stop_attr = elem.get("stop")
-                    start_ts = _parse_xmltv_time_to_epoch(start_attr)
-                    stop_ts = _parse_xmltv_time_to_epoch(stop_attr)
-                    if stop_ts is not None and stop_ts < past_cutoff:
-                        elem.clear()
-                        continue
-                    if start_ts is not None and start_ts > future_cutoff:
-                        elem.clear()
-                        continue
-                    title = elem.findtext("title") or ""
-                    sub_title = elem.findtext("sub-title") or ""
-                    desc = elem.findtext("desc") or ""
-                    categories = [
-                        c.text.strip()
-                        for c in elem.findall("category")
-                        if c.text and c.text.strip()
-                    ]
-                    episode_num = ""
-                    episode_system = ""
-                    episode_elems = elem.findall("episode-num")
-                    if episode_elems:
-                        episode_elem = episode_elems[0]
-                        episode_num = (episode_elem.text or "").strip()
-                        episode_system = (episode_elem.get("system") or "").strip()
-                    rating = ""
-                    rating_elem = elem.find("rating/value")
-                    if rating_elem is None:
-                        rating_elem = elem.find("rating")
-                    if rating_elem is not None and rating_elem.text:
-                        rating = rating_elem.text.strip()
-                    icon_elem = elem.find("icon")
-                    programme_icon = icon_elem.get("src") if icon_elem is not None else ""
-                    air_date = (elem.findtext("date") or "").strip()
-                    previously_shown = None
-                    if elem.find("previously-shown") is not None:
-                        previously_shown = 1
-                    elif elem.find("new") is not None:
-                        previously_shown = 0
-                    series_id = (elem.findtext("series-id") or "").strip()
-                    extras = {}
-                    for child in list(elem):
-                        tag = child.tag
-                        entry = {
-                            "text": (child.text or "").strip(),
-                            "attrib": dict(child.attrib) if child.attrib else {},
-                        }
-                        if list(child):
-                            entry["children"] = [
-                                {
-                                    "tag": c.tag,
-                                    "text": (c.text or "").strip(),
-                                    "attrib": dict(c.attrib) if c.attrib else {},
-                                }
-                                for c in list(child)
-                            ]
-                        if tag in extras:
-                            if isinstance(extras[tag], list):
-                                extras[tag].append(entry)
+
+                    if elem.tag == "programme":
+                        channel_attr = (elem.get("channel") or "").strip()
+                        if not channel_attr:
+                            elem.clear()
+                            continue
+                        start_attr = elem.get("start")
+                        stop_attr = elem.get("stop")
+                        start_ts = _parse_xmltv_time_to_epoch(start_attr)
+                        stop_ts = _parse_xmltv_time_to_epoch(stop_attr)
+                        if stop_ts is not None and stop_ts < past_cutoff:
+                            elem.clear()
+                            continue
+                        if start_ts is not None and start_ts > future_cutoff:
+                            elem.clear()
+                            continue
+                        title = elem.findtext("title") or ""
+                        sub_title = elem.findtext("sub-title") or ""
+                        desc = elem.findtext("desc") or ""
+                        categories = [
+                            c.text.strip()
+                            for c in elem.findall("category")
+                            if c.text and c.text.strip()
+                        ]
+                        episode_num = ""
+                        episode_system = ""
+                        episode_elems = elem.findall("episode-num")
+                        if episode_elems:
+                            episode_elem = episode_elems[0]
+                            episode_num = (episode_elem.text or "").strip()
+                            episode_system = (episode_elem.get("system") or "").strip()
+                        rating = ""
+                        rating_elem = elem.find("rating/value")
+                        if rating_elem is None:
+                            rating_elem = elem.find("rating")
+                        if rating_elem is not None and rating_elem.text:
+                            rating = rating_elem.text.strip()
+                        icon_elem = elem.find("icon")
+                        programme_icon = icon_elem.get("src") if icon_elem is not None else ""
+                        air_date = (elem.findtext("date") or "").strip()
+                        previously_shown = None
+                        if elem.find("previously-shown") is not None:
+                            previously_shown = 1
+                        elif elem.find("new") is not None:
+                            previously_shown = 0
+                        series_id = (elem.findtext("series-id") or "").strip()
+                        extras = {}
+                        for child in list(elem):
+                            tag = child.tag
+                            entry = {
+                                "text": (child.text or "").strip(),
+                                "attrib": dict(child.attrib) if child.attrib else {},
+                            }
+                            if list(child):
+                                entry["children"] = [
+                                    {
+                                        "tag": c.tag,
+                                        "text": (c.text or "").strip(),
+                                        "attrib": dict(c.attrib) if c.attrib else {},
+                                    }
+                                    for c in list(child)
+                                ]
+                            if tag in extras:
+                                if isinstance(extras[tag], list):
+                                    extras[tag].append(entry)
+                                else:
+                                    extras[tag] = [extras[tag], entry]
                             else:
-                                extras[tag] = [extras[tag], entry]
-                        else:
-                            extras[tag] = entry
-                    programme_rows.append(
-                        (
-                            channel_attr,
-                            start_attr,
-                            stop_attr,
-                            start_ts,
-                            stop_ts,
-                            title,
-                            desc,
-                            sub_title or None,
-                            json.dumps(categories) if categories else None,
-                            episode_num or None,
-                            episode_system or None,
-                            rating or None,
-                            programme_icon or None,
-                            air_date or None,
-                            previously_shown,
-                            series_id or None,
-                            json.dumps(extras) if extras else None,
-                        )
-                    )
-                    if len(programme_rows) >= 500:
-                        cursor.executemany(
-                            """
-                            INSERT INTO epg_programmes
+                                extras[tag] = entry
+                        programme_rows.append(
                             (
-                                channel_id, start, stop, start_ts, stop_ts, title, description,
-                                sub_title, categories, episode_num, episode_system, rating,
-                                programme_icon, air_date, previously_shown, series_id, extra_json
+                                channel_attr,
+                                start_attr,
+                                stop_attr,
+                                start_ts,
+                                stop_ts,
+                                title,
+                                desc,
+                                sub_title or None,
+                                json.dumps(categories) if categories else None,
+                                episode_num or None,
+                                episode_system or None,
+                                rating or None,
+                                programme_icon or None,
+                                air_date or None,
+                                previously_shown,
+                                series_id or None,
+                                json.dumps(extras) if extras else None,
                             )
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                            """,
-                            programme_rows,
                         )
-                        source_db.commit()
-                        programme_rows = []
-                    elem.clear()
+                        if len(programme_rows) >= batch_size:
+                            cursor.executemany(
+                                """
+                                INSERT INTO epg_programmes
+                                (
+                                    channel_id, start, stop, start_ts, stop_ts, title, description,
+                                    sub_title, categories, episode_num, episode_system, rating,
+                                    programme_icon, air_date, previously_shown, series_id, extra_json
+                                )
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                """,
+                                programme_rows,
+                            )
+                            source_db.commit()
+                            programme_rows = []
+                        elem.clear()
 
             if programme_rows:
                 cursor.executemany(
@@ -1044,7 +1149,9 @@ def refresh_custom_sources(source_ids=None):
                     programme_rows,
                 )
                 source_db.commit()
+            parse_ok = True
         except Exception as e:
+            _set_epg_source_status(source_id, "failed", "Parse error")
             logger.warning(f"Failed to parse/store custom EPG source {source_label}: {e}")
         finally:
             try:
@@ -1053,6 +1160,9 @@ def refresh_custom_sources(source_ids=None):
                 pass
 
         _update_epg_channels_metadata(source_id, channels)
+        if parse_ok:
+            _set_epg_source_status(source_id, "parsing", "Parsing 100%")
+            _set_epg_source_status(source_id, "ready", "Ready")
 
     epg_map, epg_ids = _rebuild_epg_channel_map_from_db()
     if epg_map:
@@ -3630,6 +3740,7 @@ runtime_state = build_runtime_state(
     refresh_lineup=refresh_lineup,
     set_last_playlist_host=_set_last_playlist_host,
     refresh_custom_sources=refresh_custom_sources,
+    get_epg_source_status=get_epg_source_status,
     LOG_DIR=LOG_DIR,
     occupied=occupied,
     get_cached_lineup=_get_cached_lineup,

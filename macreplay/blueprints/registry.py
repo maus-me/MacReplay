@@ -60,6 +60,7 @@ def register_blueprints(*, app, state):
             LOG_DIR=state.misc.LOG_DIR,
             occupied=state.misc.occupied,
             refresh_custom_sources=state.misc.refresh_custom_sources,
+            get_epg_source_status=state.misc.get_epg_source_status,
         )
     )
     app.register_blueprint(

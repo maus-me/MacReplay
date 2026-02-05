@@ -987,6 +987,11 @@ table.dataTable tbody tr {
     color: #198754;
 }
 
+.name-tag-epg-portal {
+    background-color: rgba(255, 193, 7, 0.2);
+    color: #a36f00;
+}
+
 .name-tag-epg-off {
     background-color: rgba(108, 117, 125, 0.2);
     color: #6c757d;

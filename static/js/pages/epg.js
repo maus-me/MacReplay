@@ -123,6 +123,7 @@ function selectChannel(element) {
 
 function showProgrammes(channelId) {
     const container = document.getElementById('programmeList');
+    if (!container) return;
     const programmes = epgData.programmes.filter(p => p.channel === channelId);
 
     if (programmes.length === 0) {
@@ -296,9 +297,12 @@ function updateStats() {
 }
 
 // Search functionality
-document.getElementById('channelSearch').addEventListener('input', function(e) {
-    renderChannelList(e.target.value);
-});
+const channelSearch = document.getElementById('channelSearch');
+if (channelSearch) {
+    channelSearch.addEventListener('input', function(e) {
+        renderChannelList(e.target.value);
+    });
+}
 
 // Poll EPG refresh status
 async function pollEpgStatus(toast) {

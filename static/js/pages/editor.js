@@ -981,7 +981,12 @@
                         tags += '<span class="name-tag name-tag-event-flag ' + (row.isEvent ? 'name-tag-ok' : 'name-tag-empty') + '">EVENT</span>';
                         tags += '<span class="name-tag name-tag-match ' + (hasMatch ? 'name-tag-ok' : 'name-tag-empty') + '">MATCH</span>';
                         tags += '<span class="name-tag name-tag-header-flag ' + (row.isHeader ? 'name-tag-ok' : 'name-tag-empty') + '">HEADER</span>';
-                        tags += '<span class="name-tag name-tag-epg ' + (row.hasEpg ? 'name-tag-ok' : 'name-tag-bad') + '">EPG</span>';
+                        const hasCustomEpg = !!(row.customEpgId && String(row.customEpgId).trim());
+                        let epgClass = 'name-tag-bad';
+                        if (row.hasEpg) {
+                            epgClass = hasCustomEpg ? 'name-tag-ok' : 'name-tag-epg-portal';
+                        }
+                        tags += '<span class="name-tag name-tag-epg ' + epgClass + '">EPG</span>';
                         return '<div class="name-field">' +
                                '<div class="name-country" title="Country" data-country="' + country + '">' + country + '</div>' +
                                '<input \

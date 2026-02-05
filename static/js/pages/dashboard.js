@@ -1,8 +1,8 @@
 (function() {
+    let streamsRefreshInterval;
+
     function initDashboardPage(pageData) {
         pageData = pageData || {};
-
-let streamsRefreshInterval;
 
 // Toast Notification Functions
 function showNotification(message, type = 'success', duration = 3000) {
@@ -13,6 +13,8 @@ function showNotification(message, type = 'success', duration = 3000) {
 }
 
 function refreshStreams() {
+    const container = document.getElementById('streamsContainer');
+    if (!container) return;
     fetch('/streaming')
         .then(response => response.json())
         .then(data => {
@@ -20,13 +22,16 @@ function refreshStreams() {
         })
         .catch(error => {
             console.error('Error fetching streams:', error);
-            document.getElementById('streamsContainer').innerHTML =
-                '<div class="alert alert-danger"><i class="fas fa-exclamation-triangle"></i> Error loading stream data</div>';
+            if (container) {
+                container.innerHTML =
+                    '<div class="alert alert-danger"><i class="fas fa-exclamation-triangle"></i> Error loading stream data</div>';
+            }
         });
 }
 
 function displayStreams(streams) {
     const container = document.getElementById('streamsContainer');
+    if (!container) return;
 
     if (!streams || Object.keys(streams).length === 0) {
         container.innerHTML = '<div class="alert alert-info"><i class="fas fa-info-circle"></i> No active streams</div>';
@@ -153,18 +158,17 @@ document.addEventListener('DOMContentLoaded', function() {
     streamsRefreshInterval = setInterval(refreshStreams, 30000);
 });
 
-// Cleanup interval on page unload
-window.addEventListener('beforeunload', function() {
-    if (streamsRefreshInterval) {
-        clearInterval(streamsRefreshInterval);
-    }
-});
-
         window.refreshStreams = refreshStreams;
         window.copyToClipboard = copyToClipboard;
         window.refreshLineup = refreshLineup;
         window.updatePlaylist = updatePlaylist;
 
     }
-    window.App && window.App.register('dashboard', initDashboardPage);
+    function cleanup() {
+        if (streamsRefreshInterval) {
+            clearInterval(streamsRefreshInterval);
+            streamsRefreshInterval = null;
+        }
+    }
+    window.App && window.App.register('dashboard', initDashboardPage, cleanup);
 })();

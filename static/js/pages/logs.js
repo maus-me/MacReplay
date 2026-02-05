@@ -1,17 +1,20 @@
 (function() {
+    let refreshInterval;
+
     function initLogsPage(pageData) {
         pageData = pageData || {};
 
 let isPaused = false;
 let autoScroll = true;
-let refreshInterval;
 let allLogLines = [];
 const REFRESH_RATE = 2000; // 2 seconds
 
 function fetchLogs() {
     if (isPaused) return;
 
-    const lineCount = document.getElementById('lineCount').value;
+    const lineCountEl = document.getElementById('lineCount');
+    if (!lineCountEl) return;
+    const lineCount = lineCountEl.value;
     const url = lineCount === 'all' ? '/logs/stream' : `/logs/stream?lines=${lineCount}`;
 
     fetch(url)
@@ -19,18 +22,26 @@ function fetchLogs() {
         .then(data => {
             allLogLines = data.lines || [];
             filterLogs();
-            document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+            const lastUpdateEl = document.getElementById('lastUpdate');
+            if (lastUpdateEl) {
+                lastUpdateEl.textContent = new Date().toLocaleTimeString();
+            }
         })
         .catch(error => {
             console.error('Error fetching logs:', error);
-            document.getElementById('statusIndicator').className = 'text-danger';
-            document.getElementById('statusText').textContent = 'Error';
+            const statusIndicator = document.getElementById('statusIndicator');
+            const statusText = document.getElementById('statusText');
+            if (statusIndicator) statusIndicator.className = 'text-danger';
+            if (statusText) statusText.textContent = 'Error';
         });
 }
 
 function filterLogs() {
-    const filter = document.getElementById('logLevelFilter').value;
+    const filterEl = document.getElementById('logLevelFilter');
+    if (!filterEl) return;
+    const filter = filterEl.value;
     const container = document.getElementById('logContainer');
+    if (!container) return;
 
     let filteredLines = allLogLines;
 
@@ -52,11 +63,13 @@ function filterLogs() {
 
 function renderLogs(lines) {
     const container = document.getElementById('logContainer');
+    if (!container) return;
     const wasAtBottom = isScrolledToBottom();
 
     if (lines.length === 0) {
         container.innerHTML = '<div class="text-center text-muted py-5">No log entries found</div>';
-        document.getElementById('lineCountDisplay').textContent = '0';
+        const lineCountDisplay = document.getElementById('lineCountDisplay');
+        if (lineCountDisplay) lineCountDisplay.textContent = '0';
         return;
     }
 
@@ -67,7 +80,8 @@ function renderLogs(lines) {
     });
 
     container.innerHTML = html;
-    document.getElementById('lineCountDisplay').textContent = lines.length;
+    const lineCountDisplay = document.getElementById('lineCountDisplay');
+    if (lineCountDisplay) lineCountDisplay.textContent = lines.length;
 
     if (autoScroll && wasAtBottom) {
         scrollToBottom();
@@ -94,6 +108,7 @@ function togglePause() {
     const icon = document.getElementById('playIcon');
     const statusIndicator = document.getElementById('statusIndicator');
     const statusText = document.getElementById('statusText');
+    if (!btn || !icon || !statusIndicator || !statusText) return;
 
     if (isPaused) {
         btn.classList.remove('btn-success');
@@ -114,17 +129,21 @@ function togglePause() {
 }
 
 function clearDisplay() {
-    document.getElementById('logContainer').innerHTML = '<div class="text-center text-muted py-5">Display cleared</div>';
-    document.getElementById('lineCountDisplay').textContent = '0';
+    const container = document.getElementById('logContainer');
+    const lineCountDisplay = document.getElementById('lineCountDisplay');
+    if (container) container.innerHTML = '<div class="text-center text-muted py-5">Display cleared</div>';
+    if (lineCountDisplay) lineCountDisplay.textContent = '0';
 }
 
 function scrollToBottom() {
     const container = document.getElementById('logContainer');
+    if (!container) return;
     container.scrollTop = container.scrollHeight;
 }
 
 function isScrolledToBottom() {
     const container = document.getElementById('logContainer');
+    if (!container) return true;
     return container.scrollHeight - container.scrollTop <= container.clientHeight + 50;
 }
 
@@ -133,9 +152,12 @@ function changeLineCount() {
 }
 
 // Track scroll position to disable auto-scroll when user scrolls up
-document.getElementById('logContainer').addEventListener('scroll', function() {
-    autoScroll = isScrolledToBottom();
-});
+const logContainer = document.getElementById('logContainer');
+if (logContainer) {
+    logContainer.addEventListener('scroll', function() {
+        autoScroll = isScrolledToBottom();
+    });
+}
 
 // Initialize
 document.addEventListener('DOMContentLoaded', function() {
@@ -144,12 +166,6 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Cleanup on page unload
-window.addEventListener('beforeunload', function() {
-    if (refreshInterval) {
-        clearInterval(refreshInterval);
-    }
-});
-
         window.togglePause = togglePause;
         window.clearDisplay = clearDisplay;
         window.scrollToBottom = scrollToBottom;
@@ -157,5 +173,11 @@ window.addEventListener('beforeunload', function() {
         window.changeLineCount = changeLineCount;
 
     }
-    window.App && window.App.register('logs', initLogsPage);
+    function cleanup() {
+        if (refreshInterval) {
+            clearInterval(refreshInterval);
+            refreshInterval = null;
+        }
+    }
+    window.App && window.App.register('logs', initLogsPage, cleanup);
 })();

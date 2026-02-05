@@ -72,6 +72,7 @@ def build_runtime_state(
     refresh_lineup,
     set_last_playlist_host,
     refresh_custom_sources,
+    get_epg_source_status,
     LOG_DIR,
     occupied,
     get_cached_lineup,
@@ -151,6 +152,7 @@ def build_runtime_state(
             LOG_DIR=LOG_DIR,
             occupied=occupied,
             refresh_custom_sources=refresh_custom_sources,
+            get_epg_source_status=get_epg_source_status,
         ),
         hdhr=HdhrState(
             create_hdhr_blueprint=create_hdhr_blueprint,

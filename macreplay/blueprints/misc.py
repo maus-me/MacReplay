@@ -1,4 +1,5 @@
 import os
+import threading
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 from urllib.error import URLError, HTTPError
@@ -10,7 +11,7 @@ from ..config import DATA_DIR
 from ..security import authorise
 
 
-def create_misc_blueprint(*, LOG_DIR, occupied, refresh_custom_sources=None):
+def create_misc_blueprint(*, LOG_DIR, occupied, refresh_custom_sources=None, get_epg_source_status=None):
     bp = Blueprint("misc", __name__)
 
     @bp.route("/api/dashboard")
@@ -85,9 +86,32 @@ def create_misc_blueprint(*, LOG_DIR, occupied, refresh_custom_sources=None):
                 pass
 
         if refresh_custom_sources:
-            refresh_custom_sources([source_id])
+            worker = threading.Thread(
+                target=refresh_custom_sources,
+                args=([source_id],),
+                daemon=True,
+            )
+            worker.start()
 
         return jsonify({"ok": True})
+
+    @bp.route("/api/epg/source/status")
+    @authorise
+    def epg_source_status():
+        source_id = (request.args.get("id") or "").strip()
+        if not source_id:
+            return jsonify({"ok": False, "error": "missing id"}), 400
+        if get_epg_source_status is None:
+            return jsonify({"ok": True, "status": "unknown", "detail": None, "updated_at": None})
+        status = get_epg_source_status(source_id) or {}
+        return jsonify(
+            {
+                "ok": True,
+                "status": status.get("status", "unknown"),
+                "detail": status.get("detail"),
+                "updated_at": status.get("updated_at"),
+            }
+        )
 
     @bp.route("/api/image-proxy")
     @authorise
@@ -106,7 +130,14 @@ def create_misc_blueprint(*, LOG_DIR, occupied, refresh_custom_sources=None):
                 data = resp.read(2 * 1024 * 1024)
             return Response(data, content_type=content_type)
         except (HTTPError, URLError, OSError, ValueError):
-            return jsonify({"ok": False, "error": "fetch failed"}), 502
+            placeholder = (
+                "<svg xmlns='http://www.w3.org/2000/svg' width='36' height='36' viewBox='0 0 36 36'>"
+                "<rect width='36' height='36' rx='6' fill='#252b33'/>"
+                "<path d='M11 12h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H11a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2zm2 14h10'"
+                " fill='none' stroke='#8b99a6' stroke-width='2' stroke-linecap='round'/>"
+                "</svg>"
+            )
+            return Response(placeholder, content_type="image/svg+xml")
 
     @bp.route("/", methods=["GET"])
     def home():
