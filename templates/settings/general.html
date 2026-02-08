@@ -167,6 +167,96 @@
         </div>
     </div>
 
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5><i class="fas fa-futbol"></i> SportsDB Settings</h5>
+        </div>
+        <div class="card-body">
+            <input type="hidden" name="sportsdb enabled" value="false">
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="sportsdb_enabled" name="sportsdb enabled"
+                       value="true" {{ 'checked' if settings['sportsdb enabled'] }}>
+                <label class="form-check-label" for="sportsdb_enabled">
+                    Enable SportsDB Integration
+                </label>
+            </div>
+
+            <div class="mb-3">
+                <label for="sportsdb_api_key" class="form-label">SportsDB API Key</label>
+                <input type="text" class="form-control" id="sportsdb_api_key" name="sportsdb api key"
+                       value="{{ settings['sportsdb api key'] }}" placeholder="123">
+                <div class="form-text">Use key <code>123</code> for free tier.</div>
+            </div>
+
+            <div class="mb-3">
+                <label for="sportsdb_api_version" class="form-label">SportsDB API Version</label>
+                <select class="form-select" id="sportsdb_api_version" name="sportsdb api version">
+                    <option value="v1" {{ 'selected' if settings['sportsdb api version'] == 'v1' }}>v1 (default)</option>
+                    <option value="v2" {{ 'selected' if settings['sportsdb api version'] == 'v2' }}>v2 (premium)</option>
+                </select>
+                <div class="form-text">`v1` is recommended for free usage. Team lookup in `v1` uses `search_all_teams.php` with league name.</div>
+            </div>
+
+            <div class="mb-3">
+                <label for="sportsdb_import_sports" class="form-label">Imported Sports (comma separated)</label>
+                <input type="text" class="form-control" id="sportsdb_import_sports" name="sportsdb import sports"
+                       value="{{ settings['sportsdb import sports'] }}" placeholder="Soccer,Ice Hockey">
+                <div class="form-text">Only these sports are imported into local cache to reduce API usage.</div>
+            </div>
+
+            <div class="mb-3">
+                <label for="sportsdb_cache_ttl_hours" class="form-label">Cache TTL (hours)</label>
+                <input type="number" class="form-control" id="sportsdb_cache_ttl_hours" name="sportsdb cache ttl hours"
+                       value="{{ settings['sportsdb cache ttl hours'] }}" min="1" max="168" step="1">
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5><i class="fas fa-tv"></i> ESPN Settings</h5>
+        </div>
+        <div class="card-body">
+            <input type="hidden" name="espn enabled" value="false">
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="espn_enabled" name="espn enabled"
+                       value="true" {{ 'checked' if settings['espn enabled'] }}>
+                <label class="form-check-label" for="espn_enabled">
+                    Enable ESPN Integration
+                </label>
+            </div>
+
+            <div class="mb-3">
+                <label for="espn_import_sports" class="form-label">Imported Sports (comma separated keys)</label>
+                <input type="text" class="form-control" id="espn_import_sports" name="espn import sports"
+                       value="{{ settings['espn import sports'] }}" placeholder="soccer,basketball,football">
+                <div class="form-text">Used to filter ESPN catalog and reduce requests.</div>
+            </div>
+
+            <div class="mb-3">
+                <label for="espn_cache_ttl_hours" class="form-label">Cache TTL (hours)</label>
+                <input type="number" class="form-control" id="espn_cache_ttl_hours" name="espn cache ttl hours"
+                       value="{{ settings['espn cache ttl hours'] }}" min="1" max="168" step="1">
+            </div>
+
+            <div class="mb-3">
+                <label for="events_match_window_hours" class="form-label">Event Matching Window (hours)</label>
+                <input type="number" class="form-control" id="events_match_window_hours" name="events match window hours"
+                       value="{{ settings['events match window hours'] }}" min="0.25" max="48" step="0.25">
+                <div class="form-text">EPG matches outside this window are treated as replays.</div>
+            </div>
+
+            <input type="hidden" name="events match debug" value="false">
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="events_match_debug" name="events match debug"
+                       value="true" {{ 'checked' if settings['events match debug'] }}>
+                <label class="form-check-label" for="events_match_debug">
+                    Log event matching debug (can be noisy)
+                </label>
+            </div>
+        </div>
+    </div>
+
     <div class="d-flex justify-content-end">
         <button type="submit" class="btn btn-primary">
             <i class="fas fa-save"></i> Save Settings

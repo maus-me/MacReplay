@@ -1,5 +1,7 @@
 import threading
 
+from urllib.parse import urlparse
+
 from flask import Blueprint, jsonify, make_response, request
 
 
@@ -11,6 +13,31 @@ def create_hdhr_blueprint(
     get_cached_lineup,
 ):
     bp = Blueprint("hdhr", __name__)
+
+    def _normalize_host(value):
+        if not value:
+            return ""
+        text = str(value).strip()
+        if not text:
+            return ""
+        if "//" in text:
+            try:
+                parsed = urlparse(text)
+                if parsed.netloc:
+                    return parsed.netloc
+            except Exception:
+                pass
+        return text
+
+    def _base_url():
+        forwarded_proto = request.headers.get("X-Forwarded-Proto")
+        forwarded_host = request.headers.get("X-Forwarded-Host")
+        forwarded_port = request.headers.get("X-Forwarded-Port")
+        if forwarded_host:
+            if forwarded_port and ":" not in forwarded_host:
+                return f"{forwarded_proto or request.scheme}://{forwarded_host}:{forwarded_port}"
+            return f"{forwarded_proto or request.scheme}://{forwarded_host}"
+        return f"{request.scheme}://{request.host}"
 
     def hdhr(f):
         def decorated(*args, **kwargs):
@@ -37,14 +64,15 @@ def create_hdhr_blueprint(
         name = settings["hdhr name"]
         device_id = settings["hdhr id"]
         tuners = settings["hdhr tuners"]
+        base_url = _base_url()
         data = {
-            "BaseURL": host,
+            "BaseURL": base_url,
             "DeviceAuth": name,
             "DeviceID": device_id,
             "FirmwareName": "MacReplay",
             "FirmwareVersion": "666",
             "FriendlyName": name,
-            "LineupURL": host + "/lineup.json",
+            "LineupURL": base_url + "/lineup.json",
             "Manufacturer": "Evilvirus",
             "ModelNumber": "666",
             "TunerCount": int(tuners),
@@ -66,13 +94,21 @@ def create_hdhr_blueprint(
     @bp.route("/lineup.post", methods=["POST"])
     @hdhr
     def lineup():
-        if not get_cached_lineup():
-            refresh_lineup()
-        return jsonify(get_cached_lineup())
+        base_url = _base_url()
+        cached = get_cached_lineup() or []
+        if not cached:
+            refresh_lineup(base_url)
+            cached = get_cached_lineup() or []
+        else:
+            sample_url = cached[0].get("URL") if isinstance(cached[0], dict) else ""
+            if sample_url and not str(sample_url).startswith(base_url):
+                refresh_lineup(base_url)
+                cached = get_cached_lineup() or []
+        return jsonify(cached)
 
     @bp.route("/refresh_lineup", methods=["POST"])
     def refresh_lineup_endpoint():
-        refresh_lineup()
+        refresh_lineup(_base_url())
         return jsonify({"status": "Lineup refreshed successfully"})
 
     return bp

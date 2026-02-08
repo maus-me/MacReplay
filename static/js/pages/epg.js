@@ -4,6 +4,8 @@
 
 let epgData = { channels: [], programmes: [] };
 let selectedChannel = null;
+let lastProgrammeScrollTs = 0;
+let forceScrollToCurrent = false;
 
 function normalizeImageUrl(url) {
     if (!url) return '';
@@ -23,7 +25,7 @@ function loadEPG() {
             updateStats();
 
             // If a channel was selected, refresh its programmes
-            if (selectedChannel) {
+            if (selectedChannel && !shouldDeferProgrammeUpdate()) {
                 showProgrammes(selectedChannel);
             }
         })
@@ -118,16 +120,22 @@ function selectChannel(element) {
     });
     element.classList.add('active');
 
+    forceScrollToCurrent = true;
     showProgrammes(channelId);
 }
 
 function showProgrammes(channelId) {
     const container = document.getElementById('programmeList');
     if (!container) return;
+    const preserveScroll = shouldDeferProgrammeUpdate() || container.scrollTop > 0;
+    const prevScrollTop = container.scrollTop;
     const programmes = epgData.programmes.filter(p => p.channel === channelId);
 
     if (programmes.length === 0) {
         container.innerHTML = '<div class="no-programmes"><i class="fas fa-calendar-times fa-2x mb-2"></i><p>No program data available for this channel</p></div>';
+        if (preserveScroll) {
+            container.scrollTop = prevScrollTop;
+        }
         return;
     }
 
@@ -232,11 +240,15 @@ function showProgrammes(channelId) {
 
     container.innerHTML = html;
 
-    // Scroll to current programme
-    const currentProg = container.querySelector('.programme-item.current');
-    if (currentProg) {
-        currentProg.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (preserveScroll) {
+        container.scrollTop = prevScrollTop;
+    } else if (forceScrollToCurrent) {
+        const currentProg = container.querySelector('.programme-item.current');
+        if (currentProg) {
+            currentProg.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
     }
+    forceScrollToCurrent = false;
 }
 
 function formatDate(date) {
@@ -353,7 +365,7 @@ function refreshEPG() {
     const filterValue = document.getElementById('channelSearch')?.value || '';
     const channelIds = (epgData.channels || [])
         .filter(ch => !filterValue || ch.name.toLowerCase().includes(filterValue.toLowerCase()))
-        .map(ch => ch.id);
+        .map(ch => ch.epg_id || ch.id);
 
     fetch('/api/epg/refresh', {
         method: 'POST',
@@ -389,11 +401,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Update current programme progress every 30 seconds
     setInterval(() => {
-        if (selectedChannel) {
+        if (selectedChannel && !shouldDeferProgrammeUpdate()) {
             showProgrammes(selectedChannel);
         }
     }, 30000);
 });
+
+function shouldDeferProgrammeUpdate() {
+    return Date.now() - lastProgrammeScrollTs < 3000;
+}
+
+const programmeList = document.getElementById('programmeList');
+if (programmeList) {
+    programmeList.addEventListener('scroll', function() {
+        lastProgrammeScrollTs = Date.now();
+    });
+}
 
         window.refreshEPG = refreshEPG;
 

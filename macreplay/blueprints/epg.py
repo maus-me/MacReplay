@@ -126,7 +126,7 @@ def create_epg_blueprint(
             channel_portal_map = {}
             channel_sources = {}
             channels = []
-            seen_channel_ids = set()
+            seen_channel_keys = set()
 
             def resolve_display_name(row):
                 return (
@@ -162,9 +162,12 @@ def create_epg_blueprint(
                     if not source_id and epg_id:
                         source_id = portal_id
 
-                if not epg_id or epg_id in seen_channel_ids:
+                if not epg_id:
                     continue
-                seen_channel_ids.add(epg_id)
+                channel_key = f"{portal_id}::{epg_id}"
+                if channel_key in seen_channel_keys:
+                    continue
+                seen_channel_keys.add(channel_key)
 
                 display_name = (
                     (epg_entry["display_name"] if epg_entry else None)
@@ -173,7 +176,7 @@ def create_epg_blueprint(
                 icon = (epg_entry["icon"] if epg_entry else None) or row["logo"]
                 channel_number = row["custom_number"] or row["number"]
 
-                channel_portal_map[epg_id] = portal_name
+                channel_portal_map[channel_key] = portal_name
                 source_name = None
                 if source_id:
                     source_name = (
@@ -182,10 +185,11 @@ def create_epg_blueprint(
                         or source_id
                     )
                 if source_id:
-                    channel_sources.setdefault(source_id, set()).add(epg_id)
+                    channel_sources.setdefault(source_id, {}).setdefault(epg_id, []).append(channel_key)
                 channels.append(
                     {
-                        "id": epg_id,
+                        "id": channel_key,
+                        "epg_id": epg_id,
                         "name": display_name or epg_id,
                         "number": channel_number,
                         "logo": icon,
@@ -202,7 +206,7 @@ def create_epg_blueprint(
                 if conn is None:
                     continue
                 cursor = conn.cursor()
-                id_list = list(ids)
+                id_list = list(ids.keys())
                 chunk_size = 900
                 for i in range(0, len(id_list), chunk_size):
                     chunk = id_list[i:i + chunk_size]
@@ -228,30 +232,32 @@ def create_epg_blueprint(
                             continue
                         start_dt = datetime.fromtimestamp(start_ts, tz=timezone.utc)
                         stop_dt = datetime.fromtimestamp(stop_ts, tz=timezone.utc)
-                        programmes.append(
-                            {
-                                "channel": row["channel_id"],
-                                "start": start_dt.isoformat(),
-                                "stop": stop_dt.isoformat(),
-                                "start_timestamp": start_ts,
-                                "stop_timestamp": stop_ts,
-                                "title": row["title"] or "Unknown",
-                                "description": row["description"] or "",
-                                "sub_title": row["sub_title"] or "",
-                                "categories": json.loads(row["categories"])
-                                if row["categories"]
-                                else [],
-                                "episode_num": row["episode_num"] or "",
-                                "episode_system": row["episode_system"] or "",
-                                "rating": row["rating"] or "",
-                                "programme_icon": row["programme_icon"] or "",
-                                "air_date": row["air_date"] or "",
-                                "previously_shown": row["previously_shown"],
-                                "series_id": row["series_id"] or "",
-                                "is_current": start_dt <= now <= stop_dt,
-                                "is_past": stop_dt < now,
-                            }
-                        )
+                        channel_keys = ids.get(row["channel_id"], [])
+                        if not channel_keys:
+                            continue
+                        base_programme = {
+                            "start": start_dt.isoformat(),
+                            "stop": stop_dt.isoformat(),
+                            "start_timestamp": start_ts,
+                            "stop_timestamp": stop_ts,
+                            "title": row["title"] or "Unknown",
+                            "description": row["description"] or "",
+                            "sub_title": row["sub_title"] or "",
+                            "categories": json.loads(row["categories"])
+                            if row["categories"]
+                            else [],
+                            "episode_num": row["episode_num"] or "",
+                            "episode_system": row["episode_system"] or "",
+                            "rating": row["rating"] or "",
+                            "programme_icon": row["programme_icon"] or "",
+                            "air_date": row["air_date"] or "",
+                            "previously_shown": row["previously_shown"],
+                            "series_id": row["series_id"] or "",
+                            "is_current": start_dt <= now <= stop_dt,
+                            "is_past": stop_dt < now,
+                        }
+                        for channel_key in channel_keys:
+                            programmes.append({"channel": channel_key, **base_programme})
                 conn.close()
 
             programmes.sort(key=lambda x: x["start_timestamp"])

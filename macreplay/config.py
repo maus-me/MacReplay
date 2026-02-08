@@ -156,6 +156,16 @@ defaultSettings = {
     "auto group selection patterns": "",
     "vacuum channels interval hours": 0,
     "vacuum epg interval hours": 0,
+    "sportsdb enabled": False,
+    "sportsdb api key": "123",
+    "sportsdb api version": "v1",
+    "sportsdb import sports": "Soccer,Ice Hockey",
+    "sportsdb cache ttl hours": 24,
+    "espn enabled": False,
+    "espn import sports": "soccer,basketball,football",
+    "espn cache ttl hours": 24,
+    "events match debug": False,
+    "events match window hours": 0.75,
 }
 
 defaultPortal = {

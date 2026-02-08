@@ -47,6 +47,7 @@ from macreplay.blueprints.misc import create_misc_blueprint
 from macreplay.blueprints.hdhr import create_hdhr_blueprint
 from macreplay.blueprints.playlist import create_playlist_blueprint
 from macreplay.blueprints.streaming import create_streaming_blueprint
+from macreplay.blueprints.events import create_events_blueprint
 from macreplay.services.jobs import JobManager
 from macreplay.logging_setup import setup_logging
 from macreplay.bootstrap import build_runtime_state, start_runtime
@@ -163,7 +164,7 @@ logger.info(f"Using database file: {DB_PATH}")
 
 occupied = {}
 cached_lineup = []
-cached_playlist = None
+cached_playlist = {}
 last_playlist_host = None
 cached_xmltv = None
 last_updated = 0
@@ -3636,7 +3637,26 @@ def moveMac(portalId, mac):
     savePortals(portals)
 
 
-def refresh_lineup():
+def _request_base_url():
+    try:
+        from flask import request
+    except Exception:
+        request = None
+
+    if request is None:
+        return f"http://{host}"
+
+    forwarded_proto = request.headers.get("X-Forwarded-Proto")
+    forwarded_host = request.headers.get("X-Forwarded-Host")
+    forwarded_port = request.headers.get("X-Forwarded-Port")
+    if forwarded_host:
+        if forwarded_port and ":" not in forwarded_host:
+            return f"{forwarded_proto or request.scheme}://{forwarded_host}:{forwarded_port}"
+        return f"{forwarded_proto or request.scheme}://{forwarded_host}"
+    return f"{request.scheme}://{request.host}"
+
+
+def refresh_lineup(base_url=None):
     global cached_lineup
     logger.info("Refreshing Lineup from database...")
     lineup = []
@@ -3664,10 +3684,11 @@ def refresh_lineup():
         channel_number = row['custom_number'] if row['custom_number'] else row['number']
         
         # Use HLS URL if output format is set to HLS, otherwise use MPEG-TS
+        base = base_url or f"http://{host}"
         if getSettings().get("output format", "mpegts") == "hls":
-            url = f"http://{host}/hls/{portal}/{channel_id}/master.m3u8"
+            url = f"{base}/hls/{portal}/{channel_id}/master.m3u8"
         else:
-            url = f"http://{host}/play/{portal}/{channel_id}"
+            url = f"{base}/play/{portal}/{channel_id}"
         
         lineup.append({
             "GuideNumber": str(channel_number),
@@ -3754,6 +3775,15 @@ runtime_state = build_runtime_state(
 )
 
 app = create_app(state=runtime_state)
+app.register_blueprint(
+    create_events_blueprint(
+        logger=logger,
+        get_db_connection=get_db_connection,
+        getSettings=getSettings,
+        open_epg_source_db=_open_epg_source_db,
+        effective_epg_name=effective_epg_name,
+    )
+)
 
 
 

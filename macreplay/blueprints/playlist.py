@@ -1,4 +1,6 @@
-from flask import Blueprint, Response
+from urllib.parse import urlparse
+
+from flask import Blueprint, Response, request
 
 from ..security import authorise
 
@@ -19,7 +21,32 @@ def create_playlist_blueprint(
 ):
     bp = Blueprint("playlist", __name__)
 
-    def generate_playlist():
+    def _normalize_host(value):
+        if not value:
+            return ""
+        text = str(value).strip()
+        if not text:
+            return ""
+        if "//" in text:
+            try:
+                parsed = urlparse(text)
+                if parsed.netloc:
+                    return parsed.netloc
+            except Exception:
+                pass
+        return text
+
+    def _determine_base_host():
+        forwarded_proto = request.headers.get("X-Forwarded-Proto")
+        forwarded_host = request.headers.get("X-Forwarded-Host")
+        forwarded_port = request.headers.get("X-Forwarded-Port")
+        if forwarded_host:
+            if forwarded_port and ":" not in forwarded_host:
+                return f"{forwarded_host}:{forwarded_port}", forwarded_proto or request.scheme
+            return forwarded_host, forwarded_proto or request.scheme
+        return request.host, request.scheme
+
+    def generate_playlist(base_host, scheme):
         logger.info("Generating playlist.m3u from database...")
 
         channels = []
@@ -85,7 +112,7 @@ def create_playlist_blueprint(
                 + channel_name
             )
 
-            url = f"http://{host}/play/{portal}/{channel_id}?web=true"
+            url = f"{scheme}://{base_host}/play/{portal}/{channel_id}?web=true"
 
             channels.append(channel_entry)
             channels.append(url)
@@ -93,34 +120,40 @@ def create_playlist_blueprint(
         conn.close()
 
         playlist_content = "#EXTM3U\n" + "\n".join(channels)
-        set_cached_playlist(playlist_content)
+        return playlist_content
 
     @bp.route("/playlist.m3u", methods=["GET"])
     @authorise
     def playlist():
         logger.info("Playlist Requested")
 
-        current_host = host
-        cached_playlist = get_cached_playlist()
+        base_host, scheme = _determine_base_host()
+        current_host = _normalize_host(base_host) or host
+        cache_key = f"{scheme}://{current_host}"
+        cached_playlist = get_cached_playlist() or {}
 
-        if (
-            cached_playlist is None
-            or len(cached_playlist) == 0
-            or get_last_playlist_host() != current_host
-        ):
+        if cache_key not in cached_playlist:
             logger.info(
                 "Regenerating playlist due to host change: %s -> %s",
                 get_last_playlist_host(),
                 current_host,
             )
             set_last_playlist_host(current_host)
-            generate_playlist()
+            playlist_content = generate_playlist(current_host, scheme)
+            cached_playlist[cache_key] = playlist_content
+            set_cached_playlist(cached_playlist)
 
-        return Response(get_cached_playlist(), mimetype="text/plain")
+        return Response(cached_playlist.get(cache_key, ""), mimetype="text/plain")
 
     @bp.route("/update_playlistm3u", methods=["POST"])
     def update_playlistm3u():
-        generate_playlist()
+        base_host, scheme = _determine_base_host()
+        current_host = _normalize_host(base_host) or host
+        cache_key = f"{scheme}://{current_host}"
+        playlist_content = generate_playlist(current_host, scheme)
+        cached_playlist = get_cached_playlist() or {}
+        cached_playlist[cache_key] = playlist_content
+        set_cached_playlist(cached_playlist)
         return Response("Playlist updated successfully", status=200)
 
     return bp

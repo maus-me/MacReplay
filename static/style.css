@@ -44,6 +44,9 @@ Table of Contents
     --bs-input-bg: #343a40;
     --bs-table-bg: #2b3035;
     --bs-table-striped-bg: rgba(255, 255, 255, 0.05);
+    --scrollbar-track: #1f2328;
+    --scrollbar-thumb: #3a4149;
+    --scrollbar-thumb-hover: #4a525b;
 }
 
 /* ===== Theme Overrides ===== */
@@ -55,6 +58,31 @@ Table of Contents
 
 body {
     overflow-y: scroll;
+}
+
+/* ===== Scrollbars (Dark Mode) ===== */
+[data-bs-theme="dark"] {
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+    scrollbar-width: thin;
+}
+
+[data-bs-theme="dark"] ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+[data-bs-theme="dark"] ::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+}
+
+[data-bs-theme="dark"] ::-webkit-scrollbar-thumb {
+    background-color: var(--scrollbar-thumb);
+    border-radius: 8px;
+    border: 2px solid var(--scrollbar-track);
+}
+
+[data-bs-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--scrollbar-thumb-hover);
 }
 
 [data-bs-theme="dark"] .card {
@@ -1005,6 +1033,32 @@ table.dataTable tbody tr {
 .name-tag-bad {
     background-color: rgba(220, 53, 69, 0.15);
     color: #dc3545;
+}
+
+.event-filter-list .event-filter-item .event-filter-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.event-filter-list .event-filter-toggle {
+    color: var(--bs-body-color);
+    text-decoration: none;
+    flex: 1;
+}
+
+.event-filter-list .event-filter-toggle:hover {
+    color: var(--bs-primary);
+}
+
+.event-filter-list .event-filter-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.event-filter-list .event-filter-preview ul {
+    padding-left: 18px;
 }
 
 .portal-pill {

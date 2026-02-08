@@ -244,6 +244,190 @@ def init_db(get_portals, logger):
         ON group_stats(portal_id)
     ''')
 
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS event_rules (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            enabled INTEGER DEFAULT 1,
+            provider TEXT DEFAULT 'sportsdb',
+            use_espn_events INTEGER DEFAULT 0,
+            espn_event_window_hours INTEGER DEFAULT 72,
+            sport TEXT DEFAULT '',
+            league_filters TEXT DEFAULT '[]',
+            team_filters TEXT DEFAULT '[]',
+            channel_groups TEXT DEFAULT '[]',
+            channel_regex TEXT DEFAULT '',
+            epg_pattern TEXT DEFAULT '',
+            extract_regex TEXT DEFAULT '',
+            output_template TEXT DEFAULT '{home} vs {away} | {date} {time}',
+            output_group_name TEXT DEFAULT 'EVENTS',
+            channel_number_start INTEGER DEFAULT 10000,
+            priority INTEGER DEFAULT 100,
+            created_at TEXT,
+            updated_at TEXT
+        )
+    ''')
+
+    # Forward-compatible column migration for existing installations.
+    cols = {row["name"] for row in cursor.execute("PRAGMA table_info(event_rules)").fetchall()}
+    if "provider" not in cols:
+        cursor.execute("ALTER TABLE event_rules ADD COLUMN provider TEXT DEFAULT 'sportsdb'")
+    if "use_espn_events" not in cols:
+        cursor.execute("ALTER TABLE event_rules ADD COLUMN use_espn_events INTEGER DEFAULT 0")
+    if "espn_event_window_hours" not in cols:
+        cursor.execute("ALTER TABLE event_rules ADD COLUMN espn_event_window_hours INTEGER DEFAULT 72")
+    if "output_group_name" not in cols:
+        cursor.execute("ALTER TABLE event_rules ADD COLUMN output_group_name TEXT DEFAULT 'EVENTS'")
+    if "channel_number_start" not in cols:
+        cursor.execute("ALTER TABLE event_rules ADD COLUMN channel_number_start INTEGER DEFAULT 10000")
+
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_event_rules_enabled
+        ON event_rules(enabled)
+    ''')
+
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_event_rules_priority
+        ON event_rules(priority)
+    ''')
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS sportsdb_sports_cache (
+            sport_name TEXT PRIMARY KEY,
+            sport_id TEXT,
+            updated_at REAL,
+            raw_json TEXT
+        )
+    ''')
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS sportsdb_leagues_cache (
+            league_id TEXT PRIMARY KEY,
+            league_name TEXT NOT NULL,
+            sport_name TEXT,
+            updated_at REAL,
+            raw_json TEXT
+        )
+    ''')
+
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_sportsdb_leagues_sport
+        ON sportsdb_leagues_cache(sport_name)
+    ''')
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS sportsdb_teams_cache (
+            team_id TEXT PRIMARY KEY,
+            team_name TEXT NOT NULL,
+            team_aliases TEXT DEFAULT '[]',
+            league_id TEXT,
+            league_name TEXT,
+            sport_name TEXT,
+            updated_at REAL,
+            raw_json TEXT
+        )
+    ''')
+
+    team_cols = {row["name"] for row in cursor.execute("PRAGMA table_info(sportsdb_teams_cache)").fetchall()}
+    if "team_aliases" not in team_cols:
+        cursor.execute("ALTER TABLE sportsdb_teams_cache ADD COLUMN team_aliases TEXT DEFAULT '[]'")
+
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_sportsdb_teams_league_id
+        ON sportsdb_teams_cache(league_id)
+    ''')
+
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_sportsdb_teams_league_name
+        ON sportsdb_teams_cache(league_name)
+    ''')
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS espn_sports_cache (
+            sport_key TEXT PRIMARY KEY,
+            sport_name TEXT NOT NULL,
+            updated_at REAL,
+            raw_json TEXT
+        )
+    ''')
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS espn_leagues_cache (
+            league_key TEXT PRIMARY KEY,
+            league_name TEXT NOT NULL,
+            sport_key TEXT NOT NULL,
+            updated_at REAL,
+            raw_json TEXT
+        )
+    ''')
+
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_espn_leagues_sport
+        ON espn_leagues_cache(sport_key)
+    ''')
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS espn_teams_cache (
+            team_key TEXT PRIMARY KEY,
+            team_id TEXT,
+            team_name TEXT NOT NULL,
+            team_aliases TEXT DEFAULT '[]',
+            sport_key TEXT NOT NULL,
+            league_key TEXT NOT NULL,
+            league_name TEXT,
+            updated_at REAL,
+            raw_json TEXT
+        )
+    ''')
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS espn_scoreboard_cache (
+            league_key TEXT NOT NULL,
+            date_key TEXT NOT NULL,
+            fetched_at REAL,
+            raw_json TEXT,
+            PRIMARY KEY (league_key, date_key)
+        )
+    ''')
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS event_generated_channels (
+            portal_id TEXT NOT NULL,
+            channel_id TEXT NOT NULL,
+            event_id TEXT,
+            source_portal_id TEXT,
+            source_channel_id TEXT,
+            created_at REAL,
+            expires_at REAL,
+            PRIMARY KEY (portal_id, channel_id)
+        )
+    ''')
+
+    event_channel_cols = {row["name"] for row in cursor.execute("PRAGMA table_info(event_generated_channels)").fetchall()}
+    if "source_portal_id" not in event_channel_cols:
+        cursor.execute("ALTER TABLE event_generated_channels ADD COLUMN source_portal_id TEXT")
+    if "source_channel_id" not in event_channel_cols:
+        cursor.execute("ALTER TABLE event_generated_channels ADD COLUMN source_channel_id TEXT")
+
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_event_generated_event
+        ON event_generated_channels(event_id)
+    ''')
+
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_event_generated_source
+        ON event_generated_channels(source_portal_id, source_channel_id)
+    ''')
+
+    espn_team_cols = {row["name"] for row in cursor.execute("PRAGMA table_info(espn_teams_cache)").fetchall()}
+    if "team_aliases" not in espn_team_cols:
+        cursor.execute("ALTER TABLE espn_teams_cache ADD COLUMN team_aliases TEXT DEFAULT '[]'")
+
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_espn_teams_league
+        ON espn_teams_cache(league_key)
+    ''')
+
     conn.commit()
 
     conn.close()

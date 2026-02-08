@@ -123,14 +123,28 @@
         let modal = null;
         const statusPollers = new Map();
 
-        function loadSources() {
+        function parseSources(rawValue) {
+            let parsed = rawValue;
             try {
-                const raw = input.value || '[]';
-                let parsed = JSON.parse(raw);
+                if (typeof parsed === 'string') {
+                    parsed = JSON.parse(parsed || '[]');
+                }
                 if (typeof parsed === 'string') {
                     parsed = JSON.parse(parsed);
                 }
-                epgSources = Array.isArray(parsed) ? parsed : [];
+                if (Array.isArray(parsed)) {
+                    return parsed;
+                }
+            } catch (e) {
+                // handled by fallback below
+            }
+            return [];
+        }
+
+        function loadSources() {
+            try {
+                const raw = input.value || '[]';
+                epgSources = parseSources(raw);
             } catch (e) {
                 epgSources = [];
             }
@@ -389,30 +403,19 @@
         loadSources();
         epgSources = epgSources.map(normalizeSource);
         saveSources();
-        persistSources();
         renderSources();
 
-        if (!epgSources.length) {
-            fetch('/api/settings/data')
-                .then(function(resp) { return resp.json(); })
-                .then(function(data) {
-                    if (!data || !data['epg custom sources']) return;
-                    const rawSources = data['epg custom sources'];
-                    let parsed = rawSources;
-                    if (typeof parsed === 'string') {
-                        try {
-                            parsed = JSON.parse(parsed);
-                        } catch (e) {
-                            parsed = [];
-                        }
-                    }
-                    if (!Array.isArray(parsed)) return;
-                    epgSources = parsed.map(normalizeSource);
-                    saveSources();
-                    renderSources();
-                })
-                .catch(function() {});
-        }
+        fetch('/api/settings/data')
+            .then(function(resp) { return resp.json(); })
+            .then(function(data) {
+                if (!data) return;
+                const parsed = parseSources(data['epg custom sources'] || '[]');
+                if (!parsed.length) return;
+                epgSources = parsed.map(normalizeSource);
+                saveSources();
+                renderSources();
+            })
+            .catch(function() {});
 
         addBtn.addEventListener('click', function() {
             openModal();
