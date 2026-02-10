@@ -45,6 +45,7 @@ def register_blueprints(*, app, state):
             get_epg_channel_ids=state.editor.get_epg_channel_ids,
             get_epg_channel_map=state.editor.get_epg_channel_map,
             getSettings=state.editor.getSettings,
+            getPortals=state.editor.getPortals,
             suggest_channelsdvr_matches=state.editor.suggest_channelsdvr_matches,
             host=state.editor.host,
             refresh_epg_for_ids=state.editor.refresh_epg_for_ids,
@@ -75,6 +76,7 @@ def register_blueprints(*, app, state):
         state.playlist.create_playlist_blueprint(
             logger=state.playlist.logger,
             host=state.playlist.host,
+            getPortals=state.playlist.getPortals,
             getSettings=state.playlist.getSettings,
             get_db_connection=state.playlist.get_db_connection,
             ACTIVE_GROUP_CONDITION=state.playlist.ACTIVE_GROUP_CONDITION,

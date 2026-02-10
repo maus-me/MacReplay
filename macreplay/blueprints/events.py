@@ -34,6 +34,125 @@ def create_events_blueprint(
                 return []
         return []
 
+    def _normalize_alias(text):
+        if not text:
+            return ""
+        return re.sub(r"[^a-z0-9]", "", str(text).lower())
+
+    def _build_alias_abbrev_map(cursor):
+        alias_map = {}
+        try:
+            rows = cursor.execute(
+                "SELECT team_name, team_aliases FROM espn_teams_cache"
+            ).fetchall()
+        except Exception:
+            return alias_map
+        for row in rows:
+            aliases = []
+            if row["team_name"]:
+                aliases.append(row["team_name"])
+            if row["team_aliases"]:
+                aliases.extend(_loads_list(row["team_aliases"]))
+            aliases = [a for a in aliases if a]
+            if not aliases:
+                continue
+            short = None
+            for alias in aliases:
+                cleaned = re.sub(r"[^A-Za-z0-9]", "", alias)
+                if 2 <= len(cleaned) <= 4 and cleaned.isalnum():
+                    short = cleaned.upper()
+                    break
+            if not short:
+                short = min(aliases, key=lambda x: len(str(x)))
+            for alias in aliases:
+                norm = _normalize_alias(alias)
+                if norm and norm not in alias_map:
+                    alias_map[norm] = short
+        return alias_map
+
+    def _apply_event_template(template, group_template, event, alias_map):
+        home = event.get("home") or ""
+        away = event.get("away") or ""
+        sport = event.get("sport") or ""
+        league = event.get("league") or ""
+        start_raw = event.get("start") or ""
+        start_dt = None
+        if start_raw:
+            try:
+                start_dt = datetime.fromisoformat(start_raw.replace("Z", "+00:00")).astimezone()
+            except Exception:
+                start_dt = None
+        date_str = start_dt.strftime("%Y-%m-%d") if start_dt else ""
+        time_str = start_dt.strftime("%H:%M") if start_dt else ""
+        home_abbr = alias_map.get(_normalize_alias(home), home)
+        away_abbr = alias_map.get(_normalize_alias(away), away)
+        event_name = (template or "").strip()
+        event_name = event_name.replace("{home}", home).replace("{away}", away)
+        event_name = event_name.replace("{home_abbr}", home_abbr).replace("{away_abbr}", away_abbr)
+        event_name = event_name.replace("{home_short}", home_abbr).replace("{away_short}", away_abbr)
+        event_name = event_name.replace("{sport}", sport).replace("{league}", league)
+        event_name = event_name.replace("{date}", date_str).replace("{time}", time_str)
+        event_name = event_name.strip() or f"{home} vs {away}".strip()
+        output_group = (group_template or "").replace("{sport}", sport).replace("{league}", league).strip()
+        if not output_group:
+            output_group = group_template or "EVENTS"
+        return event_name, output_group
+
+    def _update_generated_channels_for_rule(cursor, rule_id, output_template, output_group):
+        alias_map = _build_alias_abbrev_map(cursor)
+        rows = cursor.execute(
+            """
+            SELECT portal_id, channel_id, event_home, event_away, event_start, event_sport, event_league
+            FROM event_generated_channels
+            WHERE rule_id = ?
+            """,
+            (rule_id,),
+        ).fetchall()
+        updated = 0
+        for row in rows:
+            if not (row["event_home"] or row["event_away"]):
+                continue
+            event = {
+                "home": row["event_home"] or "",
+                "away": row["event_away"] or "",
+                "start": row["event_start"] or "",
+                "sport": row["event_sport"] or "",
+                "league": row["event_league"] or "",
+            }
+            event_name, group_name = _apply_event_template(
+                output_template, output_group, event, alias_map
+            )
+            cursor.execute(
+                """
+                UPDATE channels
+                SET name = ?, custom_name = ?, display_name = ?, custom_genre = ?, genre = ?
+                WHERE portal_id = ? AND channel_id = ?
+                """,
+                (
+                    event_name,
+                    event_name,
+                    event_name,
+                    group_name,
+                    group_name,
+                    row["portal_id"],
+                    row["channel_id"],
+                ),
+            )
+            updated += 1
+        return updated
+
+    def _resolve_espn_names(sport_key, league_key):
+        sport_name = sport_key
+        league_name = league_key
+        for sport in ESPN_CATALOG:
+            if sport.get("key") == sport_key:
+                sport_name = sport.get("name") or sport_key
+                for league in sport.get("leagues") or []:
+                    if league.get("key") == league_key:
+                        league_name = league.get("name") or league_key
+                        return sport_name, league_name
+        return sport_name, league_name
+
     def _extract_team_aliases(team):
         aliases = []
         if not isinstance(team, dict):
@@ -479,6 +598,8 @@ def create_events_blueprint(
             finally:
                 conn.close()
 
+        sport_name, league_name = _resolve_espn_names(sport_key, league_key)
+
         def _add_events(data):
             for event in data.get("events") or []:
                 try:
@@ -525,6 +646,10 @@ def create_events_blueprint(
                                 "status": short_detail,
                                 "state": state,
                                 "event_id": event_id,
+                                "sport": sport_name,
+                                "league": league_name,
+                                "sport_key": sport_key,
+                                "league_key": league_key,
                             }
                         )
 
@@ -776,6 +901,7 @@ def create_events_blueprint(
                     c.name,
                     c.custom_name,
                     c.auto_name,
+                    c.matched_name,
                     c.custom_epg_id,
                     COALESCE(NULLIF(c.custom_name, ''), NULLIF(c.display_name, ''), NULLIF(c.auto_name, ''), c.name) AS channel_name,
                     COALESCE(NULLIF(c.custom_genre, ''), NULLIF(c.genre, ''), 'UNGROUPED') AS group_name
@@ -975,10 +1101,13 @@ def create_events_blueprint(
                     rule_id,
                 ),
             )
+            updated_channels = _update_generated_channels_for_rule(
+                conn.cursor(), rule_id, rule["output_template"], rule["output_group_name"]
+            )
             conn.commit()
             if cur.rowcount == 0:
                 return jsonify({"ok": False, "error": "rule not found"}), 404
-            return jsonify({"ok": True})
+            return jsonify({"ok": True, "updated_channels": updated_channels})
         finally:
             conn.close()
 
@@ -1291,6 +1420,60 @@ def create_events_blueprint(
                 "matched_channels": len(filtered),
                 "channels": filtered[:200],
                 "truncated": len(filtered) > 200,
+            }
+        )
+
+    @bp.route("/api/events/preview/espn_event", methods=["POST"])
+    @authorise
+    def preview_espn_event():
+        payload = request.get_json(silent=True) or {}
+        sport_key = (payload.get("sport") or "").strip()
+        league_filters = payload.get("league_filters") or []
+        try:
+            espn_window_hours = int(payload.get("espn_event_window_hours", 72) or 72)
+        except (TypeError, ValueError):
+            espn_window_hours = 72
+        if not sport_key or not league_filters:
+            return jsonify({"ok": False, "error": "sport + league required"}), 400
+        league_key = str(league_filters[0] or "").strip()
+        if not league_key:
+            return jsonify({"ok": False, "error": "league required"}), 400
+        try:
+            events = _fetch_espn_upcoming_events(sport_key, league_key, espn_window_hours)
+        except Exception as exc:
+            logger.error("ESPN preview error: %s", exc)
+            return jsonify({"ok": False, "error": "ESPN preview failed"}), 500
+        if not events:
+            return jsonify({"ok": True, "event": None})
+        event = events[0]
+        alias_map = {}
+        try:
+            conn = get_db_connection()
+            alias_map = _build_alias_abbrev_map(conn.cursor())
+        except Exception:
+            alias_map = {}
+        finally:
+            try:
+                conn.close()
+            except Exception:
+                pass
+        home = event.get("home") or ""
+        away = event.get("away") or ""
+        home_abbr = alias_map.get(_normalize_alias(home), home)
+        away_abbr = alias_map.get(_normalize_alias(away), away)
+        return jsonify(
+            {
+                "ok": True,
+                "event": {
+                    "event_id": event.get("event_id"),
+                    "start": event["start_dt"].isoformat() if event.get("start_dt") else "",
+                    "home": home,
+                    "away": away,
+                    "home_abbr": home_abbr,
+                    "away_abbr": away_abbr,
+                    "sport": event.get("sport") or "",
+                    "league": event.get("league") or "",
+                },
             }
         )
 
@@ -1774,11 +1957,10 @@ def create_events_blueprint(
                         conn.close()
             for ev in espn_events:
                 event_id = ev.get("event_id")
-                matched = len(espn_match_channels.get(event_id, set())) if event_id else 0
-                replays = len(espn_replay_channels.get(event_id, set())) if event_id else 0
                 matched_channels = []
                 replay_channels = []
                 if event_id and event_id in espn_match_channels:
+                    grouped = {}
                     for channel_key in sorted(espn_match_channels[event_id]):
                         if "::" in channel_key:
                             portal_id, _ = channel_key.split("::", 1)
@@ -1790,24 +1972,43 @@ def create_events_blueprint(
                         program_info = espn_match_programs.get(event_id, {}).get(channel_key, {})
                         created_key = (str(event_id or ""), str(channel["portal_id"]), str(channel["channel_id"]))
                         created_entry = created_map.get(created_key)
+                        matched_name = str(channel["matched_name"] or "").strip() if "matched_name" in channel.keys() else ""
+                        group_key = matched_name.lower() if matched_name else f"{channel['portal_id']}::{channel['channel_id']}"
+                        member = {
+                            "portal_id": portal_id or channel["portal_id"],
+                            "channel_id": channel["channel_id"],
+                            "channel_name": channel["channel_name"] or channel["name"] or channel["channel_id"],
+                            "portal_name": channel["portal_name"] or channel["portal_id"],
+                            "group_name": channel["group_name"] if "group_name" in channel.keys() else "",
+                            "program_title": program_info.get("title", ""),
+                            "program_sub_title": program_info.get("sub_title", ""),
+                            "program_description": program_info.get("description", ""),
+                            "program_start": datetime.fromtimestamp(program_info["start_ts"], tz=timezone.utc).isoformat()
+                            if program_info.get("start_ts")
+                            else "",
+                            "created_event_channel_id": created_entry["channel_id"] if created_entry else "",
+                            "created_event_portal_id": created_entry["portal_id"] if created_entry else "",
+                        }
+                        grouped.setdefault(group_key, []).append(member)
+                    for group_key, members in grouped.items():
+                        members_sorted = sorted(members, key=lambda item: (item.get("portal_name") or "", item.get("channel_name") or ""))
+                        primary = members_sorted[0]
+                        is_group = len(members_sorted) > 1
+                        label = f"{len(members_sorted)} Portale" if is_group else primary["portal_name"]
+                        created_count = sum(1 for m in members_sorted if m.get("created_event_channel_id"))
                         matched_channels.append(
                             {
-                                "portal_id": portal_id or channel["portal_id"],
-                                "channel_id": channel["channel_id"],
-                                "channel_name": channel["channel_name"] or channel["name"] or channel["channel_id"],
-                                "portal_name": channel["portal_name"] or channel["portal_id"],
-                                "group_name": channel["group_name"] if "group_name" in channel.keys() else "",
-                                "program_title": program_info.get("title", ""),
-                                "program_sub_title": program_info.get("sub_title", ""),
-                                "program_description": program_info.get("description", ""),
-                                "program_start": datetime.fromtimestamp(program_info["start_ts"], tz=timezone.utc).isoformat()
-                                if program_info.get("start_ts")
-                                else "",
-                                "created_event_channel_id": created_entry["channel_id"] if created_entry else "",
-                                "created_event_portal_id": created_entry["portal_id"] if created_entry else "",
+                                **primary,
+                                "portal_name": label,
+                                "group_key": group_key,
+                                "is_group": is_group,
+                                "group_members": members_sorted,
+                                "group_created": created_count == len(members_sorted),
+                                "group_partial": created_count > 0 and created_count < len(members_sorted),
                             }
                         )
                 if event_id and event_id in espn_replay_channels:
+                    grouped = {}
                     for channel_key in sorted(espn_replay_channels[event_id]):
                         if "::" in channel_key:
                             portal_id, _ = channel_key.split("::", 1)
@@ -1817,28 +2018,47 @@ def create_events_blueprint(
                         if not channel:
                             continue
                         program_info = espn_replay_programs.get(event_id, {}).get(channel_key, {})
+                        matched_name = str(channel["matched_name"] or "").strip() if "matched_name" in channel.keys() else ""
+                        group_key = matched_name.lower() if matched_name else f"{channel['portal_id']}::{channel['channel_id']}"
+                        member = {
+                            "portal_id": portal_id or channel["portal_id"],
+                            "channel_id": channel["channel_id"],
+                            "channel_name": channel["channel_name"] or channel["name"] or channel["channel_id"],
+                            "portal_name": channel["portal_name"] or channel["portal_id"],
+                            "group_name": channel["group_name"] if "group_name" in channel.keys() else "",
+                            "program_title": program_info.get("title", ""),
+                            "program_sub_title": program_info.get("sub_title", ""),
+                            "program_description": program_info.get("description", ""),
+                            "program_start": datetime.fromtimestamp(program_info["start_ts"], tz=timezone.utc).isoformat()
+                            if program_info.get("start_ts")
+                            else "",
+                            "is_replay": True,
+                        }
+                        grouped.setdefault(group_key, []).append(member)
+                    for group_key, members in grouped.items():
+                        members_sorted = sorted(members, key=lambda item: (item.get("portal_name") or "", item.get("channel_name") or ""))
+                        primary = members_sorted[0]
+                        is_group = len(members_sorted) > 1
+                        label = f"{len(members_sorted)} Portale" if is_group else primary["portal_name"]
                         replay_channels.append(
                             {
-                                "portal_id": portal_id or channel["portal_id"],
-                                "channel_id": channel["channel_id"],
-                                "channel_name": channel["channel_name"] or channel["name"] or channel["channel_id"],
-                                "portal_name": channel["portal_name"] or channel["portal_id"],
-                                "group_name": channel["group_name"] if "group_name" in channel.keys() else "",
-                                "program_title": program_info.get("title", ""),
-                                "program_sub_title": program_info.get("sub_title", ""),
-                                "program_description": program_info.get("description", ""),
-                                "program_start": datetime.fromtimestamp(program_info["start_ts"], tz=timezone.utc).isoformat()
-                                if program_info.get("start_ts")
-                                else "",
-                                "is_replay": True,
+                                **primary,
+                                "portal_name": label,
+                                "group_key": group_key,
+                                "is_group": is_group,
+                                "group_members": members_sorted,
                             }
                         )
+                matched = len(matched_channels)
+                replays = len(replay_channels)
                 espn_events_view.append(
                     {
                         "event_id": event_id,
                         "start": ev["start_dt"].isoformat(),
                         "home": ev.get("home") or "",
                         "away": ev.get("away") or "",
+                        "sport": ev.get("sport") or "",
+                        "league": ev.get("league") or "",
                         "home_score": ev.get("home_score"),
                         "away_score": ev.get("away_score"),
                         "status": ev.get("status") or "",
@@ -1869,8 +2089,11 @@ def create_events_blueprint(
         portal_id = (payload.get("portal_id") or "").strip()
         source_channel_id = (payload.get("channel_id") or "").strip()
         event_id = (payload.get("event_id") or "").strip()
+        rule_id = payload.get("rule_id")
         home = (payload.get("home") or "").strip()
         away = (payload.get("away") or "").strip()
+        sport = (payload.get("sport") or "").strip()
+        league = (payload.get("league") or "").strip()
         start_raw = (payload.get("start") or "").strip()
         output_group = (payload.get("output_group_name") or "EVENTS").strip()
         output_template = (payload.get("output_template") or "{home} vs {away} | {date} {time}").strip()
@@ -1881,6 +2104,8 @@ def create_events_blueprint(
 
         if not portal_id or not source_channel_id or not event_id:
             return jsonify({"ok": False, "error": "portal_id, channel_id, event_id required"}), 400
+        if not home and not away:
+            return jsonify({"ok": False, "error": "event name missing"}), 400
 
         start_dt = None
         if start_raw:
@@ -1889,20 +2114,26 @@ def create_events_blueprint(
             except Exception:
                 start_dt = None
 
-        date_str = start_dt.strftime("%Y-%m-%d") if start_dt else ""
-        time_str = start_dt.strftime("%H:%M") if start_dt else ""
-        event_name = output_template
-        event_name = event_name.replace("{home}", home).replace("{away}", away)
-        event_name = event_name.replace("{date}", date_str).replace("{time}", time_str)
-        event_name = event_name.strip()
-        if not event_name:
-            event_name = f"{home} vs {away}".strip()
-
         safe_channel_id = re.sub(r"[^a-zA-Z0-9_-]+", "-", f"event-{event_id}-{source_channel_id}").strip("-")
 
         conn = get_db_connection()
         try:
             cursor = conn.cursor()
+            alias_map = _build_alias_abbrev_map(cursor)
+            event_name, output_group = _apply_event_template(
+                output_template,
+                output_group,
+                {
+                    "home": home,
+                    "away": away,
+                    "sport": sport,
+                    "league": league,
+                    "start": start_raw,
+                },
+                alias_map,
+            )
+            if not event_name or event_name.strip().lower() in {"vs", "vs |", "|"}:
+                event_name = f"Event {event_id}".strip()
             _cleanup_expired_event_channels(cursor)
             cursor.execute(
                 "SELECT * FROM channels WHERE portal_id = ? AND channel_id = ?",
@@ -2019,17 +2250,40 @@ def create_events_blueprint(
             cursor.execute(
                 """
                 INSERT INTO event_generated_channels (
-                    portal_id, channel_id, event_id, source_portal_id, source_channel_id, created_at, expires_at
+                    portal_id, channel_id, event_id, rule_id,
+                    source_portal_id, source_channel_id,
+                    event_home, event_away, event_start, event_sport, event_league,
+                    created_at, expires_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(portal_id, channel_id) DO UPDATE SET
                     event_id = excluded.event_id,
+                    rule_id = excluded.rule_id,
                     source_portal_id = excluded.source_portal_id,
                     source_channel_id = excluded.source_channel_id,
+                    event_home = excluded.event_home,
+                    event_away = excluded.event_away,
+                    event_start = excluded.event_start,
+                    event_sport = excluded.event_sport,
+                    event_league = excluded.event_league,
                     created_at = excluded.created_at,
                     expires_at = excluded.expires_at
                 """,
-                (portal_id, safe_channel_id, event_id, portal_id, source_channel_id, time.time(), expires_at),
+                (
+                    portal_id,
+                    safe_channel_id,
+                    event_id,
+                    rule_id,
+                    portal_id,
+                    source_channel_id,
+                    home,
+                    away,
+                    start_raw,
+                    sport,
+                    league,
+                    time.time(),
+                    expires_at,
+                ),
             )
             _sync_channel_tags(cursor, portal_id, safe_channel_id, event_tags, misc_tags)
             conn.commit()

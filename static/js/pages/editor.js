@@ -21,6 +21,29 @@
             .replace(/'/g, '&#39;');
     }
 
+    function handleLogoLoadError(img) {
+        if (!img) return;
+        try {
+            const alreadyRetried = img.dataset.logoFallbackTried === '1';
+            if (alreadyRetried) {
+                img.style.display = 'none';
+                return;
+            }
+
+            const url = new URL(img.src, window.location.href);
+            const isHttps = url.protocol === 'https:';
+            const isIpv4 = /^\d{1,3}(\.\d{1,3}){3}$/.test(url.hostname);
+            if (isHttps && isIpv4) {
+                img.dataset.logoFallbackTried = '1';
+                img.src = img.src.replace(/^https:\/\//i, 'http://');
+                return;
+            }
+        } catch (e) {
+            // ignore parse errors, just hide below
+        }
+        img.style.display = 'none';
+    }
+
     // Confirmation Dialog Function
     function showConfirmDialog(options) {
         return new Promise((resolve) => {
@@ -83,6 +106,85 @@
     var allChannelNamesCount = {}; // Track all channel name frequencies for autocomplete
     var enabledChannelNamesCount = {}; // Track enabled channel name frequencies for duplicate detection
 
+    function getPortalAttr(ele) {
+        return (ele && (ele.dataset.portal || ele.getAttribute('data-portal'))) || '';
+    }
+
+    function getChannelIdAttr(ele) {
+        if (!ele) return '';
+        return ele.dataset.channelId
+            || ele.getAttribute('data-channelid')
+            || ele.getAttribute('data-channel-id')
+            || ele.getAttribute('data-channelId')
+            || '';
+    }
+
+    function getGroupChildRowFromElement(ele) {
+        const tr = ele ? ele.closest('tr') : null;
+        if (!tr) return null;
+        // If called from an element inside the child row itself
+        if (tr.querySelector('td[colspan]')) return tr;
+
+        // If called from the group parent row, the child details row is usually the next sibling
+        const nextTr = tr.nextElementSibling;
+        if (nextTr && nextTr.querySelector && nextTr.querySelector('td[colspan]')) {
+            return nextTr;
+        }
+        return null;
+    }
+
+    function getGroupSwitchForChildRow(childTr) {
+        if (!childTr) return null;
+        const parentTr = childTr.previousElementSibling;
+        if (!parentTr) return null;
+        return parentTr.querySelector('input.form-check-input[data-group-items]');
+    }
+
+    function getMemberSwitchesInChildRow(childTr) {
+        if (!childTr) return [];
+        return Array.from(
+            childTr.querySelectorAll('td[colspan] input.form-check-input[data-portal], .group-cell-toggle input.form-check-input[data-portal]')
+        );
+    }
+
+    function parseGroupItems(input) {
+        if (!input) return [];
+        const raw = input.dataset.groupItems || input.getAttribute('data-group-items') || '[]';
+        if (!raw) return [];
+        try {
+            const parsed = JSON.parse(raw);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+            try {
+                const decoded = raw.replace(/&quot;/g, '"');
+                const parsed = JSON.parse(decoded);
+                return Array.isArray(parsed) ? parsed : [];
+            } catch (e2) {
+                return [];
+            }
+        }
+    }
+
+    function syncGroupSwitchVisualStateFromChildRow(childTr) {
+        const groupSwitch = getGroupSwitchForChildRow(childTr);
+        const memberSwitches = getMemberSwitchesInChildRow(childTr);
+        if (!groupSwitch || !memberSwitches.length) return;
+
+        const checkedCount = memberSwitches.filter(sw => !!sw.checked).length;
+        const allChecked = checkedCount === memberSwitches.length;
+        const allUnchecked = checkedCount === 0;
+        const mixed = !allChecked && !allUnchecked;
+
+        groupSwitch.indeterminate = mixed;
+        groupSwitch.checked = allChecked;
+        groupSwitch.classList.toggle('is-mixed', mixed);
+        if (mixed) {
+            groupSwitch.setAttribute('data-mixed', '1');
+        } else {
+            groupSwitch.removeAttribute('data-mixed');
+        }
+    }
+
     function editAll(ele) {
         var checkboxes = document.getElementsByClassName('checkbox');
         var enable = ele.checked;
@@ -95,11 +197,29 @@
     }
 
     function editEnabled(ele) {
-        var p = ele.getAttribute('data-portal');
-        var i = ele.getAttribute('data-channelId');
+        var p = getPortalAttr(ele);
+        var i = getChannelIdAttr(ele);
         var c = ele.checked;
-        var j = { "portal": p, "channel id": i, "enabled": c };
-        enabledEdits.push(j);
+        if (!p || !i) return;
+        upsertEnabledEdit(p, i, c);
+
+        const childTr = getGroupChildRowFromElement(ele);
+        if (childTr) {
+            syncGroupSwitchVisualStateFromChildRow(childTr);
+        }
+    }
+
+    function upsertEnabledEdit(portal, channelId, enabled) {
+        if (!portal || !channelId) return;
+        const idx = enabledEdits.findIndex(
+            e => e["portal"] === portal && e["channel id"] === channelId
+        );
+        const payload = { "portal": portal, "channel id": channelId, "enabled": !!enabled };
+        if (idx >= 0) {
+            enabledEdits[idx] = payload;
+        } else {
+            enabledEdits.push(payload);
+        }
     }
 
     function editCustomNumber(ele) {
@@ -287,9 +407,9 @@
             node = child[0];
         }
         if (!node) return;
-        const input = node.querySelector('.epg-suggest-input');
-        if (input) {
-            updateEpgSourceHintForInput(input);
+        const inputs = node.querySelectorAll('.epg-suggest-input');
+        if (inputs && inputs.length) {
+            inputs.forEach(input => updateEpgSourceHintForInput(input));
         }
     }
 
@@ -402,7 +522,7 @@
                     }
                 }
                 // Reload table data without losing filters
-                dataTable.ajax.reload(null, false);
+                reloadEditorTable();
             } else {
                 if (typeof showToast === 'function') {
                     showToast('Error: ' + (data.error || 'Unknown error'), 'error');
@@ -542,6 +662,24 @@
 
     // Initialize Tom Select dropdowns
     function initializeFilters() {
+        // Re-init safe: destroy previous instances if this page init runs again
+        [portalSelect, groupSelect, countrySelect, eventTagSelect].forEach(instance => {
+            if (instance && typeof instance.destroy === 'function') {
+                instance.destroy();
+            }
+        });
+        portalSelect = null;
+        groupSelect = null;
+        countrySelect = null;
+        eventTagSelect = null;
+
+        ['#portalFilter', '#groupFilter', '#countryFilter', '#eventTagFilter'].forEach(selector => {
+            const el = document.querySelector(selector);
+            if (el && el.tomselect && typeof el.tomselect.destroy === 'function') {
+                el.tomselect.destroy();
+            }
+        });
+
         // Portal filter with Tom Select
         portalSelect = new TomSelect('#portalFilter', {
             plugins: ['remove_button', 'clear_button'],
@@ -614,13 +752,14 @@
 
         // Custom search input - connect to DataTable
         let searchTimeout;
-        document.getElementById('searchFilter').addEventListener('input', function(e) {
+        const searchInput = document.getElementById('searchFilter');
+        searchInput.oninput = function(e) {
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(function() {
                 if (dataTable) dataTable.search(e.target.value).draw();
                 persistFilters();
             }, 300);
-        });
+        };
 
         // Populate the dropdowns
         populateFilters();
@@ -784,7 +923,23 @@
         });
     }
 
+    function applyGroupSwitchStates() {
+        document.querySelectorAll('input.form-check-input[data-group-items]').forEach(sw => {
+            const mixed = sw.getAttribute('data-mixed') === '1' || sw.classList.contains('is-mixed');
+            sw.indeterminate = mixed;
+            sw.classList.toggle('is-mixed', mixed);
+        });
+    }
+
     $(document).ready(function () {
+        // Prevent "Cannot reinitialise DataTable" when this page init runs multiple times
+        if ($.fn.DataTable.isDataTable('#table')) {
+            const existingTable = $('#table').DataTable();
+            existingTable.off('draw.dt');
+            existingTable.destroy();
+        }
+        $('#table tbody').off('click', 'button.row-toggle');
+
         // Initialize Tom Select filter dropdowns
         initializeFilters();
 
@@ -900,18 +1055,39 @@
                         let r = '<div class="editor-toggle-wrap">\
                                 <button type="button" class="btn btn-link row-toggle" title="Details">\
                                     <i class="fas fa-chevron-right expand-icon"></i>\
-                                </button>\
-                                <div class="form-check form-switch editor-switch">\
+                                </button>';
+                        if (row.isGroup) {
+                            const payload = JSON.stringify(
+                                (row.groupItems || []).map(item => ({ portal: item.portal, channelId: item.channelId }))
+                            ).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                            const groupItems = row.groupItems || [];
+                            const enabledCount = groupItems.filter(item => !!item.enabled).length;
+                            const allEnabled = groupItems.length > 0 && enabledCount === groupItems.length;
+                            const mixedEnabled = groupItems.length > 0 && enabledCount > 0 && enabledCount < groupItems.length;
+                            const switchClass = mixedEnabled ? 'checkbox form-check-input is-mixed' : 'checkbox form-check-input';
+                            r += '<div class="form-check form-switch editor-switch">\
+                                <input \
+                                type="checkbox" \
+                                class="' + switchClass + '" \
+                                onchange="applyGroupEnabled(this)" \
+                                data-group-items="' + payload + '"\
+                                ' + (allEnabled ? ' checked' : '') + '\
+                                ' + (mixedEnabled ? ' data-mixed=\"1\"' : '') + '\
+                                >\
+                                </div>';
+                        } else {
+                            r += '<div class="form-check form-switch editor-switch">\
                                 <input \
                                 type="checkbox" \
                                 class="checkbox form-check-input" \
                                 onchange="editEnabled(this)" \
                                 data-portal="' + row.portal + '" \
-                                data-channelId="' + row.channelId + '"'
-                        if (data == true) {
-                            r = r + ' checked';
+                                data-channelId="' + row.channelId + '"';
+                            if (data == true) {
+                                r = r + ' checked';
+                            }
+                            r = r + '></div>';
                         }
-                        r = r + '></div>';
                         r += '</div>';
                         return r
                     }
@@ -919,6 +1095,9 @@
                 {
                     data: "link",
                     render: function (data, type, row, meta) {
+                        if (row.isGroup) {
+                            return '';
+                        }
                         return '<button \
                             class="btn btn-success btn-block editor-play-btn" \
                             title="Play" \
@@ -939,6 +1118,9 @@
                 {
                     data: "channelNumber",
                     render: function (data, type, row, meta) {
+                        if (row.isGroup) {
+                            return '';
+                        }
                         return '<input \
                                 type="text" \
                                 class="form-control table-input" \
@@ -956,7 +1138,9 @@
                         var displayName = row.effectiveDisplayName || row.autoChannelName || row.channelName;
                         var tags = '';
                         var country = row.country || '--';
-                        if (row.duplicateCount && row.duplicateCount > 1) {
+                        if (row.isGroup && row.groupCount && row.groupCount > 1) {
+                            tags += '<span class="name-tag name-tag-dup">' + row.groupCount + 'x</span>';
+                        } else if (row.duplicateCount && row.duplicateCount > 1) {
                             tags += '<span class="name-tag name-tag-dup">' + row.duplicateCount + 'x</span>';
                         }
                         if (row.miscTags) {
@@ -967,7 +1151,9 @@
                             });
                         }
                         // Right-to-left order (right edge -> left): EPG, Header, Codec, Quality, Raw.
-                        const hasMatch = !!row.matchedName;
+                        const hasMatch = row.isGroup
+                            ? (row.groupItems || []).some(i => !!(i.matchedName || i.matchedStationId || i.matchedCallSign))
+                            : !!(row.matchedName || row.matchedStationId || row.matchedCallSign);
                         if (row.isRaw) {
                             tags += '<span class="name-tag name-tag-raw">RAW</span>';
                         }
@@ -981,12 +1167,21 @@
                         tags += '<span class="name-tag name-tag-event-flag ' + (row.isEvent ? 'name-tag-ok' : 'name-tag-empty') + '">EVENT</span>';
                         tags += '<span class="name-tag name-tag-match ' + (hasMatch ? 'name-tag-ok' : 'name-tag-empty') + '">MATCH</span>';
                         tags += '<span class="name-tag name-tag-header-flag ' + (row.isHeader ? 'name-tag-ok' : 'name-tag-empty') + '">HEADER</span>';
-                        const hasCustomEpg = !!(row.customEpgId && String(row.customEpgId).trim());
+                        const hasCustomEpg = row.isGroup
+                            ? (row.groupItems || []).some(i => !!(i.customEpgId && String(i.customEpgId).trim()))
+                            : !!(row.customEpgId && String(row.customEpgId).trim());
                         let epgClass = 'name-tag-bad';
                         if (row.hasEpg) {
                             epgClass = hasCustomEpg ? 'name-tag-ok' : 'name-tag-epg-portal';
                         }
                         tags += '<span class="name-tag name-tag-epg ' + epgClass + '">EPG</span>';
+                        if (row.isGroup) {
+                            return '<div class="name-field">' +
+                                   '<div class="name-country" title="Country" data-country="' + country + '">' + country + '</div>' +
+                                   '<div class="name-static" title="' + displayName + '">' + displayName + '</div>' +
+                                   '<div class="name-tags">' + tags + '</div>' +
+                                   '</div>';
+                        }
                         return '<div class="name-field">' +
                                '<div class="name-country" title="Country" data-country="' + country + '">' + country + '</div>' +
                                '<input \
@@ -1005,6 +1200,23 @@
                 {
                     data: "genre",
                     render: function (data, type, row, meta) {
+                        if (row.isGroup) {
+                            const items = row.groupItems || [];
+                            const payload = JSON.stringify(
+                                items.map(item => ({ portal: item.portal, channelId: item.channelId }))
+                            ).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                            const values = items.map(item => (item.customGenre || '').trim());
+                            const unique = [...new Set(values)];
+                            const sharedCustomGroup = unique.length === 1 ? unique[0] : '';
+                            return '<input \
+                                type="text" \
+                                class="form-control table-input" \
+                                onchange="applyGroupCustomGroup(this)" \
+                                data-group-items="' + payload + '" \
+                                placeholder="' + (row.groupGenre || '-') + '" \
+                                title="' + (row.groupGenre || '-') + '" \
+                                value="' + sharedCustomGroup + '">';
+                        }
                         return '<input \
                                 type="text" \
                                 class="form-control table-input" \
@@ -1019,6 +1231,10 @@
                 {
                     data: "portalName",
                     render: function (data, type, row, meta) {
+                        if (row.isGroup) {
+                            const count = row.groupCount || 0;
+                            return '<span class="portal-pill portal-pill-count">' + count + ' Portale</span>';
+                        }
                         // Store the full row data in a data attribute for the modal
                         const rowDataJson = JSON.stringify(row).replace(/'/g, "\\'").replace(/"/g, '&quot;');
                         return '<span class="portal-pill" role="button" ' +
@@ -1030,6 +1246,9 @@
                 {
                     data: "channelId",
                     render: function (data, type, row, meta) {
+                        if (row.isGroup) {
+                            return '';
+                        }
                         const rowDataJson = JSON.stringify(row).replace(/'/g, "\\'").replace(/"/g, '&quot;');
                         return `
                             <div class="dropdown editor-row-menu">
@@ -1047,6 +1266,12 @@
                                             <i class="fas fa-eraser me-2"></i> Reset match
                                         </button>
                                     </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <button class="dropdown-item text-danger" type="button" onclick="deleteChannelFromEditor(this)" data-row="${rowDataJson}">
+                                            <i class="fas fa-trash me-2"></i> Delete channel
+                                        </button>
+                                    </li>
                                 </ul>
                             </div>
                         `;
@@ -1057,18 +1282,23 @@
 
         dataTable.on('draw.dt', function() {
             applyCountryColors();
+            applyGroupSwitchStates();
         });
 
         $('#table tbody').on('click', 'button.row-toggle', function (e) {
             e.preventDefault();
             const tr = $(this).closest('tr');
             const row = dataTable.row(tr);
+            const rowData = row && typeof row.data === 'function' ? row.data() : null;
+            if (!rowData) {
+                return;
+            }
             if (row.child.isShown()) {
                 row.child.hide();
                 tr.removeClass('shown');
                 $(this).find('i').css('transform', 'rotate(0deg)');
             } else {
-                row.child(renderChannelDetails(row.data())).show();
+                row.child(renderChannelDetails(rowData)).show();
                 tr.addClass('shown');
                 $(this).find('i').css('transform', 'rotate(90deg)');
                 updateEpgSourceHintForRow(row);
@@ -1081,22 +1311,221 @@
         }
         applyStoredSelects();
         applyCountryColors();
+        applyGroupSwitchStates();
     });
 
     function renderChannelDetails(row) {
+            if (!row) {
+                return '<div class="channel-subline"><div class="subline-item">Keine Details vorhanden.</div></div>';
+            }
+            if (row.isGroup) {
+                return renderGroupDetails(row);
+            }
+            return renderChannelDetailsContent(row);
+    }
+
+    function renderGroupDetails(row) {
+            const items = row.groupItems || [];
+            if (!items.length) {
+                return '<div class="channel-subline"><div class="subline-item">Keine Portale gefunden.</div></div>';
+            }
+            const representative = items.find(item => item && (item.logo || item.matchedLogo || item.matchedName)) || items[0];
+            const sharedCustomEpg = (() => {
+                const values = items.map(item => (item.customEpgId || '').trim());
+                const unique = [...new Set(values)];
+                return unique.length === 1 ? unique[0] : '';
+            })();
+            const groupItemsPayload = JSON.stringify(
+                items.map(item => ({ portal: item.portal, channelId: item.channelId }))
+            ).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+            return `
+            <div class="group-details">
+                <div class="group-portal-block group-portal-block--details">
+                    <div class="group-details-list">
+                        <div class="group-details-row">
+                            ${renderChannelDetailsContent({
+                                ...representative,
+                                customEpgId: sharedCustomEpg,
+                                portal: representative.portal,
+                                channelId: representative.channelId
+                            }).replace('onchange="editCustomEpgId(this)"', `data-group-items="${groupItemsPayload}" onchange="applyGroupEpgId(this)"`)}
+                        </div>
+                    </div>
+                </div>
+                ${items.map(item => `
+                    <div class="group-portal-block">
+                        <div class="group-portal-row">
+                            <div class="group-cell group-cell-toggle">
+                                <div class="form-check form-switch editor-switch">
+                                    <input type="checkbox" class="checkbox form-check-input"
+                                           onchange="editEnabled(this)"
+                                           data-portal="${item.portal}"
+                                           data-channelId="${item.channelId}"
+                                           ${item.enabled ? 'checked' : ''}>
+                                </div>
+                            </div>
+                            <div class="group-cell group-cell-play">
+                                <button class="btn btn-success btn-block editor-play-btn"
+                                        title="Play"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#videoModal"
+                                        onclick="selectChannel(this)"
+                                        data-channelName="${item.channelName}"
+                                        data-customChannelName="${item.customChannelName}"
+                                        data-autoChannelName="${item.autoChannelName}"
+                                        data-link="${item.link}"
+                                        data-portal="${item.portal}"
+                                        data-channelId="${item.channelId}"
+                                        data-videoCodec="${(item.videoCodec || '')}">
+                                    <i class="fas fa-play"></i>
+                                </button>
+                            </div>
+                            <div class="group-cell group-cell-number">
+                                <input type="text" class="form-control table-input"
+                                       onchange="editCustomNumber(this)"
+                                       data-portal="${item.portal}"
+                                       data-channelId="${item.channelId}"
+                                       placeholder="${item.channelNumber || ''}"
+                                       title="${item.channelNumber || ''}"
+                                       value="${item.customChannelNumber || ''}">
+                            </div>
+                            <div class="group-cell group-cell-name">
+                                <input type="text" class="form-control table-input name-input"
+                                       onchange="editCustomName(this)"
+                                       data-portal="${item.portal}"
+                                       data-channelId="${item.channelId}"
+                                       placeholder="${item.effectiveDisplayName || item.autoChannelName || item.channelName || ''}"
+                                       title="${item.effectiveDisplayName || item.autoChannelName || item.channelName || ''}"
+                                       value="${item.customChannelName || ''}">
+                            </div>
+                            <div class="group-cell group-cell-group">
+                                <input type="text" class="form-control table-input"
+                                       onchange="editCustomGroup(this)"
+                                       data-portal="${item.portal}"
+                                       data-channelId="${item.channelId}"
+                                       placeholder="${item.genre || ''}"
+                                       title="${item.genre || ''}"
+                                       value="${item.customGenre || ''}">
+                            </div>
+                            <div class="group-cell group-cell-epg">
+                                <input type="text"
+                                       class="form-control table-input epg-suggest-input"
+                                       onchange="editCustomEpgId(this)"
+                                       data-portal="${item.portal}"
+                                       data-channelId="${item.channelId}"
+                                       data-stationId="${(item.matchedStationId || '').replace(/"/g, '&quot;')}"
+                                       data-callSign="${(item.matchedCallSign || '').replace(/"/g, '&quot;')}"
+                                       data-channelName="${(item.effectiveDisplayName || item.channelName || item.name || '').replace(/"/g, '&quot;')}"
+                                       list="epg-suggestions"
+                                       placeholder="${item.portal}${item.channelId}"
+                                       title="${item.portal}${item.channelId}"
+                                       value="${item.customEpgId || ''}">
+                            </div>
+                            <div class="group-cell group-cell-portal">
+                                <span class="portal-pill" role="button"
+                                      onclick="showChannelInfo(this)"
+                                      data-row="${JSON.stringify(item).replace(/'/g, "\\'").replace(/"/g, '&quot;')}">
+                                      ${item.portalName || 'Unknown'}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+            `;
+    }
+
+    function applyGroupCustomGroup(input) {
+        const items = parseGroupItems(input);
+        if (!items.length) return;
+        const value = input.value;
+        items.forEach(item => {
+            groupEdits.push({ "portal": item.portal, "channel id": item.channelId, "custom genre": value });
+        });
+        const container = input.closest('.group-details');
+        const root = container || document;
+        items.forEach(item => {
+            const selector = `input[data-portal="${item.portal}"][data-channelId="${item.channelId}"]`;
+            root.querySelectorAll(selector).forEach(field => {
+                if (field.onchange === editCustomGroup) {
+                    field.value = value;
+                }
+            });
+        });
+    }
+
+    function applyGroupEpgId(input) {
+        const items = parseGroupItems(input);
+        if (!items.length) return;
+        const value = input.value;
+        items.forEach(item => {
+            epgEdits.push({ "portal": item.portal, "channel id": item.channelId, "custom epg id": value });
+        });
+        const container = input.closest('.group-details');
+        if (container) {
+            items.forEach(item => {
+                const selector = `.epg-suggest-input[data-portal="${item.portal}"][data-channelId="${item.channelId}"]`;
+                container.querySelectorAll(selector).forEach(field => {
+                    field.value = value;
+                    updateEpgSourceHintForInput(field);
+                });
+            });
+        }
+    }
+
+    function applyGroupEnabled(input) {
+        const enabled = !!input.checked;
+        input.indeterminate = false;
+        input.classList.remove('is-mixed');
+        input.removeAttribute('data-mixed');
+
+        const childTr = getGroupChildRowFromElement(input);
+        if (childTr) {
+            const memberSwitches = getMemberSwitchesInChildRow(childTr);
+            if (memberSwitches.length) {
+                memberSwitches.forEach(field => {
+                    const portal = getPortalAttr(field);
+                    const channelId = getChannelIdAttr(field);
+                    if (!portal || !channelId) return;
+                    field.checked = enabled;
+                    upsertEnabledEdit(portal, channelId, enabled);
+                });
+                syncGroupSwitchVisualStateFromChildRow(childTr);
+                return;
+            }
+        }
+
+        // Fallback: use data-group-items mapping when child row switches are not present.
+        const items = parseGroupItems(input);
+        if (!items.length) return;
+        items.forEach(item => {
+            upsertEnabledEdit(item.portal, item.channelId, enabled);
+        });
+
+        const groupKeySet = new Set(items.map(item => `${item.portal}::${item.channelId}`));
+        document.querySelectorAll('input.form-check-input[data-portal]').forEach(field => {
+            const portal = getPortalAttr(field);
+            const channelId = getChannelIdAttr(field);
+            if (groupKeySet.has(`${portal}::${channelId}`)) {
+                field.checked = enabled;
+            }
+        });
+    }
+
+    function renderChannelDetailsContent(row) {
             const matchedScore = row.matchedScore ? Number(row.matchedScore).toFixed(2) : '-';
             const matchedName = row.matchedName || '-';
             const matchedStationId = row.matchedStationId || '-';
             const matchedCallSign = row.matchedCallSign || '-';
-            const logo = row.matchedName ? (row.matchedLogo || '') : '';
+            const logo = row.logo || (row.matchedName ? (row.matchedLogo || '') : '');
             const epgValue = row.customEpgId || '';
             const epgPlaceholder = row.portal + row.channelId;
             const epgEffective = row.customEpgId || row.effectiveEpgId || '';
             return `
-            <div class="channel-subline">
+            <div class="channel-subline channel-subline--compact">
                 <div class="subline-item subline-logo">
                     <span class="subline-label">Logo</span>
-                    ${logo ? `<img class="channel-logo" loading="lazy" src="${logo}" alt="logo">` : '<span class="subline-empty">—</span>'}
+                    ${logo ? `<img class="channel-logo" loading="lazy" src="${logo}" alt="logo" onerror="handleLogoLoadError(this)">` : '<span class="subline-empty">—</span>'}
                 </div>
                 <div class="subline-item"><span class="subline-label">Station ID</span><span class="subline-value">${matchedStationId}</span></div>
                 <div class="subline-item"><span class="subline-label">Matched Name</span><span class="subline-value">${matchedName}</span></div>
@@ -1191,6 +1620,8 @@
             const logoContainer = document.getElementById('channelInfoLogoContainer');
             const logoImg = document.getElementById('channelInfoLogo');
             if (row.logo) {
+                logoImg.dataset.logoFallbackTried = '0';
+                logoImg.onerror = function() { handleLogoLoadError(this); };
                 logoImg.src = row.logo;
                 logoContainer.style.display = 'block';
             } else {
@@ -1377,7 +1808,7 @@
     });
 
     // Merge button click handler
-    document.getElementById('mergeChannelBtn').addEventListener('click', function() {
+    document.getElementById('mergeChannelBtn').addEventListener('click', async function() {
         const secondaryPortal = document.getElementById('mergeTargetPortal').value;
         const secondaryChannelId = document.getElementById('mergeTargetChannelId').value;
 
@@ -1400,10 +1831,14 @@
         }
 
         // Confirm merge
-        if (!confirm('Merge channel ID ' + secondaryChannelId + ' into ' + primaryChannelId + '?\n\n' +
-                     'The secondary channel will be deleted and its ID will become an alternate for the primary channel.')) {
-            return;
-        }
+        const confirmed = await showConfirmDialog({
+            title: 'Merge channel',
+            message: 'Merge channel ID ' + secondaryChannelId + ' into ' + primaryChannelId + '?\n\n' +
+                     'The secondary channel will be deleted and its ID will become an alternate for the primary channel.',
+            type: 'warning',
+            okText: 'Merge'
+        });
+        if (!confirmed) return;
 
         const btn = this;
         btn.disabled = true;
@@ -1425,7 +1860,7 @@
                 showNotification(data.message, 'success', 5000);
                 // Close modal and refresh table
                 bootstrap.Modal.getInstance(document.getElementById('channelInfoModal')).hide();
-                $('#channelsTable').DataTable().ajax.reload(null, false);
+                reloadEditorTable();
             } else {
                 showNotification('Merge failed: ' + data.error, 'error', 5000);
             }
@@ -1446,6 +1881,16 @@
     function parseRowDataFromElement(element) {
         const rowDataStr = element.getAttribute('data-row').replace(/&quot;/g, '"');
         return JSON.parse(rowDataStr);
+    }
+
+    function reloadEditorTable() {
+        if (dataTable && dataTable.ajax) {
+            dataTable.ajax.reload(null, false);
+            return;
+        }
+        if ($.fn.DataTable.isDataTable('#table')) {
+            $('#table').DataTable().ajax.reload(null, false);
+        }
     }
 
     function openManualMatch(element) {
@@ -1482,12 +1927,44 @@
             .then(data => {
                 if (data.ok) {
                     showNotification('Match reset.', 'success');
-                    dataTable.ajax.reload(null, false);
+                    reloadEditorTable();
                 } else {
                     showNotification(data.error || 'Reset failed', 'error');
                 }
             })
             .catch(error => showNotification('Reset failed: ' + error, 'error'));
+        });
+    }
+
+    function deleteChannelFromEditor(element) {
+        const row = parseRowDataFromElement(element);
+        const channelName = row.customChannelName || row.effectiveDisplayName || row.autoChannelName || row.channelName || row.channelId || 'this channel';
+        showConfirmDialog({
+            title: 'Delete channel',
+            message: `Delete "${channelName}" (${row.channelId})? This will remove it from the portal cache.`,
+            type: 'danger',
+            okText: 'Delete'
+        }).then((confirmed) => {
+            if (!confirmed) return;
+            fetch('/api/editor/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ portal: row.portal, channelId: row.channelId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification('Channel deleted.', 'success');
+                    const $tr = $(element).closest('tr');
+                    if (dataTable && dataTable.row($tr).length) {
+                        dataTable.row($tr).remove().draw(false);
+                    }
+                    reloadEditorTable();
+                } else {
+                    showNotification(data.error || 'Delete failed', 'error');
+                }
+            })
+            .catch(error => showNotification('Delete failed: ' + error, 'error'));
         });
     }
 
@@ -1566,7 +2043,7 @@
             if (data.ok) {
                 showNotification('Match updated.', 'success');
                 bootstrap.Modal.getInstance(document.getElementById('manualMatchModal')).hide();
-                dataTable.ajax.reload(null, false);
+                reloadEditorTable();
             } else {
                 showNotification(data.error || 'Match update failed', 'error');
             }
@@ -1595,9 +2072,14 @@
         window.showChannelInfo = showChannelInfo;
         window.openManualMatch = openManualMatch;
         window.resetManualMatch = resetManualMatch;
+        window.deleteChannelFromEditor = deleteChannelFromEditor;
         window.applyManualMatch = applyManualMatch;
         window.selectChannel = selectChannel;
         window.save = save;
+        window.handleLogoLoadError = handleLogoLoadError;
+        window.applyGroupCustomGroup = applyGroupCustomGroup;
+        window.applyGroupEpgId = applyGroupEpgId;
+        window.applyGroupEnabled = applyGroupEnabled;
     }
     window.App && window.App.register('editor', initEditorPage);
 })();

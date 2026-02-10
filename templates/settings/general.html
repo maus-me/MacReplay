@@ -120,6 +120,15 @@
             <h5><i class="fas fa-list"></i> Playlist Settings</h5>
         </div>
         <div class="card-body">
+            <div class="mb-3">
+                <label for="playlist_name_format" class="form-label">Playlist Channel Name Format</label>
+                <input type="text" class="form-control" id="playlist_name_format" name="playlist name format"
+                       value="{{ settings.get('playlist name format', '({prefix}) {name} ({suffix})') }}">
+                <div class="form-text">
+                    Tokens: <code>{prefix}</code> <code>{name}</code> <code>{suffix}</code>
+                    <code>{country}</code> <code>{portal_code}</code> <code>{quality}</code> <code>{hevc}</code> <code>{event}</code>
+                </div>
+            </div>
             <input type="hidden" name="use channel genres" value="false">
             <div class="form-check mb-3">
                 <input class="form-check-input" type="checkbox" id="use_channel_genres" name="use channel genres"

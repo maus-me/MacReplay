@@ -2,6 +2,17 @@
 (function() {
     const registry = {};
     let lastPage = null;
+    function cleanupModalArtifacts() {
+        document.querySelectorAll('.modal.show').forEach(modalEl => {
+            modalEl.classList.remove('show');
+            modalEl.setAttribute('aria-hidden', 'true');
+            modalEl.style.display = 'none';
+        });
+        document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
+        document.body.classList.remove('modal-open');
+        document.body.style.removeProperty('padding-right');
+        document.body.style.removeProperty('overflow');
+    }
 
     function getPageMeta() {
         return document.getElementById('page-meta');
@@ -79,12 +90,29 @@
         runInit();
     }
 
-    document.body.addEventListener('htmx:afterSettle', function(evt) {
-        if (evt && evt.target && evt.target.id === 'app-content') {
-            runInit({ preserveScroll: true });
-            if (evt.target.querySelector('.settings-sidebar')) {
-                window.scrollTo(0, 0);
-            }
+    function isAppContentTarget(target) {
+        if (!target) return false;
+        if (target.id === 'app-content') return true;
+        if (typeof target.closest === 'function' && target.closest('#app-content')) return true;
+        return false;
+    }
+
+    function handleHtmxInit(evt) {
+        const target = (evt && evt.detail && evt.detail.target) || (evt && evt.target) || null;
+        if (!isAppContentTarget(target)) return;
+        cleanupModalArtifacts();
+        runInit({ preserveScroll: true });
+        if (target && typeof target.querySelector === 'function' && target.querySelector('.settings-sidebar')) {
+            window.scrollTo(0, 0);
+        }
+    }
+
+    document.body.addEventListener('htmx:beforeSwap', function(evt) {
+        const target = (evt && evt.detail && evt.detail.target) || null;
+        if (isAppContentTarget(target)) {
+            cleanupModalArtifacts();
         }
     });
+    document.body.addEventListener('htmx:afterSwap', handleHtmxInit);
+    document.body.addEventListener('htmx:afterSettle', handleHtmxInit);
 })();

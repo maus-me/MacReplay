@@ -112,3 +112,54 @@ def start_vacuum_epg_scheduler(*, getSettings, logger):
 
     threading.Thread(target=vacuum_loop, daemon=True).start()
     logger.info("EPG DB vacuum scheduler started!")
+
+
+def start_custom_epg_scheduler(*, refresh_custom_sources, logger):
+    """Start a lightweight scheduler for custom XMLTV sources.
+
+    The per-source interval enforcement is handled inside refresh_custom_sources().
+    This loop only triggers periodic checks.
+    """
+
+    def custom_epg_loop():
+        while True:
+            try:
+                logger.info("Custom EPG scheduler: checking custom sources...")
+                refresh_custom_sources()
+            except Exception as exc:
+                logger.error("Custom EPG scheduler error: %s", exc)
+            # Keep checks frequent enough so per-source intervals are respected reliably.
+            time.sleep(300)
+
+    threading.Thread(target=custom_epg_loop, daemon=True).start()
+    logger.info("Custom EPG scheduler started!")
+
+
+def start_event_channel_cleanup_scheduler(*, getSettings, logger):
+    """Start scheduler that removes expired event-generated channels."""
+
+    def cleanup_loop():
+        while True:
+            try:
+                interval_min = float(
+                    getSettings().get("events cleanup interval minutes", 5) or 5
+                )
+                if interval_min <= 0:
+                    time.sleep(3600)
+                    continue
+
+                time.sleep(max(30, int(interval_min * 60)))
+                from macreplay.db import cleanup_expired_event_channels
+
+                deleted = cleanup_expired_event_channels()
+                if deleted:
+                    logger.info(
+                        "Event channel cleanup: removed %s expired channel(s).",
+                        deleted,
+                    )
+            except Exception as exc:
+                logger.error("Event channel cleanup scheduler error: %s", exc)
+                time.sleep(300)
+
+    threading.Thread(target=cleanup_loop, daemon=True).start()
+    logger.info("Event channel cleanup scheduler started!")

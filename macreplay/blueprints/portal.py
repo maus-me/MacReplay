@@ -1,3 +1,4 @@
+import re
 import sqlite3
 import uuid
 from datetime import datetime
@@ -275,6 +276,59 @@ def create_portal_blueprint(
             return jsonify({"success": True, "status": "idle"})
         return jsonify({"success": True, **status})
 
+    @bp.route("/api/portal/flag", methods=["POST"])
+    @authorise
+    def portal_flag_update():
+        data = request.get_json(silent=True) or {}
+        portal_id = data.get("portal_id")
+        flag = data.get("flag")
+        raw_value = data.get("value")
+
+        if not portal_id or not flag:
+            return (
+                jsonify(
+                    {
+                        "success": False,
+                        "message": "portal_id and flag are required",
+                    }
+                ),
+                400,
+            )
+
+        key_map = {
+            "enabled": "enabled",
+            "fetch_epg": "fetch epg",
+            "auto_match": "auto match",
+        }
+        if flag not in key_map:
+            return jsonify({"success": False, "message": "Unsupported flag"}), 400
+
+        value = False
+        if isinstance(raw_value, bool):
+            value = raw_value
+        elif isinstance(raw_value, (int, float)):
+            value = raw_value != 0
+        elif raw_value is not None:
+            value = str(raw_value).strip().lower() in ("1", "true", "yes", "on")
+
+        portals = getPortals()
+        portal = portals.get(portal_id)
+        if not portal:
+            return jsonify({"success": False, "message": "Portal not found"}), 404
+
+        portal[key_map[flag]] = value
+        savePortals(portals)
+        filter_cache.clear()
+
+        return jsonify(
+            {
+                "success": True,
+                "portal_id": portal_id,
+                "flag": flag,
+                "value": value,
+            }
+        )
+
     @bp.route("/portal/add", methods=["POST"])
     @authorise
     def portalsAdd():
@@ -282,6 +336,10 @@ def create_portal_blueprint(
         portal_id = uuid.uuid4().hex
         enabled = "true"
         name = request.form["name"]
+        portalCode = request.form.get("portal code", "").strip().upper()
+        portalCode = re.sub(r"[^A-Z0-9]", "", portalCode)
+        if portalCode:
+            portalCode = portalCode[:2]
         url = request.form["url"]
         macs = list(set(request.form["macs"].split(",")))
         streamsPerMac = request.form["streams per mac"]
@@ -353,6 +411,7 @@ def create_portal_blueprint(
             portal = {
                 "enabled": enabled,
                 "name": name,
+                "portal code": portalCode,
                 "url": url,
                 "macs": macsd,
                 "streams per mac": streamsPerMac,
@@ -393,6 +452,10 @@ def create_portal_blueprint(
         portal_id = request.form["id"]
         enabled = request.form.get("enabled", "false")
         name = request.form["name"]
+        portalCode = request.form.get("portal code", "").strip().upper()
+        portalCode = re.sub(r"[^A-Z0-9]", "", portalCode)
+        if portalCode:
+            portalCode = portalCode[:2]
         url = request.form["url"]
         newmacs = list(set(request.form["macs"].split(",")))
         streamsPerMac = request.form["streams per mac"]
@@ -483,6 +546,7 @@ def create_portal_blueprint(
         if len(macsout) > 0:
             portals[portal_id]["enabled"] = enabled
             portals[portal_id]["name"] = name
+            portals[portal_id]["portal code"] = portalCode
             portals[portal_id]["url"] = url
             portals[portal_id]["macs"] = macsout
             portals[portal_id]["streams per mac"] = streamsPerMac

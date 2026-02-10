@@ -26,59 +26,91 @@ def create_streaming_blueprint(
     @bp.route("/play/<portalId>/<channelId>", methods=["GET"])
     def channel(portalId, channelId):
         def streamData():
+            ffmpeg_sp = None
+            occupied_item = None
+            stderr_buffer = []
+            stderr_lock = threading.Lock()
+
+            def _drain_stderr(pipe):
+                try:
+                    for line in iter(pipe.readline, b""):
+                        text = line.decode(errors="ignore").strip()
+                        if not text:
+                            continue
+                        with stderr_lock:
+                            stderr_buffer.append(text)
+                            if len(stderr_buffer) > 50:
+                                stderr_buffer.pop(0)
+                except Exception:
+                    pass
             def occupy():
                 occupied.setdefault(portalId, [])
-                occupied.get(portalId, []).append(
-                    {
-                        "mac": mac,
-                        "channel id": channelId,
-                        "channel name": channelName,
-                        "client": ip,
-                        "portal name": portalName,
-                        "start time": startTime,
-                    }
+                nonlocal occupied_item
+                occupied_item = {
+                    "mac": mac,
+                    "channel id": channelId,
+                    "channel name": channelName,
+                    "client": ip,
+                    "portal name": portalName,
+                    "start time": startTime,
+                }
+                occupied.get(portalId, []).append(occupied_item)
+                logger.info(
+                    "Occupied Portal({} | {}):MAC({})".format(portalName, portalId, mac)
                 )
-                logger.info("Occupied Portal({}):MAC({})".format(portalId, mac))
 
             def unoccupy():
-                occupied.get(portalId, []).remove(
-                    {
-                        "mac": mac,
-                        "channel id": channelId,
-                        "channel name": channelName,
-                        "client": ip,
-                        "portal name": portalName,
-                        "start time": startTime,
-                    }
-                )
-                logger.info("Unoccupied Portal({}):MAC({})".format(portalId, mac))
+                try:
+                    if occupied_item and occupied_item in occupied.get(portalId, []):
+                        occupied.get(portalId, []).remove(occupied_item)
+                        logger.info(
+                            "Unoccupied Portal({} | {}):MAC({})".format(
+                                portalName, portalId, mac
+                            )
+                        )
+                except Exception:
+                    pass
 
             try:
                 startTime = datetime.now(timezone.utc).timestamp()
                 occupy()
-                with subprocess.Popen(
+                ffmpeg_sp = subprocess.Popen(
                     ffmpegcmd,
                     stdin=subprocess.DEVNULL,
                     stdout=subprocess.PIPE,
-                    stderr=subprocess.DEVNULL,
-                ) as ffmpeg_sp:
-                    while True:
-                        chunk = ffmpeg_sp.stdout.read(1024)
-                        if len(chunk) == 0:
-                            if ffmpeg_sp.poll() != 0:
-                                logger.info(
-                                    "Ffmpeg closed with error({}). Moving MAC({}) for Portal({})".format(
-                                        str(ffmpeg_sp.poll()), mac, portalName
-                                    )
+                    stderr=subprocess.PIPE,
+                )
+                stderr_thread = threading.Thread(
+                    target=_drain_stderr, args=(ffmpeg_sp.stderr,), daemon=True
+                )
+                stderr_thread.start()
+                while True:
+                    chunk = ffmpeg_sp.stdout.read(1024)
+                    if len(chunk) == 0:
+                        rc = ffmpeg_sp.poll()
+                        if rc not in (None, 0):
+                            logger.info(
+                                "Ffmpeg closed with error({}). Moving MAC({}) for Portal({})".format(
+                                    str(rc), mac, portalName
                                 )
-                                moveMac(portalId, mac)
-                            break
-                        yield chunk
+                            )
+                            with stderr_lock:
+                                if stderr_buffer:
+                                    logger.info(
+                                        "Ffmpeg stderr tail: %s", " | ".join(stderr_buffer[-8:])
+                                    )
+                            moveMac(portalId, mac)
+                        break
+                    yield chunk
             except Exception:
                 pass
             finally:
                 unoccupy()
-                ffmpeg_sp.kill()
+                if ffmpeg_sp is not None:
+                    try:
+                        ffmpeg_sp.kill()
+                    except Exception:
+                        pass
 
         def testStream():
             timeout = int(getSettings()["ffmpeg timeout"]) * int(1000000)

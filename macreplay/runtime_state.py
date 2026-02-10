@@ -62,6 +62,7 @@ class EditorState:
     get_epg_channel_ids: Callable[[], Any]
     get_epg_channel_map: Callable[[], Any]
     getSettings: Callable[[], Any]
+    getPortals: Callable[[], Any]
     suggest_channelsdvr_matches: Callable[..., Any]
     host: str
     refresh_epg_for_ids: Callable[..., Any]
@@ -95,6 +96,7 @@ class PlaylistState:
     create_playlist_blueprint: Callable[..., Any]
     logger: Any
     host: str
+    getPortals: Callable[[], Any]
     getSettings: Callable[[], Any]
     get_db_connection: Callable[[], Any]
     ACTIVE_GROUP_CONDITION: str

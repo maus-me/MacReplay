@@ -395,8 +395,14 @@ def init_db(get_portals, logger):
             portal_id TEXT NOT NULL,
             channel_id TEXT NOT NULL,
             event_id TEXT,
+            rule_id INTEGER,
             source_portal_id TEXT,
             source_channel_id TEXT,
+            event_home TEXT,
+            event_away TEXT,
+            event_start TEXT,
+            event_sport TEXT,
+            event_league TEXT,
             created_at REAL,
             expires_at REAL,
             PRIMARY KEY (portal_id, channel_id)
@@ -404,10 +410,22 @@ def init_db(get_portals, logger):
     ''')
 
     event_channel_cols = {row["name"] for row in cursor.execute("PRAGMA table_info(event_generated_channels)").fetchall()}
+    if "rule_id" not in event_channel_cols:
+        cursor.execute("ALTER TABLE event_generated_channels ADD COLUMN rule_id INTEGER")
     if "source_portal_id" not in event_channel_cols:
         cursor.execute("ALTER TABLE event_generated_channels ADD COLUMN source_portal_id TEXT")
     if "source_channel_id" not in event_channel_cols:
         cursor.execute("ALTER TABLE event_generated_channels ADD COLUMN source_channel_id TEXT")
+    if "event_home" not in event_channel_cols:
+        cursor.execute("ALTER TABLE event_generated_channels ADD COLUMN event_home TEXT")
+    if "event_away" not in event_channel_cols:
+        cursor.execute("ALTER TABLE event_generated_channels ADD COLUMN event_away TEXT")
+    if "event_start" not in event_channel_cols:
+        cursor.execute("ALTER TABLE event_generated_channels ADD COLUMN event_start TEXT")
+    if "event_sport" not in event_channel_cols:
+        cursor.execute("ALTER TABLE event_generated_channels ADD COLUMN event_sport TEXT")
+    if "event_league" not in event_channel_cols:
+        cursor.execute("ALTER TABLE event_generated_channels ADD COLUMN event_league TEXT")
 
     cursor.execute('''
         CREATE INDEX IF NOT EXISTS idx_event_generated_event
@@ -458,3 +476,41 @@ def vacuum_epg_dbs():
         except Exception:
             continue
     return count
+
+
+def cleanup_expired_event_channels():
+    """Delete expired event-generated channels from main DB.
+
+    Returns:
+        int: number of deleted channels
+    """
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        rows = cursor.execute(
+            """
+            SELECT portal_id, channel_id
+            FROM event_generated_channels
+            WHERE expires_at IS NOT NULL AND expires_at <= strftime('%s','now')
+            """
+        ).fetchall()
+        if not rows:
+            return 0
+
+        keys = [(row["portal_id"], row["channel_id"]) for row in rows]
+        cursor.executemany(
+            "DELETE FROM channels WHERE portal_id = ? AND channel_id = ?",
+            keys,
+        )
+        cursor.executemany(
+            "DELETE FROM channel_tags WHERE portal_id = ? AND channel_id = ?",
+            keys,
+        )
+        cursor.executemany(
+            "DELETE FROM event_generated_channels WHERE portal_id = ? AND channel_id = ?",
+            keys,
+        )
+        conn.commit()
+        return len(keys)
+    finally:
+        conn.close()

@@ -59,7 +59,6 @@ def create_settings_blueprint(enqueue_epg_refresh):
 
         saveSettings(settings)
         logger.info("Settings saved!")
-        enqueue_epg_refresh(reason="settings_save")
         flash("Settings saved!", "success")
         return redirect("/settings", code=302)
 

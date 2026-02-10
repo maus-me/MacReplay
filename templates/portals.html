@@ -41,12 +41,15 @@
             <div class="card h-100 portal-card" data-portal-id="{{ portal_id }}">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">{{ portal.name or 'Unnamed Portal' }}</h5>
-                    <div class="d-flex align-items-center gap-1">
-                        <span class="badge bg-{{ 'success' if portal.get('fetch epg', True) else 'danger' }}" title="EPG {{ 'enabled' if portal.get('fetch epg', True) else 'disabled' }}">EPG</span>
-                        <span class="badge bg-{{ 'success' if portal.get('auto match', False) else 'danger' }}" title="Matching {{ 'enabled' if portal.get('auto match', False) else 'disabled' }}">Match</span>
-                        <span class="badge bg-{{ 'success' if portal.get('enabled', True) else 'danger' }}">
-                            {{ 'Enabled' if portal.get('enabled', True) else 'Disabled' }}
-                        </span>
+                    <div class="d-flex align-items-center gap-1 portal-flag-buttons" onclick="event.stopPropagation()">
+                        <input type="checkbox" class="btn-check portal-flag-input" id="card_enabled_{{ portal_id }}" data-portal-id="{{ portal_id }}" data-flag="enabled" {% if portal.get('enabled', True) %}checked{% endif %} autocomplete="off">
+                        <label class="btn btn-outline-primary btn-sm" for="card_enabled_{{ portal_id }}" title="Portal enabled">Aktiv</label>
+
+                        <input type="checkbox" class="btn-check portal-flag-input" id="card_epg_{{ portal_id }}" data-portal-id="{{ portal_id }}" data-flag="fetch_epg" {% if portal.get('fetch epg', True) %}checked{% endif %} autocomplete="off">
+                        <label class="btn btn-outline-primary btn-sm" for="card_epg_{{ portal_id }}" title="EPG fetching">EPG</label>
+
+                        <input type="checkbox" class="btn-check portal-flag-input" id="card_match_{{ portal_id }}" data-portal-id="{{ portal_id }}" data-flag="auto_match" {% if portal.get('auto match', False) %}checked{% endif %} autocomplete="off">
+                        <label class="btn btn-outline-primary btn-sm" for="card_match_{{ portal_id }}" title="Auto match">Match</label>
                     </div>
                 </div>
                 <div class="card-body">
@@ -136,11 +139,16 @@
                         <i class="fas fa-clock"></i>
                         <span class="portal-expiry-value">-</span>
                     </span>
-                    <span class="badge bg-{{ 'success' if portal.get('fetch epg', True) else 'danger' }}" title="EPG {{ 'enabled' if portal.get('fetch epg', True) else 'disabled' }}">EPG</span>
-                    <span class="badge bg-{{ 'success' if portal.get('auto match', False) else 'danger' }}" title="Matching {{ 'enabled' if portal.get('auto match', False) else 'disabled' }}">Match</span>
-                    <span class="badge bg-{{ 'success' if portal.get('enabled', True) else 'danger' }}">
-                        {{ 'Enabled' if portal.get('enabled', True) else 'Disabled' }}
-                    </span>
+                    <div class="portal-flag-buttons" onclick="event.stopPropagation()">
+                        <input type="checkbox" class="btn-check portal-flag-input" id="list_enabled_{{ portal_id }}" data-portal-id="{{ portal_id }}" data-flag="enabled" {% if portal.get('enabled', True) %}checked{% endif %} autocomplete="off">
+                        <label class="btn btn-outline-primary btn-sm" for="list_enabled_{{ portal_id }}" title="Portal enabled">Aktiv</label>
+
+                        <input type="checkbox" class="btn-check portal-flag-input" id="list_epg_{{ portal_id }}" data-portal-id="{{ portal_id }}" data-flag="fetch_epg" {% if portal.get('fetch epg', True) %}checked{% endif %} autocomplete="off">
+                        <label class="btn btn-outline-primary btn-sm" for="list_epg_{{ portal_id }}" title="EPG fetching">EPG</label>
+
+                        <input type="checkbox" class="btn-check portal-flag-input" id="list_match_{{ portal_id }}" data-portal-id="{{ portal_id }}" data-flag="auto_match" {% if portal.get('auto match', False) %}checked{% endif %} autocomplete="off">
+                        <label class="btn btn-outline-primary btn-sm" for="list_match_{{ portal_id }}" title="Auto match">Match</label>
+                    </div>
                 </div>
                 <div class="portal-actions">
                     <button class="btn btn-outline-primary" onclick="event.stopPropagation(); editPortal('{{ portal_id }}')" title="Edit Portal">
@@ -283,6 +291,11 @@
                         <input type="text" class="form-control" id="add_name" name="name" required>
                     </div>
                     <div class="mb-3">
+                        <label for="add_portal_code" class="form-label">Portal Code (Optional)</label>
+                        <input type="text" class="form-control" id="add_portal_code" name="portal code" maxlength="2" placeholder="DE">
+                        <div class="form-text">Two-letter code used in playlist naming</div>
+                    </div>
+                    <div class="mb-3">
                         <label for="add_url" class="form-label">Portal URL</label>
                         <input type="url" class="form-control" id="add_url" name="url" placeholder="http://portal.example.com" required>
                         <div class="form-text">Enter the portal domain or full URL</div>
@@ -354,6 +367,11 @@
                     <div class="mb-3">
                         <label for="edit_name" class="form-label">Portal Name</label>
                         <input type="text" class="form-control" id="edit_name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_portal_code" class="form-label">Portal Code (Optional)</label>
+                        <input type="text" class="form-control" id="edit_portal_code" name="portal code" maxlength="2" placeholder="DE">
+                        <div class="form-text">Two-letter code used in playlist naming</div>
                     </div>
                     <div class="mb-3">
                         <label for="edit_url" class="form-label">Portal URL</label>

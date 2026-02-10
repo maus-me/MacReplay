@@ -56,6 +56,8 @@ from macreplay.services.scheduler import (
     start_channel_scheduler,
     start_vacuum_channels_scheduler,
     start_vacuum_epg_scheduler,
+    start_custom_epg_scheduler,
+    start_event_channel_cleanup_scheduler,
 )
 logger = setup_logging(LOG_DIR)
 
@@ -268,7 +270,11 @@ def _parse_epg_channel_map(xmltv):
         if not cid:
             continue
         display_name = channel.findtext("display-name") or cid
-        mapping[cid] = {"name": display_name}
+        icon_src = ""
+        icon_ele = channel.find("icon")
+        if icon_ele is not None:
+            icon_src = icon_ele.get("src") or ""
+        mapping[cid] = {"name": display_name, "logo": icon_src}
     return mapping
 
 
@@ -278,12 +284,14 @@ def _normalize_epg_channel_map(mapping, default_source=None):
         if isinstance(value, dict):
             name = value.get("name") or value.get("display_name") or cid
             source = value.get("source")
+            logo = value.get("logo") or value.get("icon") or ""
         else:
             name = value or cid
             source = None
+            logo = ""
         if default_source and not source:
             source = default_source
-        normalized[cid] = {"name": name, "source": source}
+        normalized[cid] = {"name": name, "source": source, "logo": logo}
     return normalized
 
 
@@ -503,7 +511,7 @@ def _rebuild_epg_channel_map_from_db():
         cursor = conn.cursor()
         cursor.execute(
             """
-            SELECT c.channel_id, c.display_name, s.name as source_name, c.source_id
+            SELECT c.channel_id, c.display_name, c.icon, s.name as source_name, c.source_id
             FROM epg_channels c
             LEFT JOIN epg_sources s ON s.source_id = c.source_id
             """
@@ -512,7 +520,11 @@ def _rebuild_epg_channel_map_from_db():
             cid = row["channel_id"]
             ids.add(cid)
             source_label = row["source_name"] or row["source_id"] or "portal"
-            mapping[cid] = {"name": row["display_name"] or cid, "source": source_label}
+            mapping[cid] = {
+                "name": row["display_name"] or cid,
+                "source": source_label,
+                "logo": row["icon"] or "",
+            }
         conn.close()
     except Exception as e:
         logger.warning(f"Failed to rebuild epg channel map from DB: {e}")
@@ -580,22 +592,26 @@ def _resolve_epg_meta_for_ids(epg_ids):
 
 
 def _build_xmltv_from_db(enabled_channels, *, portals, past_cutoff_ts, future_cutoff_ts):
+    def _default_epg_id(ch):
+        return effective_epg_name(ch.get("custom_name"), ch.get("auto_name"), ch.get("name"))
+
     epg_ids = set()
     for ch in enabled_channels:
-        default_epg_id = effective_epg_name(ch["custom_name"], ch["auto_name"], ch["name"])
+        default_epg_id = _default_epg_id(ch)
         if default_epg_id:
             epg_ids.add(default_epg_id)
         if ch.get("custom_epg_id"):
             epg_ids.add(ch["custom_epg_id"])
 
     epg_meta = _resolve_epg_meta_for_ids(epg_ids)
+
     root = ET.Element("tv")
     seen_channel_ids = set()
     channel_sources = {}
 
     for ch in enabled_channels:
         portal_id = ch["portal_id"]
-        default_epg_id = effective_epg_name(ch["custom_name"], ch["auto_name"], ch["name"])
+        default_epg_id = _default_epg_id(ch)
         custom_epg_id = ch.get("custom_epg_id") or ""
 
         if custom_epg_id:
@@ -893,6 +909,7 @@ def _fetch_custom_xmltv(source, logger, progress_cb=None):
 def refresh_custom_sources(source_ids=None):
     settings = getSettings()
     sources = _parse_custom_sources(settings)
+    force_refresh = source_ids is not None
     if source_ids:
         source_ids = {s for s in source_ids if s}
         sources = [s for s in sources if s.get("id") in source_ids]
@@ -915,7 +932,24 @@ def refresh_custom_sources(source_ids=None):
         if not source_id:
             source_id = hashlib.sha1(url.encode("utf-8")).hexdigest()
         source_label = source.get("name") or url or source_id or "custom"
-        interval_hours = source.get("interval", source.get("interval_hours", 24))
+        try:
+            interval_hours = float(source.get("interval", source.get("interval_hours", 24)) or 24)
+        except (TypeError, ValueError):
+            interval_hours = 24.0
+
+        cache_path, meta_path = _resolve_custom_source_cache(source)
+        if not force_refresh and cache_path and meta_path and interval_hours > 0:
+            if os.path.exists(cache_path) and os.path.exists(meta_path):
+                try:
+                    with open(meta_path, "r", encoding="utf-8") as f:
+                        last_fetch_ts = float(f.read().strip())
+                    age_hours = (time.time() - last_fetch_ts) / 3600
+                    if age_hours < interval_hours:
+                        _set_epg_source_status(source_id, "ready", "Up-to-date")
+                        continue
+                except Exception:
+                    # If metadata cannot be read, fall back to normal refresh attempt.
+                    pass
 
         _set_epg_source_status(source_id, "downloading", "Downloading...")
 
@@ -927,7 +961,6 @@ def refresh_custom_sources(source_ids=None):
             _set_epg_source_status(source_id, "downloading", detail)
 
         xml_text = _fetch_custom_xmltv(source, logger, progress_cb=_download_progress)
-        cache_path, meta_path = _resolve_custom_source_cache(source)
         if not xml_text or not cache_path:
             _set_epg_source_status(source_id, "failed", "Download failed")
             continue
@@ -959,12 +992,16 @@ def refresh_custom_sources(source_ids=None):
             continue
         _set_epg_source_status(source_id, "parsing", "Parsing...")
         parse_ok = False
+        staged_table_created = False
         try:
             cursor = source_db.cursor()
             cursor.execute("PRAGMA journal_mode=WAL")
             cursor.execute("PRAGMA synchronous=NORMAL")
             cursor.execute("PRAGMA temp_store=MEMORY")
-            cursor.execute("DELETE FROM epg_programmes")
+            # Stage parsed rows in a temp table to avoid empty-read windows during parsing.
+            cursor.execute("DROP TABLE IF EXISTS epg_programmes_new")
+            cursor.execute("CREATE TABLE epg_programmes_new AS SELECT * FROM epg_programmes WHERE 0")
+            staged_table_created = True
             source_db.commit()
 
             file_size = None
@@ -1122,7 +1159,7 @@ def refresh_custom_sources(source_ids=None):
                         if len(programme_rows) >= batch_size:
                             cursor.executemany(
                                 """
-                                INSERT INTO epg_programmes
+                                INSERT INTO epg_programmes_new
                                 (
                                     channel_id, start, stop, start_ts, stop_ts, title, description,
                                     sub_title, categories, episode_num, episode_system, rating,
@@ -1139,7 +1176,7 @@ def refresh_custom_sources(source_ids=None):
             if programme_rows:
                 cursor.executemany(
                     """
-                    INSERT INTO epg_programmes
+                    INSERT INTO epg_programmes_new
                     (
                         channel_id, start, stop, start_ts, stop_ts, title, description,
                         sub_title, categories, episode_num, episode_system, rating,
@@ -1150,11 +1187,25 @@ def refresh_custom_sources(source_ids=None):
                     programme_rows,
                 )
                 source_db.commit()
+
+            # Atomic-ish final swap: keep old rows visible while parsing, then replace quickly.
+            cursor.execute("BEGIN IMMEDIATE")
+            cursor.execute("DELETE FROM epg_programmes")
+            cursor.execute("INSERT INTO epg_programmes SELECT * FROM epg_programmes_new")
+            cursor.execute("DROP TABLE epg_programmes_new")
+            source_db.commit()
+            staged_table_created = False
             parse_ok = True
         except Exception as e:
             _set_epg_source_status(source_id, "failed", "Parse error")
             logger.warning(f"Failed to parse/store custom EPG source {source_label}: {e}")
         finally:
+            if staged_table_created:
+                try:
+                    cursor.execute("DROP TABLE IF EXISTS epg_programmes_new")
+                    source_db.commit()
+                except Exception:
+                    pass
             try:
                 source_db.close()
             except Exception:
@@ -3456,6 +3507,13 @@ def refresh_xmltv():
     settings = getSettings()
     logger.info("Refreshing XMLTV...")
 
+    # Keep custom XMLTV sources in sync on every full EPG refresh.
+    # Per-source interval logic is applied inside refresh_custom_sources().
+    try:
+        refresh_custom_sources()
+    except Exception as e:
+        logger.error("Custom EPG refresh failed during XMLTV refresh: %s", e)
+
     epg_future_hours = int(settings.get("epg future hours", "24"))
     epg_past_hours = int(settings.get("epg past hours", "2"))
 
@@ -3832,6 +3890,8 @@ def start_refresh():
     # Start vacuum schedulers
     start_vacuum_channels_scheduler(getSettings=getSettings, logger=logger)
     start_vacuum_epg_scheduler(getSettings=getSettings, logger=logger)
+    start_custom_epg_scheduler(refresh_custom_sources=refresh_custom_sources, logger=logger)
+    start_event_channel_cleanup_scheduler(getSettings=getSettings, logger=logger)
 
 
 if __name__ == "__main__":

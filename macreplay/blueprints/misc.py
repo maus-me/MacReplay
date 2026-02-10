@@ -1,4 +1,5 @@
 import os
+import sqlite3
 import threading
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
@@ -112,6 +113,38 @@ def create_misc_blueprint(*, LOG_DIR, occupied, refresh_custom_sources=None, get
                 "updated_at": status.get("updated_at"),
             }
         )
+
+    @bp.route("/api/epg/sources/meta")
+    @authorise
+    def epg_sources_meta():
+        try:
+            db_path = os.path.join(DATA_DIR, "channels.db")
+            conn = sqlite3.connect(db_path)
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute(
+                """
+                SELECT source_id, source_type, last_fetch, last_refresh
+                FROM epg_sources
+                """
+            ).fetchall()
+            conn.close()
+
+            return jsonify(
+                {
+                    "ok": True,
+                    "sources": [
+                        {
+                            "source_id": row["source_id"],
+                            "source_type": row["source_type"],
+                            "last_fetch": row["last_fetch"],
+                            "last_refresh": row["last_refresh"],
+                        }
+                        for row in rows
+                    ],
+                }
+            )
+        except Exception as exc:
+            return jsonify({"ok": False, "error": str(exc)}), 500
 
     @bp.route("/api/image-proxy")
     @authorise

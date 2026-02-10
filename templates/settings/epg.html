@@ -122,6 +122,7 @@
         let epgSources = [];
         let modal = null;
         const statusPollers = new Map();
+        let sourceMeta = {};
 
         function parseSources(rawValue) {
             let parsed = rawValue;
@@ -205,6 +206,7 @@
                             <span>${source.url || 'No URL'}</span>
                             <span>· ${source.interval || 24}h</span>
                         </div>
+                        <div class="epg-source-last-fetch text-muted small" data-role="last-fetch">Last fetch: -</div>
                         <div class="epg-source-status text-muted small" data-role="status">Ready</div>
                     </div>
                     <div class="epg-source-actions">
@@ -249,8 +251,48 @@
                 });
 
                 list.appendChild(row);
+                updateSourceLastFetch(source.id);
                 pollSourceStatus(source.id);
             });
+        }
+
+        function formatEpochLocal(epochValue) {
+            const num = Number(epochValue || 0);
+            if (!num || Number.isNaN(num)) return '-';
+            try {
+                const dt = new Date(num * 1000);
+                if (Number.isNaN(dt.getTime())) return '-';
+                return dt.toLocaleString();
+            } catch (e) {
+                return '-';
+            }
+        }
+
+        function updateSourceLastFetch(id) {
+            const row = list.querySelector(`[data-source-id="${id}"]`);
+            if (!row) return;
+            const metaEl = row.querySelector('[data-role="last-fetch"]');
+            if (!metaEl) return;
+            const meta = sourceMeta[id];
+            const lastFetch = meta ? formatEpochLocal(meta.last_fetch) : '-';
+            const lastRefresh = meta ? formatEpochLocal(meta.last_refresh) : '-';
+            metaEl.textContent = `Last fetch: ${lastFetch} · Last parsed: ${lastRefresh}`;
+        }
+
+        function loadSourceMeta() {
+            return fetch('/api/epg/sources/meta')
+                .then(function(resp) { return resp.json(); })
+                .then(function(data) {
+                    sourceMeta = {};
+                    if (!data || !data.ok || !Array.isArray(data.sources)) return;
+                    data.sources.forEach(function(item) {
+                        if (!item || !item.source_id) return;
+                        sourceMeta[item.source_id] = item;
+                    });
+                })
+                .catch(function() {
+                    sourceMeta = {};
+                });
         }
 
         function openModal(source) {
@@ -310,6 +352,7 @@
                 .then(function(data) {
                     if (data && data.ok) {
                         setSourceStatus(id, 'Queued...', 'working');
+                        loadSourceMeta().then(function() { updateSourceLastFetch(id); });
                         pollSourceStatus(id);
                         if (typeof showToast === 'function') {
                             showToast('EPG source refresh started.', 'info');
@@ -363,6 +406,7 @@
                         }
                         setSourceStatus(id, label, state);
                         if (status === 'ready' || status === 'failed') {
+                            loadSourceMeta().then(function() { updateSourceLastFetch(id); });
                             stopPoller(id);
                         }
                     })
@@ -405,17 +449,22 @@
         saveSources();
         renderSources();
 
-        fetch('/api/settings/data')
-            .then(function(resp) { return resp.json(); })
-            .then(function(data) {
-                if (!data) return;
+        Promise.all([
+            fetch('/api/settings/data')
+                .then(function(resp) { return resp.json(); })
+                .catch(function() { return null; }),
+            loadSourceMeta()
+        ]).then(function(results) {
+            const data = results[0];
+            if (data) {
                 const parsed = parseSources(data['epg custom sources'] || '[]');
-                if (!parsed.length) return;
-                epgSources = parsed.map(normalizeSource);
-                saveSources();
-                renderSources();
-            })
-            .catch(function() {});
+                if (parsed.length) {
+                    epgSources = parsed.map(normalizeSource);
+                    saveSources();
+                }
+            }
+            renderSources();
+        });
 
         addBtn.addEventListener('click', function() {
             openModal();

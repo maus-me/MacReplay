@@ -60,6 +60,24 @@ body {
     overflow-y: scroll;
 }
 
+/* Conditional sticky footer:
+   - short pages: footer sticks to viewport bottom
+   - long pages: footer follows content below the table */
+html,
+body {
+    min-height: 100%;
+}
+
+body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+#app-content {
+    flex: 1 0 auto;
+}
+
 /* ===== Scrollbars (Dark Mode) ===== */
 [data-bs-theme="dark"] {
     scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
@@ -170,6 +188,10 @@ body {
 
 [data-bs-theme="dark"] .table-hover > tbody > tr:hover > * {
     background-color: rgba(255, 255, 255, 0.075);
+}
+
+[data-bs-theme="dark"] .table-hover > tbody > tr:hover > td[colspan] {
+    background-color: inherit !important;
 }
 
 [data-bs-theme="dark"] .dataTables_wrapper .pagination .page-link {
@@ -402,6 +424,7 @@ body {
 .footer-themed {
     background-color: var(--bs-tertiary-bg);
     border-top: 1px solid var(--bs-border-color);
+    margin-top: auto;
 }
 
 /* Theme toggle button */
@@ -479,6 +502,18 @@ body {
 
 [data-bs-theme="dark"] table.dataTable tbody tr:hover {
     background-color: rgba(255, 255, 255, 0.075) !important;
+}
+
+[data-bs-theme="dark"] table.dataTable tbody tr:hover > td[colspan] {
+    background-color: inherit !important;
+}
+
+/* Child/detail row should never get zebra or hover highlight */
+[data-bs-theme="dark"] table.dataTable tbody tr:has(> td[colspan]),
+[data-bs-theme="dark"] table.dataTable tbody tr:has(> td[colspan]):hover,
+[data-bs-theme="dark"] table.dataTable tbody tr:has(> td[colspan]) > td,
+[data-bs-theme="dark"] table.dataTable tbody tr:has(> td[colspan]):hover > td {
+    background-color: var(--bs-body-bg) !important;
 }
 
 [data-bs-theme="dark"] table.dataTable tbody td {
@@ -871,6 +906,21 @@ table.dataTable tbody tr {
     height: 14px;
 }
 
+.editor-switch .form-check-input.is-mixed {
+    background-color: #b58b2a;
+    border-color: #b58b2a;
+    /* Override Bootstrap indeterminate "-" icon: keep switch thumb as white circle */
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23fff'/%3e%3c/svg%3e") !important;
+    background-position: center center;
+    background-size: 14px 14px;
+    border-radius: 999px;
+}
+
+[data-bs-theme="dark"] .editor-switch .form-check-input.is-mixed {
+    background-color: #c49b31;
+    border-color: #c49b31;
+}
+
 .name-country {
     width: 44px;
     text-align: center;
@@ -883,6 +933,9 @@ table.dataTable tbody tr {
     align-items: center;
     justify-content: center;
     background-color: transparent;
+    min-width: 44px;
+    max-width: 44px;
+    flex: 0 0 44px;
 }
 
 .name-field:focus-within {
@@ -906,6 +959,106 @@ table.dataTable tbody tr {
     border: none;
     box-shadow: none;
     outline: none;
+}
+
+.name-static {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 0 6px;
+    font-size: 0.8rem;
+    color: var(--bs-body-color);
+}
+
+.group-genre {
+    color: var(--bs-secondary-color);
+    font-size: 0.8rem;
+    padding: 0 4px;
+}
+
+.portal-pill-count {
+    background: #2b313a;
+    color: #cdd6df;
+    cursor: default;
+}
+
+.group-details {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-width: 100%;
+}
+
+.group-portal-block {
+    border: none;
+    border-radius: 0;
+    padding: 6px 0;
+    background: transparent;
+    max-width: 100%;
+}
+
+.group-portal-row {
+    display: grid;
+    grid-template-columns: 36px 36px 90px minmax(160px, 1fr) 180px 180px 140px;
+    gap: 6px;
+    align-items: center;
+    width: 100%;
+}
+
+.group-portal-row--bulk {
+    grid-template-columns: 36px 36px 90px minmax(200px, 1fr) 200px 180px 140px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--bs-border-color);
+}
+
+.group-cell {
+    display: flex;
+    align-items: center;
+}
+
+.group-cell .form-control {
+    height: 28px;
+}
+
+.group-cell-epg .form-control {
+    min-width: 140px;
+}
+
+.group-portal-block--bulk {
+    background: transparent;
+}
+
+.group-portal-block--details {
+    padding-top: 6px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--bs-border-color);
+}
+
+.group-details-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.group-details-row .channel-subline--compact {
+    margin: 0;
+}
+
+.group-label {
+    color: var(--bs-secondary-color);
+    font-size: 0.8rem;
+}
+
+@media (max-width: 1200px) {
+    .group-portal-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .group-portal-fields {
+        grid-template-columns: 1fr;
+    }
+    .group-portal-fields--bulk {
+        grid-template-columns: 1fr;
+    }
 }
 
 .name-tags {
@@ -1156,6 +1309,7 @@ table.dataTable tbody tr {
     align-items: center;
     gap: 0.5rem;
     margin-right: 1rem;
+    flex-wrap: wrap;
 }
 
 .portal-meta-item {
@@ -1179,6 +1333,18 @@ table.dataTable tbody tr {
 .portal-expiry-value {
     font-weight: 600;
     color: var(--bs-body-color);
+}
+
+.portal-flag-buttons {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.portal-flag-buttons .btn.btn-sm {
+    padding: 0.18rem 0.45rem;
+    font-size: 0.72rem;
+    line-height: 1.1;
 }
 
 .portal-actions {
@@ -1571,7 +1737,7 @@ table.dataTable tbody tr {
     color: white;
 }
 
-.channel-logo {
+.epg-container .channel-logo {
     width: 40px;
     height: 40px;
     object-fit: contain;
@@ -1735,11 +1901,6 @@ table.dataTable tbody tr {
     background: var(--bs-body-bg);
     padding-bottom: 10px;
 }
-.name-tag-match {
-    min-width: 46px;
-    justify-content: center;
-}
-
 .filter-tag-groups {
     display: flex;
     gap: 12px;

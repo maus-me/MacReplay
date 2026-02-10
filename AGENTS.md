@@ -40,6 +40,7 @@ Guidance for AI coding agents working in this repository.
 
 ## QA / Smoke Tests
 - After significant refactors or infrastructure changes, run a quick Docker smoke test (app start only, no pytest).
+- After code changes that affect runtime, restart the container and verify logs for errors.
 
 ## Testing Helpers
 - `create_app(test_config=...)` supports passing `TESTING=True`.

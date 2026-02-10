@@ -1,4 +1,5 @@
 import json
+import re
 import threading
 from datetime import datetime
 
@@ -17,6 +18,7 @@ def create_editor_blueprint(
     get_epg_channel_ids,
     get_epg_channel_map,
     getSettings,
+    getPortals,
     suggest_channelsdvr_matches,
     host,
     refresh_epg_for_ids,
@@ -71,6 +73,7 @@ def create_editor_blueprint(
 
             conn = get_db_connection()
             cursor = conn.cursor()
+            portals = getPortals() or {}
 
             epg_channel_map = get_epg_channel_map()
             epg_channels = set(epg_channel_map.keys())
@@ -403,16 +406,36 @@ def create_editor_blueprint(
                 row["channel_name"]: row["count"] for row in cursor.fetchall()
             }
 
+            epg_channels_normalized = {
+                str(k).strip().lower() for k in epg_channels if str(k).strip()
+            }
+
+            def _has_epg_id(value):
+                if value is None:
+                    return False
+                candidate = str(value).strip().lower()
+                if not candidate:
+                    return False
+                return candidate in epg_channels_normalized
+
             channels = []
             for row in channel_rows:
                 portal = row["portal"]
                 channel_id = row["channel_id"]
                 display_name = row["display_name"] or ""
                 duplicate_count = duplicate_counts.get(display_name, 0)
-                epg_id = row["custom_epg_id"] if row["custom_epg_id"] else effective_epg_name(
+                custom_epg_id = str(row["custom_epg_id"] or "").strip()
+                epg_id = custom_epg_id if custom_epg_id else effective_epg_name(
                     row["custom_name"], row["auto_name"], row["name"]
                 )
-                has_epg = epg_id in epg_channels
+                epg_id = str(epg_id or "").strip()
+                has_epg = _has_epg_id(epg_id)
+                epg_meta = epg_channel_map.get(custom_epg_id) if custom_epg_id else None
+                epg_logo = ""
+                if isinstance(epg_meta, dict):
+                    epg_logo = epg_meta.get("logo") or ""
+                elif isinstance(epg_meta, str):
+                    epg_logo = ""
 
                 channels.append(
                     {
@@ -430,10 +453,11 @@ def create_editor_blueprint(
                         "genreId": row["genre_id"] or "",
                         "customGenre": row["custom_genre"] or "",
                         "channelId": channel_id,
-                        "customEpgId": row["custom_epg_id"] or "",
+                        "customEpgId": custom_epg_id,
                         "effectiveEpgId": epg_id or "",
                         "link": f"http://{host}/play/{portal}/{channel_id}?web=true",
-                        "logo": row["logo"] or "",
+                        # If a custom EPG is set, prefer the logo from that EPG source.
+                        "logo": epg_logo or row["logo"] or "",
                         "availableMacs": row["available_macs"] or "",
                         "alternateIds": row["alternate_ids"] or "",
                         "resolution": row["resolution"] or "",
@@ -455,6 +479,111 @@ def create_editor_blueprint(
                     }
                 )
 
+            def _group_key(item):
+                name_key = (
+                    item.get("effectiveDisplayName")
+                    or item.get("autoChannelName")
+                    or item.get("channelName")
+                    or ""
+                ).strip().lower()
+                resolution_key = (item.get("resolution") or "").strip().upper()
+                codec_value = (item.get("videoCodec") or "").lower()
+                hevc_key = "hevc" if ("hevc" in codec_value or "h265" in codec_value) else ""
+                raw_key = "raw" if item.get("isRaw") else ""
+                return (name_key, resolution_key, hevc_key, raw_key)
+
+            candidates = {}
+            for item in channels:
+                if item.get("matchedName"):
+                    candidates.setdefault(_group_key(item), []).append(item)
+
+            grouped_rows = []
+            used_keys = set()
+            genre_updates = []
+            epg_updates = []
+            for item in channels:
+                if item.get("matchedName"):
+                    key = _group_key(item)
+                    items = candidates.get(key, [])
+                    if len(items) > 1:
+                        if key in used_keys:
+                            continue
+                        used_keys.add(key)
+                        first = items[0]
+                        # Auto-inherit group settings for newly appearing channels in the same group.
+                        preferred_custom_genre = next(
+                            (str(i.get("customGenre") or "").strip() for i in items if str(i.get("customGenre") or "").strip()),
+                            "",
+                        )
+                        preferred_custom_epg = next(
+                            (str(i.get("customEpgId") or "").strip() for i in items if str(i.get("customEpgId") or "").strip()),
+                            "",
+                        )
+                        for i in items:
+                            portal = i.get("portal")
+                            channel_id = i.get("channelId")
+                            if preferred_custom_genre and not str(i.get("customGenre") or "").strip():
+                                i["customGenre"] = preferred_custom_genre
+                                if portal and channel_id:
+                                    genre_updates.append((preferred_custom_genre, portal, channel_id))
+                            if preferred_custom_epg and not str(i.get("customEpgId") or "").strip():
+                                i["customEpgId"] = preferred_custom_epg
+                                i["effectiveEpgId"] = preferred_custom_epg
+                                i["hasEpg"] = _has_epg_id(preferred_custom_epg)
+                                epg_meta = epg_channel_map.get(preferred_custom_epg)
+                                if isinstance(epg_meta, dict) and epg_meta.get("logo"):
+                                    i["logo"] = epg_meta.get("logo")
+                                if portal and channel_id:
+                                    epg_updates.append((preferred_custom_epg, portal, channel_id))
+
+                        country_values = {
+                            i.get("country") or ""
+                            for i in items
+                            if (i.get("country") or "").strip()
+                        }
+                        group_country = country_values.pop() if len(country_values) == 1 else ""
+                        genre_values = {
+                            (i.get("customGenre") or i.get("genre") or "").strip()
+                            for i in items
+                            if (i.get("customGenre") or i.get("genre") or "").strip()
+                        }
+                        group_genre = genre_values.pop() if len(genre_values) == 1 else ""
+                        group_row = {
+                            "isGroup": True,
+                            "groupCount": len(items),
+                            "groupItems": items,
+                            "effectiveDisplayName": first.get("effectiveDisplayName")
+                            or first.get("autoChannelName")
+                            or first.get("channelName")
+                            or "",
+                            "resolution": first.get("resolution") or "",
+                            "videoCodec": first.get("videoCodec") or "",
+                            "country": group_country,
+                            "isRaw": bool(first.get("isRaw")),
+                            "isEvent": bool(first.get("isEvent")),
+                            "isHeader": bool(first.get("isHeader")),
+                            "hasEpg": any(i.get("hasEpg") for i in items),
+                            "customEpgId": preferred_custom_epg,
+                            "groupGenre": group_genre,
+                        }
+                        grouped_rows.append(group_row)
+                        continue
+                grouped_rows.append(item)
+
+            # Persist inherited group settings so they remain stable across reloads.
+            if genre_updates or epg_updates:
+                if genre_updates:
+                    cursor.executemany(
+                        "UPDATE channels SET custom_genre = ? WHERE portal_id = ? AND channel_id = ?",
+                        genre_updates,
+                    )
+                if epg_updates:
+                    cursor.executemany(
+                        "UPDATE channels SET custom_epg_id = ? WHERE portal_id = ? AND channel_id = ?",
+                        epg_updates,
+                    )
+                conn.commit()
+
             conn.close()
 
             return flask.jsonify(
@@ -462,7 +591,7 @@ def create_editor_blueprint(
                     "draw": draw,
                     "recordsTotal": records_total,
                     "recordsFiltered": records_filtered,
-                    "data": channels,
+                    "data": grouped_rows,
                 }
             )
 
@@ -1060,6 +1189,98 @@ def create_editor_blueprint(
                 "epg_ids": sorted(set(refresh_epg_ids)),
             }
         )
+
+    @bp.route("/api/editor/delete", methods=["POST"])
+    @authorise
+    def editor_delete_channel():
+        set_last_playlist_host(None)
+        threading.Thread(target=refresh_lineup).start()
+
+        data = request.get_json(silent=True) or {}
+        portal_id = data.get("portal") or data.get("portalId")
+        channel_id = data.get("channelId") or data.get("channel_id")
+
+        if not portal_id or not channel_id:
+            return jsonify({"success": False, "error": "Missing portal or channel id"}), 400
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        try:
+            cursor.execute(
+                "SELECT portal_name FROM channels WHERE portal_id = ? LIMIT 1",
+                (portal_id,),
+            )
+            row = cursor.fetchone()
+            portal_name = row["portal_name"] if row and row["portal_name"] else ""
+
+            cursor.execute(
+                "DELETE FROM channels WHERE portal_id = ? AND channel_id = ?",
+                (portal_id, channel_id),
+            )
+            deleted = cursor.rowcount or 0
+
+            cursor.execute(
+                "DELETE FROM channel_tags WHERE portal_id = ? AND channel_id = ?",
+                (portal_id, channel_id),
+            )
+
+            if deleted:
+                stats_timestamp = datetime.utcnow().isoformat()
+                cursor.execute("DELETE FROM group_stats WHERE portal_id = ?", (portal_id,))
+                cursor.execute(
+                    """
+                    INSERT INTO group_stats (portal_id, portal_name, group_name, channel_count, updated_at)
+                    SELECT
+                        ?,
+                        ?,
+                        CASE
+                            WHEN COALESCE(NULLIF(custom_genre, ''), genre) IS NULL
+                                 OR COALESCE(NULLIF(custom_genre, ''), genre) = ''
+                            THEN 'Ungrouped'
+                            ELSE COALESCE(NULLIF(custom_genre, ''), genre)
+                        END as group_name,
+                        COUNT(*) as channel_count,
+                        ?
+                    FROM channels
+                    WHERE portal_id = ?
+                    GROUP BY CASE
+                        WHEN COALESCE(NULLIF(custom_genre, ''), genre) IS NULL
+                             OR COALESCE(NULLIF(custom_genre, ''), genre) = ''
+                        THEN 'Ungrouped'
+                        ELSE COALESCE(NULLIF(custom_genre, ''), genre)
+                    END
+                    """,
+                    (portal_id, portal_name, stats_timestamp, portal_id),
+                )
+
+                cursor.execute(
+                    "SELECT COUNT(*) as cnt FROM channels WHERE portal_id = ?",
+                    (portal_id,),
+                )
+                active_channels = cursor.fetchone()[0] or 0
+                cursor.execute(
+                    """
+                    UPDATE portal_stats
+                    SET active_channels = ?, updated_at = ?
+                    WHERE portal_id = ?
+                    """,
+                    (active_channels, stats_timestamp, portal_id),
+                )
+
+            conn.commit()
+            filter_cache.clear()
+
+            if not deleted:
+                return jsonify({"success": False, "error": "Channel not found"}), 404
+
+            return jsonify({"success": True, "deleted": deleted})
+        except Exception as e:
+            conn.rollback()
+            logger.error(f"Error deleting channel: {e}")
+            return jsonify({"success": False, "error": str(e)}), 500
+        finally:
+            conn.close()
 
     @bp.route("/api/editor/merge", methods=["POST"])
     @authorise

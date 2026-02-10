@@ -56,6 +56,7 @@ function editPortal(portalId) {
     document.getElementById('edit_portal_id').value = portalId;
     document.getElementById('edit_enabled').checked = toBool(portal.enabled, true);
     document.getElementById('edit_name').value = portal.name;
+    document.getElementById('edit_portal_code').value = portal["portal code"] || "";
     document.getElementById('edit_url').value = portal.url;
     document.getElementById('edit_macs').value = Object.keys(portal.macs).join(',');
     document.getElementById('edit_streams_per_mac').value = portal['streams per mac'];
@@ -81,6 +82,20 @@ document.getElementById('editPortalForm')?.addEventListener('submit', function(e
         input.value = g;
         this.appendChild(input);
     });
+
+    // Ensure modal/backdrop is closed before HTMX swaps content
+    const modalEl = document.getElementById('editPortalModal');
+    if (modalEl) {
+        const modal = bootstrap.Modal.getInstance(modalEl);
+        if (modal) modal.hide();
+        modalEl.classList.remove('show');
+        modalEl.style.display = 'none';
+        modalEl.setAttribute('aria-hidden', 'true');
+    }
+    document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+    document.body.classList.remove('modal-open');
+    document.body.style.removeProperty('padding-right');
+    document.body.style.removeProperty('overflow');
 });
 
 // Delete portal
@@ -468,6 +483,60 @@ document.addEventListener('click', function(e) {
         editPortal(portalId);
     } else if (action === 'delete') {
         deletePortal(portalId, btn.dataset.portalName);
+    }
+});
+
+async function updatePortalFlag(portalId, flag, value) {
+    const response = await fetch('/api/portal/flag', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            portal_id: portalId,
+            flag: flag,
+            value: !!value
+        })
+    });
+    const data = await response.json();
+    if (!response.ok || !data.success) {
+        throw new Error(data.message || 'Failed to update portal flag');
+    }
+    return data;
+}
+
+function syncPortalFlagInputs(portalId, flag, value) {
+    document.querySelectorAll(
+        `.portal-flag-input[data-portal-id="${portalId}"][data-flag="${flag}"]`
+    ).forEach(input => {
+        input.checked = !!value;
+        input.disabled = false;
+    });
+}
+
+document.addEventListener('change', async function(e) {
+    const input = e.target.closest('.portal-flag-input');
+    if (!input) return;
+
+    const portalId = input.dataset.portalId;
+    const flag = input.dataset.flag;
+    const nextValue = !!input.checked;
+    const prevValue = !nextValue;
+
+    input.disabled = true;
+    try {
+        await updatePortalFlag(portalId, flag, nextValue);
+        syncPortalFlagInputs(portalId, flag, nextValue);
+
+        if (portalsData[portalId]) {
+            if (flag === 'enabled') portalsData[portalId].enabled = nextValue;
+            if (flag === 'fetch_epg') portalsData[portalId]['fetch epg'] = nextValue;
+            if (flag === 'auto_match') portalsData[portalId]['auto match'] = nextValue;
+        }
+        showToast('Portal updated.', 'success');
+    } catch (error) {
+        syncPortalFlagInputs(portalId, flag, prevValue);
+        showToast(error.message || 'Update failed', 'error');
+    } finally {
+        input.disabled = false;
     }
 });
 

@@ -127,6 +127,13 @@ def create_epg_blueprint(
             channel_sources = {}
             channels = []
             seen_channel_keys = set()
+            matched_group_counts = {}
+            for row in rows:
+                matched_name = (row["matched_name"] or "").strip()
+                if not matched_name:
+                    continue
+                key = matched_name.lower()
+                matched_group_counts[key] = matched_group_counts.get(key, 0) + 1
 
             def resolve_display_name(row):
                 return (
@@ -164,10 +171,13 @@ def create_epg_blueprint(
 
                 if not epg_id:
                     continue
-                channel_key = f"{portal_id}::{epg_id}"
-                if channel_key in seen_channel_keys:
-                    continue
-                seen_channel_keys.add(channel_key)
+                matched_name = (row["matched_name"] or "").strip()
+                matched_key = matched_name.lower() if matched_name else ""
+                is_grouped = bool(matched_key and matched_group_counts.get(matched_key, 0) > 1)
+                if is_grouped:
+                    channel_key = f"group::{matched_key}"
+                else:
+                    channel_key = f"{portal_id}::{epg_id}"
 
                 display_name = (
                     (epg_entry["display_name"] if epg_entry else None)
@@ -175,8 +185,11 @@ def create_epg_blueprint(
                 )
                 icon = (epg_entry["icon"] if epg_entry else None) or row["logo"]
                 channel_number = row["custom_number"] or row["number"]
-
-                channel_portal_map[channel_key] = portal_name
+                if is_grouped:
+                    portal_label = f"{matched_group_counts.get(matched_key, 0)} Portale"
+                else:
+                    portal_label = portal_name
+                channel_portal_map[channel_key] = portal_label
                 source_name = None
                 if source_id:
                     source_name = (
@@ -185,7 +198,10 @@ def create_epg_blueprint(
                         or source_id
                     )
                 if source_id:
-                    channel_sources.setdefault(source_id, {}).setdefault(epg_id, []).append(channel_key)
+                    channel_sources.setdefault(source_id, {}).setdefault(epg_id, set()).add(channel_key)
+                if channel_key in seen_channel_keys:
+                    continue
+                seen_channel_keys.add(channel_key)
                 channels.append(
                     {
                         "id": channel_key,
@@ -193,7 +209,7 @@ def create_epg_blueprint(
                         "name": display_name or epg_id,
                         "number": channel_number,
                         "logo": icon,
-                        "portal": portal_name,
+                        "portal": portal_label,
                         "source_id": source_id,
                         "source_name": source_name,
                     }
@@ -232,7 +248,7 @@ def create_epg_blueprint(
                             continue
                         start_dt = datetime.fromtimestamp(start_ts, tz=timezone.utc)
                         stop_dt = datetime.fromtimestamp(stop_ts, tz=timezone.utc)
-                        channel_keys = ids.get(row["channel_id"], [])
+                        channel_keys = ids.get(row["channel_id"], set())
                         if not channel_keys:
                             continue
                         base_programme = {

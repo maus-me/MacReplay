@@ -131,6 +131,7 @@ defaultSettings = {
     "sort playlist by channel genre": False,
     "sort playlist by channel number": True,
     "sort playlist by channel name": False,
+    "playlist name format": "({prefix}) {name} ({suffix})",
     "enable security": False,
     "username": "admin",
     "password": "12345",
@@ -166,11 +167,13 @@ defaultSettings = {
     "espn cache ttl hours": 24,
     "events match debug": False,
     "events match window hours": 0.75,
+    "events cleanup interval minutes": 5,
 }
 
 defaultPortal = {
     "enabled": True,
     "name": "",
+    "portal code": "",
     "url": "",
     "macs": {},
     "streams per mac": 1,

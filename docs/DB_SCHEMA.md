@@ -1,165 +1,312 @@
 # Database Schema (SQLite)
 
-Source: `macreplay/db.py` and the runtime database at `/app/data/channels.db`.
-Per-source EPG programmes are stored in separate SQLite files under `/app/data/epg_sources/`.
+Quelle: Runtime-Schema aus `data/channels.db` sowie per-Source EPG-DBs unter `data/epg_sources/*.sqlite`.
 
-## Table: `channels`
+## Main DB: `channels.db`
+
+### Table: `channels`
+
+Primary Key: `(portal_id, channel_id)`
 
 | Field | Type | Purpose |
 |---|---|---|
-| `portal_id` | TEXT | Portal ID (part of primary key) |
-| `channel_id` | TEXT | Channel ID within portal (part of primary key) |
-| `portal_name` | TEXT | Display name of portal |
-| `name` | TEXT | Original channel name from portal |
-| `display_name` | TEXT | Effective display name used in UI/sorting |
-| `number` | TEXT | Original channel number from portal |
-| `genre` | TEXT | Original genre/group name |
-| `genre_id` | TEXT | Original genre ID |
-| `logo` | TEXT | Logo URL |
-| `enabled` | INTEGER | 1/0 whether channel is active |
-| `custom_name` | TEXT | User-defined channel name |
-| `auto_name` | TEXT | Auto-normalized channel name (if enabled per portal) |
-| `custom_number` | TEXT | User-defined channel number |
-| `custom_genre` | TEXT | User-defined genre |
-| `custom_epg_id` | TEXT | User-defined EPG ID |
-| `resolution` | TEXT | Extracted resolution tag (e.g. HD, FHD, UHD) |
-| `video_codec` | TEXT | Extracted video codec tag |
-| `country` | TEXT | Extracted country/region code |
-| `event_tags` | TEXT | Extracted event tags (CSV) |
-| `misc_tags` | TEXT | Extracted misc tags (CSV) |
-| `matched_name` | TEXT | Matched external name |
-| `matched_source` | TEXT | Match source/provider |
-| `matched_station_id` | TEXT | Matched station ID |
-| `matched_call_sign` | TEXT | Matched call sign |
-| `matched_logo` | TEXT | Matched logo URL |
-| `matched_score` | REAL | Match confidence score |
-| `is_header` | INTEGER | 1/0 if channel is a header/group title |
-| `is_event` | INTEGER | 1/0 if channel is an event/PPV |
-| `is_raw` | INTEGER | 1/0 if channel has RAW tag |
-| `available_macs` | TEXT | CSV of MACs that can access this channel |
-| `alternate_ids` | TEXT | CSV of alternate channel IDs (merge/fallback) |
-| `cmd` | TEXT | Cached stream command/URL |
-| `channel_hash` | TEXT | Hash for incremental refresh comparison |
+| `portal_id` | TEXT | Portal ID (PK) |
+| `channel_id` | TEXT | Channel ID im Portal (PK) |
+| `portal_name` | TEXT | Portal-Anzeigename |
+| `name` | TEXT | Originaler Kanalname |
+| `number` | TEXT | Originale Kanalnummer |
+| `genre` | TEXT | Originale Gruppe/Genre |
+| `genre_id` | TEXT | Originale Genre-ID |
+| `logo` | TEXT | Logo-URL |
+| `custom_name` | TEXT | Benutzerdefinierter Name |
+| `custom_number` | TEXT | Benutzerdefinierte Nummer |
+| `custom_genre` | TEXT | Benutzerdefinierte Gruppe |
+| `custom_epg_id` | TEXT | Benutzerdefinierte EPG-ID |
+| `enabled` | INTEGER | 1/0 aktiv |
+| `auto_name` | TEXT | Automatisch normalisierter Name |
+| `display_name` | TEXT | Effektiver Name für UI/Sortierung |
+| `resolution` | TEXT | Auflösungstag |
+| `video_codec` | TEXT | Codec-Tag |
+| `country` | TEXT | Länder-/Regionscode |
+| `event_tags` | TEXT | Event-Tags (CSV/serialisiert) |
+| `misc_tags` | TEXT | Sonstige Tags (CSV/serialisiert) |
+| `matched_name` | TEXT | Gematchter externer Name |
+| `matched_source` | TEXT | Match-Quelle |
+| `matched_station_id` | TEXT | Gematchte Station-ID |
+| `matched_call_sign` | TEXT | Gematchtes Call Sign |
+| `matched_logo` | TEXT | Gematchtes Logo |
+| `matched_score` | REAL | Match-Score |
+| `is_header` | INTEGER | 1/0 Header-Kanal |
+| `is_event` | INTEGER | 1/0 Event-Kanal |
+| `is_raw` | INTEGER | 1/0 RAW-Kanal |
+| `available_macs` | TEXT | Verfügbare MACs (serialisiert) |
+| `alternate_ids` | TEXT | Alternate IDs (serialisiert) |
+| `cmd` | TEXT | Gecachte Stream-Command/URL |
+| `channel_hash` | TEXT | Hash für Incremental-Refresh |
 
 Indexes:
-- `idx_channels_enabled` on `channels(enabled)`
-- `idx_channels_name` on `channels(name)`
-- `idx_channels_display_name` on `channels(display_name)`
-- `idx_channels_portal_id` on `channels(portal_id)`
-- `idx_channels_portal_name` on `channels(portal_name)`
-- `idx_channels_genre_id` on `channels(genre_id)`
-- `idx_channels_resolution` on `channels(resolution)`
-- `idx_channels_video_codec` on `channels(video_codec)`
-- `idx_channels_country` on `channels(country)`
-- `idx_channels_is_event` on `channels(is_event)`
-- `idx_channels_is_raw` on `channels(is_raw)`
-- `idx_channels_is_header` on `channels(is_header)`
+- `idx_channels_enabled` on `(enabled)`
+- `idx_channels_name` on `(name)`
+- `idx_channels_display_name` on `(display_name)`
+- `idx_channels_portal_id` on `(portal_id)`
+- `idx_channels_portal_name` on `(portal_name)`
+- `idx_channels_genre_id` on `(genre_id)`
+- `idx_channels_resolution` on `(resolution)`
+- `idx_channels_video_codec` on `(video_codec)`
+- `idx_channels_country` on `(country)`
+- `idx_channels_is_event` on `(is_event)`
+- `idx_channels_is_raw` on `(is_raw)`
+- `idx_channels_is_header` on `(is_header)`
 
-## Table: `groups`
+---
+
+### Table: `groups`
+
+Primary Key: `(portal_id, genre_id)`
 
 | Field | Type | Purpose |
 |---|---|---|
-| `portal_id` | TEXT | Portal ID (part of primary key) |
-| `genre_id` | TEXT | Genre ID (part of primary key) |
-| `name` | TEXT | Group/genre name |
-| `channel_count` | INTEGER | Number of channels in the group |
-| `active` | INTEGER | 1/0 whether group is active |
+| `portal_id` | TEXT | Portal ID (PK) |
+| `genre_id` | TEXT | Genre-ID (PK) |
+| `name` | TEXT | Gruppenname |
+| `channel_count` | INTEGER | Anzahl Kanäle in Gruppe |
+| `active` | INTEGER | 1/0 Gruppe aktiv |
 
 Index:
-- `idx_groups_active` on `groups(portal_id, active)`
+- `idx_groups_active` on `(portal_id, active)`
 
-## Table: `portal_stats`
+---
 
-| Field | Type | Purpose |
-|---|---|---|
-| `portal_id` | TEXT | Portal ID (primary key) |
-| `portal_name` | TEXT | Display name of portal |
-| `total_channels` | INTEGER | Total channels for portal |
-| `active_channels` | INTEGER | Enabled channels for portal |
-| `total_groups` | INTEGER | Total groups for portal |
-| `active_groups` | INTEGER | Active groups for portal |
-| `updated_at` | TEXT | ISO timestamp of last update |
+### Table: `portal_stats`
 
-## Table: `channel_tags`
+Primary Key: `portal_id`
 
 | Field | Type | Purpose |
 |---|---|---|
-| `portal_id` | TEXT | Portal ID (part of primary key) |
-| `channel_id` | TEXT | Channel ID (part of primary key) |
-| `tag_type` | TEXT | Tag category (e.g. event, misc) |
-| `tag_value` | TEXT | Tag value |
+| `portal_id` | TEXT | Portal ID (PK) |
+| `portal_name` | TEXT | Portalname |
+| `total_channels` | INTEGER | Gesamtkanäle |
+| `active_channels` | INTEGER | Aktive Kanäle |
+| `total_groups` | INTEGER | Gesamtgruppen |
+| `active_groups` | INTEGER | Aktive Gruppen |
+| `updated_at` | TEXT | Letzte Aktualisierung |
+
+Index:
+- `idx_portal_stats_name` on `(portal_name)`
+
+---
+
+### Table: `channel_tags`
+
+Primary Key: `(portal_id, channel_id, tag_type, tag_value)`
+
+| Field | Type | Purpose |
+|---|---|---|
+| `portal_id` | TEXT | Portal ID (PK) |
+| `channel_id` | TEXT | Channel ID (PK) |
+| `tag_type` | TEXT | Tag-Typ (`event`, `misc`, ...) |
+| `tag_value` | TEXT | Tag-Wert |
 
 Indexes:
-- `idx_channel_tags_type_value` on `channel_tags(tag_type, tag_value)`
-- `idx_channel_tags_channel` on `channel_tags(portal_id, channel_id)`
+- `idx_channel_tags_type_value` on `(tag_type, tag_value)`
+- `idx_channel_tags_channel` on `(portal_id, channel_id)`
 
-## Table: `group_stats`
+---
+
+### Table: `group_stats`
+
+Primary Key: `(portal_id, group_name)`
 
 | Field | Type | Purpose |
 |---|---|---|
 | `portal_id` | TEXT | Portal ID |
-| `portal_name` | TEXT | Display name of portal |
-| `group_name` | TEXT | Group/genre name |
-| `channel_count` | INTEGER | Channels in group |
-| `updated_at` | TEXT | ISO timestamp of last update |
+| `portal_name` | TEXT | Portalname |
+| `group_name` | TEXT | Gruppenname |
+| `channel_count` | INTEGER | Kanalanzahl |
+| `updated_at` | TEXT | Letzte Aktualisierung |
 
 Index:
-- `idx_group_stats_portal_id` on `group_stats(portal_id)`
+- `idx_group_stats_portal_id` on `(portal_id)`
 
-## Table: `epg_sources`
+---
 
-| Field | Type | Purpose |
-|---|---|---|
-| `source_id` | TEXT | Source ID (portal ID or custom source ID) |
-| `name` | TEXT | Display name of the source |
-| `url` | TEXT | Source URL (for custom sources) |
-| `source_type` | TEXT | `portal` or `custom` |
-| `enabled` | INTEGER | 1/0 whether source is enabled |
-| `interval_hours` | REAL | Refresh interval |
-| `last_fetch` | REAL | Last fetch timestamp (epoch) |
-| `last_refresh` | REAL | Last refresh timestamp (epoch) |
+### Table: `epg_sources`
 
-## Table: `epg_channels`
+Primary Key: `source_id`
 
 | Field | Type | Purpose |
 |---|---|---|
-| `source_id` | TEXT | Source ID (part of primary key) |
-| `channel_id` | TEXT | EPG channel ID (part of primary key) |
-| `display_name` | TEXT | Display name from source |
-| `icon` | TEXT | Icon/logo URL |
-| `lcn` | TEXT | LCN/number if provided |
-| `updated_at` | REAL | Timestamp of last update |
+| `source_id` | TEXT | Source-ID (Portal oder Custom) |
+| `name` | TEXT | Anzeigename |
+| `url` | TEXT | URL (bei Custom-Source) |
+| `source_type` | TEXT | `portal` oder `custom` |
+| `enabled` | INTEGER | 1/0 aktiv |
+| `interval_hours` | REAL | Refresh-Intervall |
+| `last_fetch` | REAL | Letzter Download (epoch) |
+| `last_refresh` | REAL | Letzter vollständiger Refresh (epoch) |
+
+---
+
+### Table: `epg_channels`
+
+Primary Key: `(source_id, channel_id)`
+
+| Field | Type | Purpose |
+|---|---|---|
+| `source_id` | TEXT | Source-ID (PK) |
+| `channel_id` | TEXT | EPG Channel-ID (PK) |
+| `display_name` | TEXT | Anzeigename aus Source |
+| `icon` | TEXT | Icon/Logo |
+| `lcn` | TEXT | Logical Channel Number |
+| `updated_at` | REAL | Aktualisierungszeit |
 
 Indexes:
-- `idx_epg_channels_channel` on `epg_channels(channel_id)`
-- `idx_epg_channels_source` on `epg_channels(source_id)`
+- `idx_epg_channels_channel` on `(channel_id)`
+- `idx_epg_channels_source` on `(source_id)`
 
-## Table: `epg_channel_names`
+---
+
+### Table: `epg_channel_names`
+
+Primary Key: `(source_id, channel_id, name)`
 
 | Field | Type | Purpose |
 |---|---|---|
-| `source_id` | TEXT | Source ID (part of primary key) |
-| `channel_id` | TEXT | EPG channel ID (part of primary key) |
-| `name` | TEXT | Alternate display name |
+| `source_id` | TEXT | Source-ID (PK) |
+| `channel_id` | TEXT | Channel-ID (PK) |
+| `name` | TEXT | Alternativname |
 
 Index:
-- `idx_epg_channel_names_name` on `epg_channel_names(name)`
+- `idx_epg_channel_names_name` on `(name)`
 
-## Per-source DB: `epg_programmes`
+---
 
-Location: `/app/data/epg_sources/<source_id>.sqlite`
+### Table: `event_rules`
+
+Primary Key: `id` (AUTOINCREMENT)
 
 | Field | Type | Purpose |
 |---|---|---|
-| `channel_id` | TEXT | EPG channel ID |
-| `start` | TEXT | XMLTV start timestamp string |
-| `stop` | TEXT | XMLTV stop timestamp string |
-| `start_ts` | INTEGER | Start timestamp (epoch) |
-| `stop_ts` | INTEGER | Stop timestamp (epoch) |
-| `title` | TEXT | Programme title |
-| `description` | TEXT | Programme description |
+| `id` | INTEGER | Regel-ID |
+| `name` | TEXT | Regelname |
+| `enabled` | INTEGER | 1/0 aktiv |
+| `sport` | TEXT | Sportfilter |
+| `league_filters` | TEXT | Liga-Filter (JSON) |
+| `team_filters` | TEXT | Team-Filter (JSON) |
+| `channel_groups` | TEXT | Gruppenfilter (JSON) |
+| `channel_regex` | TEXT | Kanalname-Regex |
+| `epg_pattern` | TEXT | EPG-Pattern |
+| `extract_regex` | TEXT | Regex für Home/Away-Extraktion |
+| `output_template` | TEXT | Ausgabe-Template Kanalname |
+| `priority` | INTEGER | Priorität |
+| `created_at` | TEXT | Erstellt |
+| `updated_at` | TEXT | Aktualisiert |
+| `output_group_name` | TEXT | Zielgruppe für generierte Kanäle |
+| `channel_number_start` | INTEGER | Startnummer für generierte Kanäle |
+| `provider` | TEXT | Provider (`sportsdb`, `espn`) |
+| `use_espn_events` | INTEGER | ESPN Scoreboard-Modus |
+| `espn_event_window_hours` | INTEGER | Event-Zeitfenster in Stunden |
 
 Indexes:
-- `idx_epg_programmes_channel` on `epg_programmes(channel_id)`
-- `idx_epg_programmes_start` on `epg_programmes(start_ts)`
-- `idx_epg_programmes_stop` on `epg_programmes(stop_ts)`
+- `idx_event_rules_enabled` on `(enabled)`
+- `idx_event_rules_priority` on `(priority)`
+
+---
+
+### Table: `event_generated_channels`
+
+Primary Key: `(portal_id, channel_id)`
+
+| Field | Type | Purpose |
+|---|---|---|
+| `portal_id` | TEXT | Erstellter Kanal: Portal-ID |
+| `channel_id` | TEXT | Erstellter Kanal: Channel-ID |
+| `event_id` | TEXT | Externe Event-ID |
+| `created_at` | REAL | Erstellzeit |
+| `expires_at` | REAL | Ablaufzeit |
+| `source_portal_id` | TEXT | Quellportal des gematchten Streams |
+| `source_channel_id` | TEXT | Quellkanal des gematchten Streams |
+| `rule_id` | INTEGER | Verweis auf `event_rules.id` |
+| `event_home` | TEXT | Heimteam |
+| `event_away` | TEXT | Auswärtsteam |
+| `event_start` | TEXT | Spielstart |
+| `event_sport` | TEXT | Sport |
+| `event_league` | TEXT | Liga |
+
+Indexes:
+- `idx_event_generated_event` on `(event_id)`
+- `idx_event_generated_source` on `(source_portal_id, source_channel_id)`
+
+---
+
+### SportsDB Cache Tables
+
+#### `sportsdb_sports_cache`
+- PK: `sport_name`
+- Felder: `sport_name`, `sport_id`, `updated_at`, `raw_json`
+
+#### `sportsdb_leagues_cache`
+- PK: `league_id`
+- Felder: `league_id`, `league_name`, `sport_name`, `updated_at`, `raw_json`
+- Index: `idx_sportsdb_leagues_sport` on `(sport_name)`
+
+#### `sportsdb_teams_cache`
+- PK: `team_id`
+- Felder: `team_id`, `team_name`, `league_id`, `league_name`, `sport_name`, `updated_at`, `raw_json`, `team_aliases`
+- Indexes:
+  - `idx_sportsdb_teams_league_id` on `(league_id)`
+  - `idx_sportsdb_teams_league_name` on `(league_name)`
+
+---
+
+### ESPN Cache Tables
+
+#### `espn_sports_cache`
+- PK: `sport_key`
+- Felder: `sport_key`, `sport_name`, `updated_at`, `raw_json`
+
+#### `espn_leagues_cache`
+- PK: `league_key`
+- Felder: `league_key`, `league_name`, `sport_key`, `updated_at`, `raw_json`
+- Index: `idx_espn_leagues_sport` on `(sport_key)`
+
+#### `espn_teams_cache`
+- PK: `team_key`
+- Felder: `team_key`, `team_id`, `team_name`, `team_aliases`, `sport_key`, `league_key`, `league_name`, `updated_at`, `raw_json`
+- Index: `idx_espn_teams_league` on `(league_key)`
+
+#### `espn_scoreboard_cache`
+- PK: `(league_key, date_key)`
+- Felder: `league_key`, `date_key`, `fetched_at`, `raw_json`
+
+---
+
+## Per-source EPG DBs: `data/epg_sources/<source_id>.sqlite`
+
+### Table: `epg_programmes`
+
+| Field | Type | Purpose |
+|---|---|---|
+| `channel_id` | TEXT | EPG Channel-ID |
+| `start` | TEXT | XMLTV Start (raw) |
+| `stop` | TEXT | XMLTV Stop (raw) |
+| `start_ts` | INTEGER | Start als epoch |
+| `stop_ts` | INTEGER | Stop als epoch |
+| `title` | TEXT | Programmtitel |
+| `description` | TEXT | Beschreibung |
+| `sub_title` | TEXT | Untertitel |
+| `categories` | TEXT | Kategorien (serialisiert) |
+| `episode_num` | TEXT | Episodennummer |
+| `episode_system` | TEXT | Episoden-System |
+| `rating` | TEXT | Altersfreigabe/Rating |
+| `programme_icon` | TEXT | Programm-Icon |
+| `air_date` | TEXT | Ausstrahlungsdatum |
+| `previously_shown` | INTEGER | Wiederholung 1/0 |
+| `series_id` | TEXT | Serien-ID |
+| `extra_json` | TEXT | Zusätzliche XML-Felder (JSON) |
+
+Indexes:
+- `idx_epg_programmes_channel` on `(channel_id)`
+- `idx_epg_programmes_start` on `(start_ts)`
+- `idx_epg_programmes_stop` on `(stop_ts)`
+

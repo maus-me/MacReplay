@@ -85,7 +85,7 @@ patterns = {
 - ⬜ Responsive Design für Mobile verbessern
 - ⬜ Tastatur-Shortcuts (z.B. `/` für Suche)
 - ⬜ Sortierung der Portale per Drag & Drop
-- ⬜ Settings neu strukturieren (Side-Nav + mehrere Seiten, klare Sektionen)
+- ✅ Settings neu strukturieren (Side-Nav + mehrere Seiten, klare Sektionen)
 - ⬜ Settings: Globale Portal-Defaults in Settings, Portal-Verwaltung bleibt in `/portals`
 - ✅ Kompakte Ansicht für Channel-Liste
 - ✅ Editor: Aufklappbare Subline mit Match-Details + EPG-ID Edit
@@ -95,6 +95,7 @@ patterns = {
 - ✅ Editor: EPG-Refresh pro Channel (Button in der Subline)
 - ✅ Editor: EPG-Refresh für geänderte EPG-IDs nach Save
 - ⬜ Editor: Subline Inhalte konfigurierbar (ein-/ausblenden)
+- 🔄 Editor: Gruppierung gleicher Channels (Match + Tags) + Bulk-Edit für Gruppe
 
 ### Tagging & Name Normalisierung
 - ✅ Auto-Normalisierung pro Portal (optional)
@@ -222,9 +223,16 @@ Die Stalker Portal API liefert via `?type=stb&action=get_profile` zusätzliche I
 
 ---
 
-## Settings UX / Struktur
+## Settings UX
 
-- 🔄 Settings-Menü neu strukturieren (Abschnitte gruppieren, klarere Labels)
+- ✅ Settings-Menü neu strukturieren (Abschnitte gruppieren, klarere Labels)
+- ✅ Linke Navigation oder Tabs für schnelle Orientierung
+- ⬜ Suchfeld für Settings (Filterung nach Label/Keyword)
+- ⬜ Zusammenfassung oben (z. B. aktive Scheduler, letzter Refresh, DB-Status)
+- ⬜ „Danger Zone“ klar getrennt (Reset, Delete, Vacuum, etc.)
+- ✅ Einheitliche Bestätigungs-Modal-UX für alle Aktionen
+- ⬜ Kontext-Hilfen/Tooltips für komplexe Felder
+- ⬜ Inline-Validierung und bessere Fehlermeldungen
 - ⬜ Settings: Auto-Group-Selection visuell erklären (Beispiele/Preview)
 - ✅ Settings: Auto-Group-Selection (Patterns) + Button "Lade Standarts" in Gruppen-Modal
 
@@ -277,6 +285,10 @@ Die Stalker Portal API liefert via `?type=stb&action=get_profile` zusätzliche I
 - ⬜ Kein EPG für Event-Channels nötig (Name = Info)
 - ⬜ Konfigurierbare Regeln (welche Channels, welche Event-Typen)
 - ⬜ Automatische Löschung nach Event-Ende
+
+### Event-Channels (ESPN)
+- 🔄 ESPN-Provider: Sport/Liga-Auswahl, Upcoming-Events, Output-Template, Preview
+- 🔄 Matching von ESPN-Events gegen EPG (inkl. Zeitfenster)
 
 **EPG-Muster Beispiele:**
 ```
@@ -353,19 +365,6 @@ EPG-Eintrag:      "Live BL: Werder Bremen - TSG Hoffenheim" @ 15:30
 - ⬜ Entwickler-Setup Guide
 - ⬜ FAQ / Troubleshooting
 - ⬜ Video-Tutorials
-
----
-
-## Settings UX
-
-- ⬜ Settings in klare Sektionen gliedern (z. B. Allgemein, Portale, EPG, Datenbank, Sicherheit, Debug)
-- ⬜ Linke Navigation oder Tabs für schnelle Orientierung
-- ⬜ Suchfeld für Settings (Filterung nach Label/Keyword)
-- ⬜ Zusammenfassung oben (z. B. aktive Scheduler, letzter Refresh, DB-Status)
-- ⬜ „Danger Zone“ klar getrennt (Reset, Delete, Vacuum, etc.)
-- ⬜ Einheitliche Bestätigungs-Modal-UX für alle Aktionen
-- ⬜ Kontext-Hilfen/Tooltips für komplexe Felder
-- ⬜ Inline-Validierung und bessere Fehlermeldungen
 
 ---
 
