@@ -178,6 +178,9 @@ def create_misc_blueprint(*, LOG_DIR, occupied, refresh_custom_sources=None, get
 
     @bp.route("/<path:path>")
     def catch_all(path):
+        if path.startswith("static/"):
+            return flask.current_app.send_static_file(path[7:])
+
         if path == "portals":
             return redirect("/api/portals", code=302)
         if path == "editor":
