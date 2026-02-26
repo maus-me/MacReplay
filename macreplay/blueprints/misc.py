@@ -174,10 +174,7 @@ def create_misc_blueprint(*, LOG_DIR, occupied, refresh_custom_sources=None, get
 
     @bp.route("/", methods=["GET"])
     def home():
-        try:
-            return flask.current_app.send_static_file("dist/index.html")
-        except Exception:
-            return redirect("/api/portals", code=302)
+        return redirect("/api/portals", code=302)
 
     @bp.route("/<path:path>")
     def catch_all(path):
@@ -190,9 +187,6 @@ def create_misc_blueprint(*, LOG_DIR, occupied, refresh_custom_sources=None, get
         if path == "dashboard":
             return redirect("/api/dashboard", code=302)
 
-        try:
-            return flask.current_app.send_static_file(f"dist/{path}")
-        except Exception:
-            return redirect("/api/portals", code=302)
+        return redirect("/api/portals", code=302)
 
     return bp
